@@ -1,166 +1,140 @@
-// api/leer-lista.js
-// Vercel Serverless Function — proxy para Claude Vision
-// Se llama desde el frontend en /api/leer-lista
+// api/leer-lista.js — Vercel Serverless Function
+// Usa Google Gemini 2.0 Flash (GRATIS, sin tarjeta de crédito)
+// Obtén tu key gratis en: https://aistudio.google.com/apikey
 
 export default async function handler(req, res) {
-  // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { imagen_b64, media_type } = req.body;
+  if (!imagen_b64) return res.status(400).json({ error: 'Se requiere imagen_b64' });
 
-  if (!imagen_b64) {
-    return res.status(400).json({ error: 'Se requiere imagen_b64' });
-  }
+  const GEMINI_KEY = process.env.GEMINI_API_KEY;
+  if (!GEMINI_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY no configurada en Vercel Environment Variables' });
 
-  const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
-  if (!ANTHROPIC_KEY) {
-    return res.status(500).json({ error: 'ANTHROPIC_API_KEY no configurada en Vercel' });
-  }
+  const prompt = `Eres experto en listas de corte de melamina para carpintería en Perú.
+Tu tarea: leer esta imagen y extraer TODAS las piezas de corte en formato JSON.
 
-  const prompt = `Eres un experto en listas de corte de melamina para carpintería en Perú.
-Tu tarea es leer esta imagen que puede ser:
-- Una lista manuscrita del CLIENTE con medidas de corte
-- Un documento con formato de tabla de la VENDEDORA
+=== FORMATOS QUE PUEDE TENER LA IMAGEN ===
 
-FORMATO DEL CLIENTE (manuscrito):
-Las listas de clientes usan el formato: LARGO x ANCHO = CANTIDAD
-Ejemplo: "206 x 80 = 2" significa: Largo=206, Ancho=80, Cantidad=2
-A veces la cantidad va al inicio: "2 → 206 x 80" o "2 pzs 206x80"
-Los cantos van después: D=delgado, G=grueso, - (guión)=delgado, ~=grueso
-Las notas de cantos pueden aparecer como: "DO" (delgado solo en un lado), "DD" (delgado en dos lados), "GG" (grueso en dos lados)
-La posición de cantos: L1=lado largo superior, L2=lado largo inferior, A1=lado ancho izquierdo, A2=lado ancho derecho
-El material puede estar indicado al inicio de una sección: "Melamine Blanco", "Caramelo", "Pamela", etc.
-Si hay varias secciones separadas por material, cada sección tiene su propio material.
+FORMATO CLIENTE (manuscrito más común):
+  "206 x 80 = 2" → Largo=206mm, Ancho=80mm, Cantidad=2
+  "2 → 206x80" o "2 pzs 206x80" → mismo significado
+  "6→ 814x80 DD" → 6 piezas, largo=814, ancho=80, cantos L1=D, L2=D
+  Las medidas SIEMPRE son en mm. Si ves 206 → 206mm.
 
-REGLAS DE INTERPRETACIÓN DE CANTOS:
-- "D" o "-" = Delgado (D)
-- "G" o "~" = Grueso (G)  
-- "DO" = Solo un canto delgado (pon D en L1, vacío en el resto)
-- "DD" = Dos cantos delgados (pon D en L1 y L2)
-- "GG" = Dos cantos gruesos (pon G en L1 y L2)
-- "DM" = Doble canto delgado (pon D en L1 y L2)
-- "GM" = Doble canto grueso (pon G en L1 y L2)
-- Sin indicación = dejar vacío ("")
-- Si hay letras después de las medidas como "D G" = L1:D, L2:G
-- Ignora dibujos, esquemas y bocetos de muebles
-- Interpreta texto manuscrito aunque tenga errores o sea difícil de leer
+SECCIONES POR MATERIAL: La lista puede tener secciones separadas por color/material:
+  "Melamine Blanco:", "Caramelo:", "Pamela:", "Onix:", "Bardolino:", etc.
+  Cada sección aplica ese material a todas sus piezas.
 
-FORMATO DE LA VENDEDORA (tabla):
-Las tablas de vendedora tienen columnas: Cant, Largo, Ancho, Veta, L1, L2, A1, A2
-Los largos pueden tener puntos como separadores de miles: "1.304,0" = 1304mm, "206,0" = 206mm
+FORMATO VENDEDORA (tabla impresa/digital):
+  Columnas: Cant | Largo | Ancho | Veta | L1 | L2 | A1 | A2
+  Los números pueden tener puntos: "1.304,0" = 1304mm, "2.060,0" = 2060mm
 
-IMPORTANTE:
-- Largo y Ancho siempre en MILÍMETROS (mm). Si ves "206" asume mm.
-- Si las medidas parecen estar en cm (valores < 10), multiplica x 10 para convertir a mm.
-- Material por defecto: "MELA PELIKANO BLANCO" si no se indica otro.
-- Ignora completamente dibujos, esquemas, flechas y bocetos.
-- Extrae TODAS las piezas que veas en la imagen.
+=== REGLAS PARA CANTOS ===
+Posiciones: L1=largo superior, L2=largo inferior, A1=ancho izquierdo, A2=ancho derecho
+  D o - (guion)  → "D" (canto delgado)
+  G o ~ (virgulilla) → "G" (canto grueso)
+  DO             → D solo en L1, resto vacío
+  DD             → D en L1 y L2
+  GG             → G en L1 y L2
+  DM             → "DM" (doble delgado ambos largos)
+  GM             → "GM" (doble grueso ambos largos)
+  Sin indicación → "" (vacío)
+  "D G"          → L1="D", L2="G"
+  "GC PPPP"      → L1="G" en el contorno, ignorar letras extra
+  "6cppp GG"     → L1="G", L2="G" (GG)
 
-RESPONDE ÚNICAMENTE con un JSON válido, sin texto adicional, sin explicaciones, sin bloques de código.
-La estructura debe ser exactamente esta:
+=== REGLAS GENERALES ===
+- IGNORA dibujos, bocetos y esquemas de muebles
+- Si un valor es ilegible o ambiguo, ponlo en obs como "REVISAR: [lo que viste]"
+- Material por defecto si no se indica: "MELA PELIKANO BLANCO"
+- Convierte cm a mm si las medidas son claramente pequeñas (< 30 → multiplica x 10)
+- Extrae ABSOLUTAMENTE TODAS las piezas de la imagen
 
-{"piezas":[{"material":"MELA PELIKANO BLANCO","qty":2,"largo":206,"ancho":80,"veta":"1-Longitud","l1":"D","l2":"D","a1":"","a2":"","obs":""}]}
+=== RESPUESTA ===
+RESPONDE ÚNICAMENTE con JSON válido, sin texto adicional, sin explicaciones, sin bloques de código markdown.
 
-Campos obligatorios por pieza:
-- material: string (nombre del material, default "MELA PELIKANO BLANCO")
-- qty: número entero (cantidad de piezas)
-- largo: número entero en mm
-- ancho: número entero en mm
-- veta: "1-Longitud" o "2-Ancho" o "Sin veta" (default "1-Longitud")
-- l1: "D", "G", "DM", "GM" o "" (canto lado largo superior)
-- l2: "D", "G", "DM", "GM" o "" (canto lado largo inferior)
-- a1: "D", "G", "DM", "GM" o "" (canto lado ancho izquierdo)
-- a2: "D", "G", "DM", "GM" o "" (canto lado ancho derecho)
-- obs: string con observaciones especiales o "" si no hay
+{"piezas":[
+  {"material":"MELA PELIKANO BLANCO","qty":2,"largo":206,"ancho":80,"veta":"1-Longitud","l1":"D","l2":"D","a1":"","a2":"","obs":""},
+  {"material":"MELA PELIKANO CARAMELO","qty":1,"largo":1304,"ancho":100,"veta":"1-Longitud","l1":"G","l2":"G","a1":"G","a2":"G","obs":"REVISAR: medida superior ilegible"}
+]}
 
-Si ves algún valor que no puedes interpretar con certeza, escríbelo en el campo "obs" con el texto "REVISAR: [valor dudoso]".
+Campos por pieza:
+- material: nombre completo del material
+- qty: cantidad (entero)
+- largo: milímetros (entero)
+- ancho: milímetros (entero)
+- veta: "1-Longitud" | "2-Ancho" | "Sin veta"
+- l1, l2, a1, a2: "D" | "G" | "DM" | "GM" | ""
+- obs: observación o "" — usa "REVISAR: xxx" si algo es dudoso
 
-RESPONDE SOLO EL JSON. Nada más.`;
+SOLO EL JSON. NADA MÁS.`;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 4096,
-        messages: [
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`;
+
+    const body = {
+      contents: [{
+        parts: [
           {
-            role: 'user',
-            content: [
-              {
-                type: 'image',
-                source: {
-                  type: 'base64',
-                  media_type: media_type || 'image/jpeg',
-                  data: imagen_b64,
-                },
-              },
-              {
-                type: 'text',
-                text: prompt,
-              },
-            ],
+            inline_data: {
+              mime_type: media_type || 'image/jpeg',
+              data: imagen_b64
+            }
           },
-        ],
-      }),
+          { text: prompt }
+        ]
+      }],
+      generationConfig: {
+        temperature: 0.1,
+        maxOutputTokens: 8192,
+        responseMimeType: 'application/json'
+      }
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
     });
 
     if (!response.ok) {
-      const errorBody = await response.text();
-      console.error('Anthropic API error:', response.status, errorBody);
-      return res.status(502).json({
-        error: 'Error al llamar a la API de Claude',
-        status: response.status,
-        detalle: errorBody.slice(0, 300),
-      });
+      const err = await response.text();
+      console.error('Gemini error:', response.status, err);
+      return res.status(502).json({ error: 'Error de Gemini API', status: response.status, detalle: err.slice(0, 300) });
     }
 
     const data = await response.json();
-    const texto = (data.content || []).map((c) => c.text || '').join('');
+    const texto = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
-    // Extraer JSON limpio
-    const match = texto.match(/\{[\s\S]*\}/);
+    if (!texto) {
+      return res.status(422).json({ error: 'Gemini no devolvió texto', data_raw: JSON.stringify(data).slice(0, 300) });
+    }
+
+    // Limpiar y parsear JSON
+    const clean = texto.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const match = clean.match(/\{[\s\S]*\}/);
     if (!match) {
-      return res.status(422).json({
-        error: 'La IA no devolvió un JSON válido',
-        respuesta_raw: texto.slice(0, 500),
-      });
+      return res.status(422).json({ error: 'No se encontró JSON en la respuesta', respuesta_raw: texto.slice(0, 500) });
     }
 
     let parsed;
     try {
       parsed = JSON.parse(match[0]);
     } catch (e) {
-      return res.status(422).json({
-        error: 'JSON inválido en la respuesta de la IA',
-        respuesta_raw: match[0].slice(0, 500),
-      });
+      return res.status(422).json({ error: 'JSON inválido', respuesta_raw: match[0].slice(0, 500) });
     }
 
     if (!parsed.piezas || !Array.isArray(parsed.piezas)) {
-      return res.status(422).json({
-        error: 'El JSON no tiene el campo "piezas"',
-        respuesta_parsed: parsed,
-      });
+      return res.status(422).json({ error: 'JSON sin campo "piezas"', parsed });
     }
 
-    // Normalizar y validar cada pieza
-    parsed.piezas = parsed.piezas.map((p, idx) => ({
+    // Normalizar cada pieza
+    parsed.piezas = parsed.piezas.map(p => ({
       material: p.material || 'MELA PELIKANO BLANCO',
       qty: Math.max(1, parseInt(p.qty) || 1),
       largo: Math.round(parseFloat(String(p.largo).replace(',', '.')) || 0),
@@ -170,12 +144,13 @@ RESPONDE SOLO EL JSON. Nada más.`;
       l2: p.l2 || '',
       a1: p.a1 || '',
       a2: p.a2 || '',
-      obs: p.obs || '',
+      obs: p.obs || ''
     }));
 
     return res.status(200).json(parsed);
+
   } catch (err) {
     console.error('Error en leer-lista:', err);
-    return res.status(500).json({ error: 'Error interno', detalle: err.message });
+    return res.status(500).json({ error: 'Error interno del servidor', detalle: err.message });
   }
 }
