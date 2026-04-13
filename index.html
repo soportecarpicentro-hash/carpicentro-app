@@ -80,6 +80,9 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .ais.ld{background:var(--redl);color:var(--red2);}
 .ais.ok{background:#E8F5E9;color:#1B5E20;}
 .ais.er{background:#FFF3E0;color:#E65100;}
+.ais.wr{background:#FFFDE7;color:#F57F17;border:1px solid #FFD600;}
+tr.duda td{background:#FFFDE7 !important;}
+tr.duda td .ti, tr.duda td .tis{background:#FFFDE7;}
 .spin{width:18px;height:18px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:sp .7s linear infinite;flex-shrink:0;}
 @keyframes sp{to{transform:rotate(360deg)}}
 
@@ -748,31 +751,47 @@ function procesarImg(f){
 }
 
 function llamarIA(b64,mt){
-  var prompt='Eres experto en listas de corte de melamina para carpintería en Perú.\n'
-    +'Extrae TODAS las piezas. Formato típico: "6→ 814x80 DD"=6 pzs, largo 814, ancho 80, L1:D L2:D.\n'
-    +'Cantos: D=delgado, G=grueso, DM=doble delgado, GM=doble grueso, -=sin canto.\n'
-    +'Posición en orden: L1(largo sup), L2(largo inf), A1(ancho izq), A2(ancho der).\n'
-    +'Material si se indica (Blanco, Caramelo, Pamela, Onix, Capri, Madera). Default: MELA PELIKANO BLANCO.\n'
-    +'Observaciones: perforación LED, ranura, bisagra, sin canto, etc.\n'
-    +'Si hay secciones por color, respeta el material de cada sección.\n'
-    +'RESPONDE SOLO JSON sin texto adicional:\n'
-    +'{"piezas":[{"material":"MELA PELIKANO BLANCO","qty":6,"largo":814,"ancho":80,"veta":"1-Longitud","l1":"D","l2":"D","a1":"","a2":"","obs":""}]}';
-  fetch('https://api.anthropic.com/v1/messages',{
+  // Proxy serverless en Vercel — evita CORS con la API de Anthropic
+  fetch('/api/leer-lista',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,
-      messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:mt,data:b64}},{type:'text',text:prompt}]}]})
+    body:JSON.stringify({imagen_b64:b64, media_type:mt||'image/jpeg'})
   })
-  .then(function(r){ return r.json(); })
-  .then(function(d){
-    var txt=(d.content||[]).map(function(c){ return c.text||''; }).join('');
-    var m=txt.match(/\{[\s\S]*\}/); if(!m) throw 0;
-    var parsed=JSON.parse(m[0]); if(!parsed.piezas||!parsed.piezas.length) throw 0;
-    pcs=parsed.piezas.map(function(p){ return {material:p.material||'MELA PELIKANO BLANCO',qty:Math.max(1,parseInt(p.qty)||1),largo:parseInt(p.largo)||'',ancho:parseInt(p.ancho)||'',veta:p.veta||'1-Longitud',l1:p.l1||'',l2:p.l2||'',a1:p.a1||'',a2:p.a2||'',obs:p.obs||''}; });
-    setAI('ok','✓ Se detectaron <strong>'+pcs.length+' tipos de pieza</strong>. Revisa y corrige si algo no está bien.');
+  .then(function(r){
+    if(!r.ok) return r.json().then(function(e){throw new Error(e.error||'Error '+r.status);});
+    return r.json();
+  })
+  .then(function(parsed){
+    if(!parsed.piezas||!parsed.piezas.length) throw new Error('Sin piezas detectadas');
+    var conDuda=parsed.piezas.filter(function(p){return p.obs&&p.obs.indexOf('REVISAR:')>=0;});
+    pcs=parsed.piezas.map(function(p){
+      return {
+        material:p.material||'MELA PELIKANO BLANCO',
+        qty:Math.max(1,parseInt(p.qty)||1),
+        largo:parseInt(p.largo)||'',
+        ancho:parseInt(p.ancho)||'',
+        veta:p.veta||'1-Longitud',
+        l1:p.l1||'', l2:p.l2||'', a1:p.a1||'', a2:p.a2||'',
+        obs:p.obs||'',
+        _duda:!!(p.obs&&p.obs.indexOf('REVISAR:')>=0)
+      };
+    });
+    var msg='';
+    if(conDuda.length>0){
+      msg='<div class="ais wr"><span>⚠️ Se detectaron <strong>'+pcs.length+' piezas</strong>. '
+        +'<strong>'+conDuda.length+' fila(s) en amarillo tienen valores dudosos</strong> — revísalas antes de confirmar.</span></div>';
+    } else {
+      msg='<div class="ais ok"><span>✓ Se detectaron <strong>'+pcs.length+' tipos de pieza</strong>. Revisa y corrige si algo no está bien.</span></div>';
+    }
+    el('aist').innerHTML=msg; el('aist3').innerHTML=msg;
     renderTabla(); irPaso(3);
   })
-  .catch(function(){ setAI('er','No se pudo leer automáticamente. Puedes ingresar las piezas manualmente.'); pcs=[pv(),pv(),pv()]; renderTabla(); });
+  .catch(function(err){
+    console.error('IA error:',err);
+    setAI('er','No se pudo leer: '+(err.message||'error')
+      +'. Intenta con otra foto más clara o ingresa manualmente.');
+    pcs=[pv(),pv(),pv()]; renderTabla();
+  });
 }
 
 // ── TABLA DE PIEZAS ───────────────────────────────────────
@@ -834,6 +853,7 @@ function renderTabla(){
       +'<td><select class="tis" data-i="'+i+'" data-k="a2">'+cantoOpts(p.a2)+'</select></td>'
       +'<td class="l"><input class="ti" type="text" value="'+(p.obs||'')+'" style="width:100%;text-align:left;" data-i="'+i+'" data-k="obs"></td>'
       +'<td><button type="button" class="db" data-del="'+i+'"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg></button></td>';
+    if(p._duda) tr.classList.add('duda');
     tb.appendChild(tr);
   });
   bindMatBtns(tb, pcs);
