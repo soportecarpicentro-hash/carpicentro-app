@@ -1,9 +1,12 @@
 {
   "version": 2,
-  "builds": [
-    { "src": "index.html", "use": "@vercel/static" }
-  ],
+  "functions": {
+    "api/leer-lista.js": {
+      "maxDuration": 60
+    }
+  },
   "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
