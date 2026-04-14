@@ -34,7 +34,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* VIEWS */
 .view{display:none;}.view.on{display:block;}
-.wrap{max-width:960px;margin:0 auto;padding:24px 14px 60px;}
+.wrap{max-width:1400px;margin:0 auto;padding:24px 14px 60px;}
 
 /* STEPS */
 .steps{display:flex;gap:6px;margin-bottom:22px;flex-wrap:wrap;}
@@ -134,14 +134,14 @@ tr.duda td .ti, tr.duda td .tis{background:#FFFDE7;}
 .mat-none{padding:20px;text-align:center;color:var(--tx3);font-size:14px;}
 
 /* BOTÓN MATERIAL EN TABLA */
-.mat-btn{width:100%;padding:8px 10px;border:2px solid #ddd;border-radius:7px;background:var(--bg);cursor:pointer;font-size:13px;text-align:left;display:flex;align-items:center;gap:8px;font-family:inherit;font-weight:600;min-width:180px;transition:border-color .15s;color:var(--tx3);}
+.mat-btn{width:100%;padding:6px 8px;border:2px solid #ddd;border-radius:7px;background:var(--bg);cursor:pointer;font-size:12px;text-align:left;display:flex;align-items:center;gap:6px;font-family:inherit;font-weight:600;min-width:0;transition:border-color .15s;color:var(--tx3);}
 .mat-btn.filled{color:var(--tx);border-color:#bbb;}
 .mat-btn:hover{border-color:var(--red);}
 .mat-btn-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;border:1px solid #ccc;}
 .mat-btn-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
 
 /* TABLA */
-.tw{overflow-x:auto;border-radius:var(--rads);border:2px solid var(--dark);}
+.tw{overflow-x:auto;border-radius:var(--rads);border:2px solid var(--dark);min-width:0;}
 table{width:100%;border-collapse:collapse;font-size:13px;}
 thead{background:var(--dark);}
 th{padding:11px 7px;text-align:center;font-size:10px;font-weight:700;color:var(--yellow);text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--yellow);white-space:nowrap;}
@@ -348,7 +348,7 @@ tr:hover td{background:#FFF5F5;}
       </div>
 
       <!-- TABLERO — Sección Melamina/MDF -->
-      <div class="card" style="margin-bottom:14px;overflow:hidden;">
+      <div class="card" style="margin-bottom:14px;">
         <!-- Encabezado tipo formato físico -->
         <div style="background:var(--dark);padding:10px 14px;margin:-24px -24px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
           <div>
@@ -357,12 +357,8 @@ tr:hover td{background:#FFF5F5;}
           </div>
           <!-- Toggles perforación y ranura -->
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button type="button" id="btnTogglePerf" class="ubtn" style="font-size:12px;padding:6px 13px;border-color:rgba(255,255,255,.3);color:#fff;">
-              ➕ Perforación
-            </button>
-            <button type="button" id="btnToggleRan" class="ubtn" style="font-size:12px;padding:6px 13px;border-color:rgba(255,255,255,.3);color:#fff;">
-              ➕ Ranura / Chaflán
-            </button>
+            <button type="button" id="btnTogglePerf" class="ubtn" style="font-size:11px;padding:5px 11px;border-color:rgba(255,255,255,.3);color:#fff;">➕ Perforación</button>
+            <button type="button" id="btnToggleRan" class="ubtn" style="font-size:11px;padding:5px 11px;border-color:rgba(255,255,255,.3);color:#fff;">➕ Ranura/Chaflán</button>
           </div>
         </div>
 
@@ -410,7 +406,7 @@ tr:hover td{background:#FFF5F5;}
       </div>
 
       <!-- FÓRMICA — Formato por plancha completa -->
-      <div class="card" style="margin-bottom:14px;overflow:hidden;">
+      <div class="card" style="margin-bottom:14px;">
         <div style="background:#B71C1C;padding:10px 14px;margin:-24px -24px 14px;">
           <div style="font-size:13px;font-weight:800;color:#fff;letter-spacing:.5px;">🎨 FORMATO FÓRMICA — Por plancha completa</div>
           <div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:2px;">No lleva corte ni canto — solo material y cantidad de planchas</div>
@@ -973,15 +969,15 @@ function renderTabla(){
        +'<th style="background:#A5D6A7;color:#1B5E20;font-size:9px;padding:5px 3px;width:44px;">RAN<br>LADO</th>'
        +'<th style="background:#A5D6A7;color:#1B5E20;font-size:9px;padding:5px 3px;width:70px;">RAN<br>DETALLE</th>':'';
     thBase.innerHTML=
-      '<th style="width:24px;color:var(--yellow);">#</th>'
-      +'<th class="l" style="min-width:170px;color:var(--yellow);">PRODUCTO</th>'
-      +'<th style="width:48px;color:var(--yellow);">CANT.</th>'
-      +'<th style="width:70px;color:var(--yellow);" id="thL">LARGO<br><span style="font-weight:400;font-size:9px;">(VETA)</span></th>'
-      +'<th style="width:70px;color:var(--yellow);" id="thA">ANCHO</th>'
-      +'<th style="width:52px;color:var(--yellow);">VETA</th>'
-      +'<th style="width:38px;color:var(--yellow);">L1</th><th style="width:38px;color:var(--yellow);">L2</th>'
-      +'<th style="width:38px;color:var(--yellow);">A1</th><th style="width:38px;color:var(--yellow);">A2</th>'
-      +'<th class="l" style="min-width:80px;color:var(--yellow);">OBS.</th>'
+      '<th style="width:22px;color:var(--yellow);">#</th>'
+      +'<th class="l" style="width:160px;color:var(--yellow);">PRODUCTO</th>'
+      +'<th style="width:44px;color:var(--yellow);">CANT.</th>'
+      +'<th style="width:66px;color:var(--yellow);" id="thL">LARGO<br><span style="font-weight:400;font-size:9px;">(VETA)</span></th>'
+      +'<th style="width:66px;color:var(--yellow);" id="thA">ANCHO</th>'
+      +'<th style="width:48px;color:var(--yellow);">VETA</th>'
+      +'<th style="width:36px;color:var(--yellow);">L1</th><th style="width:36px;color:var(--yellow);">L2</th>'
+      +'<th style="width:36px;color:var(--yellow);">A1</th><th style="width:36px;color:var(--yellow);">A2</th>'
+      +'<th class="l" style="min-width:70px;color:var(--yellow);">OBS.</th>'
       +perfCols+ranCols+'<th style="width:22px;"></th>';
   }
 
@@ -1009,10 +1005,10 @@ function renderTabla(){
     var cells=
       '<td style="font-size:11px;color:var(--tx3);font-weight:700;text-align:center;padding:3px 2px;">'+(i+1)+'</td>'
       +'<td style="padding:3px;">'+mkMatBtn(i,p.material,'c')+'</td>'
-      +'<td><input class="ti" type="text" inputmode="numeric" value="'+(p.qty||'')+'" placeholder="0" style="width:44px;" data-i="'+i+'" data-k="qty"></td>'
-      +'<td><input class="ti" type="text" inputmode="decimal" value="'+(p.largo||'')+'" placeholder="0" style="width:62px;" data-i="'+i+'" data-k="largo"></td>'
-      +'<td><input class="ti" type="text" inputmode="decimal" value="'+(p.ancho||'')+'" placeholder="0" style="width:62px;" data-i="'+i+'" data-k="ancho"></td>'
-      +'<td><select class="tis" data-i="'+i+'" data-k="veta" style="width:48px;">'+vetaOpts(p.veta)+'</select></td>';
+      +'<td><input class="ti" type="text" inputmode="numeric" value="'+(p.qty||'')+'" placeholder="—" style="width:44px;" data-i="'+i+'" data-k="qty"></td>'
+      +'<td><input class="ti" type="text" inputmode="decimal" value="'+(p.largo||'')+'" placeholder="—" style="width:58px;" data-i="'+i+'" data-k="largo"></td>'
+      +'<td><input class="ti" type="text" inputmode="decimal" value="'+(p.ancho||'')+'" placeholder="—" style="width:58px;" data-i="'+i+'" data-k="ancho"></td>'
+      +'<td><select class="tis" data-i="'+i+'" data-k="veta" style="width:44px;">'+vetaOpts(p.veta)+'</select></td>';
 
     if(noEc){
       // Sin canto: mostrar celda gris indicando que no aplica
@@ -1020,19 +1016,19 @@ function renderTabla(){
     } else {
       cells+=
         '<td><div style="display:flex;flex-direction:column;gap:2px;">'
-          +'<select class="tis" data-i="'+i+'" data-k="l1" style="width:38px;">'+cantoOpts(p.l1)+'</select>'
+          +'<select class="tis" data-i="'+i+'" data-k="l1" style="width:34px;font-size:11px;">'+cantoOpts(p.l1)+'</select>'
           +colorSel('l1',p.l1,p.col_l1)
         +'</div></td>'
         +'<td><div style="display:flex;flex-direction:column;gap:2px;">'
-          +'<select class="tis" data-i="'+i+'" data-k="l2" style="width:38px;">'+cantoOpts(p.l2)+'</select>'
+          +'<select class="tis" data-i="'+i+'" data-k="l2" style="width:34px;font-size:11px;">'+cantoOpts(p.l2)+'</select>'
           +colorSel('l2',p.l2,p.col_l2)
         +'</div></td>'
         +'<td><div style="display:flex;flex-direction:column;gap:2px;">'
-          +'<select class="tis" data-i="'+i+'" data-k="a1" style="width:38px;">'+cantoOpts(p.a1)+'</select>'
+          +'<select class="tis" data-i="'+i+'" data-k="a1" style="width:34px;font-size:11px;">'+cantoOpts(p.a1)+'</select>'
           +colorSel('a1',p.a1,p.col_a1)
         +'</div></td>'
         +'<td><div style="display:flex;flex-direction:column;gap:2px;">'
-          +'<select class="tis" data-i="'+i+'" data-k="a2" style="width:38px;">'+cantoOpts(p.a2)+'</select>'
+          +'<select class="tis" data-i="'+i+'" data-k="a2" style="width:34px;font-size:11px;">'+cantoOpts(p.a2)+'</select>'
           +colorSel('a2',p.a2,p.col_a2)
         +'</div></td>';
     }
