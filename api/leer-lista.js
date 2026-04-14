@@ -1,6 +1,6 @@
 // api/leer-lista.js — Vercel Serverless Function
-// Usa Google Gemini 2.0 Flash (GRATIS, sin tarjeta de crédito)
-// Obtén tu key gratis en: https://aistudio.google.com/apikey
+// Usa Claude claude-sonnet-4-6 con visión (Anthropic)
+// Configura en Vercel: Settings → Environment Variables → ANTHROPIC_API_KEY
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -12,8 +12,10 @@ export default async function handler(req, res) {
   const { imagen_b64, media_type } = req.body;
   if (!imagen_b64) return res.status(400).json({ error: 'Se requiere imagen_b64' });
 
-  const GEMINI_KEY = process.env.GEMINI_API_KEY;
-  if (!GEMINI_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY no configurada en Vercel Environment Variables' });
+  const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+  if (!ANTHROPIC_KEY) return res.status(500).json({
+    error: 'ANTHROPIC_API_KEY no configurada en Vercel Environment Variables'
+  });
 
   const prompt = `Eres experto en listas de corte de melamina para carpintería en Perú.
 Tu tarea: leer esta imagen y extraer TODAS las piezas de corte en formato JSON.
@@ -32,7 +34,7 @@ SECCIONES POR MATERIAL: La lista puede tener secciones separadas por color/mater
 
 FORMATO VENDEDORA (tabla impresa/digital):
   Columnas: Cant | Largo | Ancho | Veta | L1 | L2 | A1 | A2
-  Los números pueden tener puntos: "1.304,0" = 1304mm, "2.060,0" = 2060mm
+  Los números pueden tener puntos: "1.304,0" = 1304mm
 
 === REGLAS PARA CANTOS ===
 Posiciones: L1=largo superior, L2=largo inferior, A1=ancho izquierdo, A2=ancho derecho
@@ -41,12 +43,10 @@ Posiciones: L1=largo superior, L2=largo inferior, A1=ancho izquierdo, A2=ancho d
   DO             → D solo en L1, resto vacío
   DD             → D en L1 y L2
   GG             → G en L1 y L2
-  DM             → "DM" (doble delgado ambos largos)
-  GM             → "GM" (doble grueso ambos largos)
+  DM             → "D" en L1 y L2
+  GM             → "G" en L1 y L2
   Sin indicación → "" (vacío)
   "D G"          → L1="D", L2="G"
-  "GC PPPP"      → L1="G" en el contorno, ignorar letras extra
-  "6cppp GG"     → L1="G", L2="G" (GG)
 
 === REGLAS GENERALES ===
 - IGNORA dibujos, bocetos y esquemas de muebles
@@ -69,51 +69,51 @@ Campos por pieza:
 - largo: milímetros (entero)
 - ancho: milímetros (entero)
 - veta: "1-Longitud" | "2-Ancho" | "Sin veta"
-- l1, l2, a1, a2: "D" | "G" | "DM" | "GM" | ""
+- l1, l2, a1, a2: "D" | "G" | "Dx" | "Dy" | "Dz" | "Gx" | "Gy" | "Gz" | ""
 - obs: observación o "" — usa "REVISAR: xxx" si algo es dudoso
 
 SOLO EL JSON. NADA MÁS.`;
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`;
-
-    const body = {
-      contents: [{
-        parts: [
-          {
-            inline_data: {
-              mime_type: media_type || 'image/jpeg',
-              data: imagen_b64
-            }
-          },
-          { text: prompt }
-        ]
-      }],
-      generationConfig: {
-        temperature: 0.1,
-        maxOutputTokens: 8192,
-        responseMimeType: 'application/json'
-      }
-    };
-
-    const response = await fetch(url, {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 4096,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: media_type || 'image/jpeg',
+                data: imagen_b64,
+              },
+            },
+            { type: 'text', text: prompt },
+          ],
+        }],
+      }),
     });
 
     if (!response.ok) {
-      const err = await response.text();
-      console.error('Gemini error:', response.status, err);
-      return res.status(502).json({ error: 'Error de Gemini API', status: response.status, detalle: err.slice(0, 300) });
+      const errorBody = await response.text();
+      console.error('Anthropic API error:', response.status, errorBody);
+      return res.status(502).json({
+        error: 'Error al llamar a la API de Claude',
+        status: response.status,
+        detalle: errorBody.slice(0, 300),
+      });
     }
 
     const data = await response.json();
-    const texto = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-    if (!texto) {
-      return res.status(422).json({ error: 'Gemini no devolvió texto', data_raw: JSON.stringify(data).slice(0, 300) });
-    }
+    const texto = (data.content || []).map((c) => c.text || '').join('');
 
     // Limpiar y parsear JSON
     const clean = texto.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
