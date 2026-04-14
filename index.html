@@ -81,6 +81,19 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .ais.ok{background:#E8F5E9;color:#1B5E20;}
 .ais.er{background:#FFF3E0;color:#E65100;}
 .ais.wr{background:#FFFDE7;color:#F57F17;border:1px solid #FFD600;}
+/* Extras de tabla */
+.ti-sm{width:100%;border:1.5px solid #e0e0e0;background:var(--bg);font-size:12px;text-align:center;outline:none;color:var(--tx);padding:5px 3px;border-radius:5px;font-family:inherit;}
+.ti-sm:focus{background:var(--redl);border-color:var(--red);}
+.ti-sm-l{width:100%;border:1.5px solid #e0e0e0;background:var(--bg);font-size:12px;text-align:left;outline:none;color:var(--tx);padding:5px 4px;border-radius:5px;font-family:inherit;}
+.ti-sm-l:focus{background:var(--redl);border-color:var(--red);}
+.perf-cell{background:#F3E5F5 !important;}
+.ran-cell{background:#E8F5E9 !important;}
+.tapa-type{border:1.5px solid #e0e0e0;background:var(--bg);font-size:12px;outline:none;color:var(--tx);padding:5px 4px;cursor:pointer;width:100%;border-radius:5px;font-family:inherit;-webkit-appearance:none;}
+.tapa-type:focus{background:var(--redl);border-color:var(--red);}
+/* Toggle activo */
+.ubtn.tog-on{background:#7B1FA2;border-color:#7B1FA2;color:#fff;}
+.ubtn.tog-on-ran{background:#2E7D32;border-color:#2E7D32;color:#fff;}
+
 tr.duda td{background:#FFFDE7 !important;}
 tr.duda td .ti, tr.duda td .tis{background:#FFFDE7;}
 .spin{width:18px;height:18px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:sp .7s linear infinite;flex-shrink:0;}
@@ -313,44 +326,109 @@ tr:hover td{background:#FFF5F5;}
 
     <!-- PASO 3 -->
     <div id="cs3" style="display:none;">
-      <div class="card">
-        <div class="card-tit">✅ Revisa tu lista de piezas</div>
-        <div class="card-sub">Verifica medidas y cantos. Toca cualquier celda para editar. <strong>D</strong> = canto delgado · <strong>G</strong> = canto grueso.</div>
+
+      <!-- NOTAS igual al formato físico -->
+      <div style="background:#FFFDE7;border:1.5px solid #FFD600;border-radius:var(--rads);padding:14px 16px;margin-bottom:14px;font-size:12px;color:#5D4037;line-height:1.9;">
+        <div style="font-weight:800;font-size:13px;margin-bottom:5px;">📋 Notas:</div>
+        <ul style="margin-left:14px;list-style:disc;">
+          <li>Especificar todas las medidas en <strong>milímetros (mm)</strong>.</li>
+          <li>El sentido de la veta de la pieza se indica en la columna <strong>LARGO (VETA)</strong>.</li>
+          <li>Especificar el canto delgado con la letra <strong>D</strong> y el canto grueso con la letra <strong>G</strong>.<br>
+              Canto en eje X: <strong>Dx</strong> (delgado) / <strong>Gx</strong> (grueso) — Canto en eje Z: <strong>Dz</strong> (delgado) / <strong>Gz</strong> (grueso).</li>
+          <li>Especificar el lado de medida en servicio de ranura y perforación.</li>
+          <li>Dimensión mínima de pieza es <strong>250 × 60 mm</strong>.</li>
+        </ul>
+      </div>
+
+      <!-- TABLERO — Sección Melamina/MDF -->
+      <div class="card" style="margin-bottom:14px;overflow:hidden;">
+        <!-- Encabezado tipo formato físico -->
+        <div style="background:var(--dark);padding:10px 14px;margin:-24px -24px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="font-size:13px;font-weight:800;color:var(--yellow);letter-spacing:.5px;">🪵 FORMATO DE DESPIECE — TABLERO</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:2px;">Melamina · MDF · Fórmica</div>
+          </div>
+          <!-- Toggles perforación y ranura -->
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button type="button" id="btnTogglePerf" class="ubtn" style="font-size:12px;padding:6px 13px;border-color:rgba(255,255,255,.3);color:#fff;">
+              ➕ Perforación
+            </button>
+            <button type="button" id="btnToggleRan" class="ubtn" style="font-size:12px;padding:6px 13px;border-color:rgba(255,255,255,.3);color:#fff;">
+              ➕ Ranura / Chaflán
+            </button>
+          </div>
+        </div>
+
         <div id="aist3"></div>
-        <div class="unidad-bar">
+
+        <!-- Selector unidad -->
+        <div class="unidad-bar" style="margin-bottom:12px;">
           <span>📐 Unidad:</span>
           <button type="button" id="uMM" class="ubtn on">MM</button>
           <button type="button" id="uCM" class="ubtn">CM</button>
           <span id="uLabel" style="font-size:12px;color:var(--tx3);">Medidas en milímetros</span>
         </div>
+
+        <!-- Resumen -->
         <div class="sg" id="sg"></div>
-        <div class="tw">
-          <table>
-            <thead><tr>
-              <th style="width:28px;">#</th>
-              <th class="l" style="min-width:190px;">Material</th>
-              <th style="width:58px;">Cant.</th>
-              <th style="width:80px;" id="thL">Largo (mm)</th>
-              <th style="width:80px;" id="thA">Ancho (mm)</th>
-              <th style="width:58px;">Veta</th>
-              <th style="width:44px;">L1</th>
-              <th style="width:44px;">L2</th>
-              <th style="width:44px;">A1</th>
-              <th style="width:44px;">A2</th>
-              <th class="l" style="min-width:100px;">Obs.</th>
-              <th style="width:28px;"></th>
-            </tr></thead>
+
+        <!-- Tabla principal (scroll horizontal) -->
+        <div class="tw" style="margin-bottom:8px;">
+          <table id="tblMela">
+            <thead>
+              <tr id="thead-base">
+                <!-- cabecera se regenera en renderTabla() -->
+                <th style="color:var(--yellow);">#</th>
+                <th class="l" style="color:var(--yellow);min-width:170px;">PRODUCTO</th>
+                <th style="color:var(--yellow);width:48px;">CANT.</th>
+                <th style="color:var(--yellow);width:68px;" id="thL">LARGO<br><span style="font-weight:400;font-size:9px;">(VETA)</span></th>
+                <th style="color:var(--yellow);width:68px;" id="thA">ANCHO</th>
+                <th style="color:var(--yellow);width:52px;">VETA</th>
+                <th style="color:var(--yellow);width:38px;">L1</th>
+                <th style="color:var(--yellow);width:38px;">L2</th>
+                <th style="color:var(--yellow);width:38px;">A1</th>
+                <th style="color:var(--yellow);width:38px;">A2</th>
+                <th class="l" style="color:var(--yellow);min-width:80px;">OBS.</th>
+                <th style="width:22px;"></th>
+              </tr>
+            </thead>
             <tbody id="tbody"></tbody>
           </table>
         </div>
+
         <div class="arb">
-          <button type="button" id="btnAddRow" class="btn bs" style="padding:8px 16px;font-size:13px;">+ Agregar pieza</button>
-          <span style="font-size:12px;color:var(--tx3);">Toca cualquier celda para editar</span>
+          <button type="button" id="btnAddRow" class="btn bs" style="padding:7px 14px;font-size:13px;">+ Agregar pieza</button>
+          <span style="font-size:11px;color:var(--tx3);">Toca cualquier celda para editar</span>
         </div>
-        <div class="btn-row" style="margin-top:18px;">
-          <button type="button" id="btnAtras3" class="btn bs">← Atrás</button>
-          <button type="button" id="btnConfirmar" class="btn bp" style="min-width:200px;">✓ Confirmar pedido</button>
+      </div>
+
+      <!-- CANTO — Sección Tapacantos -->
+      <div class="card" style="margin-bottom:14px;overflow:hidden;">
+        <div style="background:#2E7D32;padding:10px 14px;margin:-24px -24px 14px;">
+          <div style="font-size:13px;font-weight:800;color:#fff;letter-spacing:.5px;">📏 FORMATO DE DESPIECE — CANTO</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.65);margin-top:2px;">Tapacantos — No mezclar con melamina</div>
         </div>
+        <div class="tw" style="margin-bottom:8px;">
+          <table>
+            <thead><tr>
+              <th style="width:24px;color:#A5D6A7;">#</th>
+              <th class="l" style="min-width:160px;color:#A5D6A7;">TIPO DE CANTO</th>
+              <th style="width:52px;color:#A5D6A7;">CANT.</th>
+              <th style="width:86px;color:#A5D6A7;">LARGO (mm)</th>
+              <th class="l" style="min-width:100px;color:#A5D6A7;">OBSERVACIÓN</th>
+              <th style="width:24px;"></th>
+            </tr></thead>
+            <tbody id="tbodyTapa"></tbody>
+          </table>
+        </div>
+        <div class="arb">
+          <button type="button" id="btnAddTapa" class="btn bs" style="padding:7px 14px;font-size:13px;">+ Agregar tapacanto</button>
+        </div>
+      </div>
+
+      <div class="btn-row" style="margin-top:4px;">
+        <button type="button" id="btnAtras3" class="btn bs">← Atrás</button>
+        <button type="button" id="btnConfirmar" class="btn bp" style="min-width:200px;">✓ Confirmar pedido</button>
       </div>
     </div>
 
@@ -540,7 +618,7 @@ var GRUPOS = [
 ];
 var MAT_COL = {};
 GRUPOS.forEach(function(g){ g.items.forEach(function(i){ MAT_COL[i.n]=i.c; }); });
-var CANTOS = ['','D','G','DM','GM'];
+var CANTOS = ['','D','G','Dx','Gx','Dz','Gz'];
 var VETAS  = ['1-Longitud','2-Ancho','Sin veta'];
 var ESTL = {ingresado:'Ingresado',revisado:'Revisado',en_optiplaning:'En Optiplaning',en_produccion:'En producción',listo:'Listo',entregado:'Entregado',no_procedio:'No procedió'};
 var ESTC = {ingresado:'b-ing',revisado:'b-rev',en_optiplaning:'b-opt',en_produccion:'b-pro',listo:'b-lst',entregado:'b-ent',no_procedio:'b-nop'};
@@ -550,7 +628,7 @@ var pcs=[],allP=[],pedAct=null,pzEdit=[],sesion=null,unidad='mm',matCb=null,matC
 
 // ── HELPERS ──────────────────────────────────────────────
 function el(id){ return document.getElementById(id); }
-function pv(){ return {material:'',qty:'',largo:'',ancho:'',veta:'1-Longitud',l1:'D',l2:'D',a1:'',a2:'',obs:''}; }
+function pv(){ return {material:'',qty:'',largo:'',ancho:'',veta:'1-Longitud',l1:'',l2:'',a1:'',a2:'',obs:'',perf_act:false,perf_cant:'',perf_lado:'',perf_det:'',ran_act:false,ran_libre:'',ran_espe:'',ran_prof:'',ran_lado:'',ran_det:''}; }
 function fC(d){ if(!d)return''; var dt=new Date(d); return dt.toLocaleDateString('es-PE',{day:'2-digit',month:'short'})+' '+dt.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}); }
 function fL(d){ if(!d)return''; var dt=new Date(d); return dt.toLocaleDateString('es-PE',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})+' · '+dt.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}); }
 
@@ -694,6 +772,9 @@ el('btnAtras3').addEventListener('click',function(){ irPaso(2); });
 el('btnConfirmar').addEventListener('click',confirmarPedido);
 el('btnNuevoPedido').addEventListener('click',resetCliente);
 el('btnAddRow').addEventListener('click',function(){ pcs.push(pv()); renderTabla(); });
+el('btnAddTapa').addEventListener('click',function(){ if(!tapas.length)tapas=[pvTapa()]; tapas.push(pvTapa()); renderTapas(); });
+el('btnTogglePerf').addEventListener('click',function(){ setTogglePerf(!showPerf); });
+el('btnToggleRan').addEventListener('click',function(){ setToggleRan(!showRan); });
 el('uMM').addEventListener('click',function(){ setUnidad('mm'); });
 el('uCM').addEventListener('click',function(){ setUnidad('cm'); });
 
@@ -715,7 +796,7 @@ function irPaso(n){
 }
 function irManual(){
   if(!el('cnom').value.trim()){ alert('Ingresa tu nombre primero.'); el('cnom').focus(); return; }
-  pcs=[pv(),pv(),pv()]; renderTabla();
+  pcs=[pv(),pv(),pv()]; tapas=[pvTapa()]; renderTabla();
   ['cs1','cs2','cs3','cs4'].forEach(function(id,i){ el(id).style.display=(i===2)?'block':'none'; });
   [1,2,3,4].forEach(function(i){ var s=el('stp'+i); s.classList.remove('on','dn'); if(i===3)s.classList.add('on'); else if(i<3)s.classList.add('dn'); });
   window.scrollTo(0,0);
@@ -795,10 +876,20 @@ function llamarIA(b64,mt){
 }
 
 // ── TABLA DE PIEZAS ───────────────────────────────────────
+// Estado toggles y tapacantos
+var showPerf=false, showRan=false, tapas=[];
+function pvTapa(){ return {tipo:'',qty:'',largo:'',obs:''}; }
+var TAPAS_TIPOS=[
+  'TAPACANTO DELGADO BLANCO','TAPACANTO GRUESO BLANCO',
+  'TAPACANTO DELGADO CARAMELO','TAPACANTO DELGADO PAMELA',
+  'TAPACANTO DELGADO ONIX','TAPACANTO DELGADO CAPRI',
+  'TAPACANTO DELGADO MADERA','TAPACANTO DELGADO CENIZA',
+  'TAPACANTO DELGADO NOGAL','TAPACANTO DELGADO WENGUE',
+  'TAPACANTO DELGADO GRIS PERLA','TAPACANTO DELGADO ARENA',
+];
+
 function mkMatBtn(i, val, prefix){
-  var col=MAT_COL[val]||null;
-  var txt=val||'— Selecciona el material —';
-  var filled=!!val;
+  var col=MAT_COL[val]||null, txt=val||'— Selecciona el material —', filled=!!val;
   return '<button type="button" class="mat-btn'+(filled?' filled':'')+'" data-i="'+i+'" data-prefix="'+prefix+'">'
     +(filled?'<span class="mat-btn-dot" style="background:'+col+';"></span>':'<span style="font-size:14px;">🪵</span>')
     +'<span class="mat-btn-txt">'+txt+'</span></button>';
@@ -810,55 +901,130 @@ function bindMatBtns(tb, arr){
   tb.querySelectorAll('.mat-btn').forEach(function(btn){
     btn.addEventListener('click',function(){
       var i=parseInt(this.dataset.i), prefix=this.dataset.prefix;
-      abrirMat(function(mat){
-        arr[i].material=mat;
-        if(prefix==='c') renderTabla();
-        else renderEditT();
-      }, arr[i].material);
+      abrirMat(function(mat){ arr[i].material=mat; if(prefix==='c') renderTabla(); else renderEditT(); }, arr[i].material);
     });
   });
 }
-function bindInputs(tb, arr){
+function bindInputs(tb, arr, isMain){
   tb.querySelectorAll('[data-k]').forEach(function(inp){
     if(inp.classList.contains('mat-btn')) return;
-    inp.addEventListener('input',function(){
-      var i=parseInt(this.dataset.i), k=this.dataset.k;
-      if(isNaN(i)||!k) return;
-      arr[i][k]=this.value;
-      if(k!=='obs') updSG();
-    });
+    var fn=function(){ var i=parseInt(this.dataset.i),k=this.dataset.k; if(!isNaN(i)&&k){ arr[i][k]=this.value; if(isMain&&k!=='obs'&&k.indexOf('perf_')<0&&k.indexOf('ran_')<0) updSG(); }};
+    inp.addEventListener('input',fn);
+    inp.addEventListener('change',fn);
   });
   tb.querySelectorAll('[data-del]').forEach(function(btn){
-    btn.addEventListener('click',function(){
-      arr.splice(parseInt(this.dataset.del),1);
-      if(arr===pcs) renderTabla(); else renderEditT();
-    });
+    btn.addEventListener('click',function(){ arr.splice(parseInt(this.dataset.del),1); if(isMain) renderTabla(); else renderEditT(); });
   });
 }
 
+function setTogglePerf(on){
+  showPerf=on;
+  var btn=el('btnTogglePerf');
+  if(btn){ btn.textContent=on?'✓ Perforación activa':'➕ Perforación'; btn.classList.toggle('tog-on',on); }
+  renderTabla();
+}
+function setToggleRan(on){
+  showRan=on;
+  var btn=el('btnToggleRan');
+  if(btn){ btn.textContent=on?'✓ Ranura/Chaflán activa':'➕ Ranura/Chaflán'; btn.classList.toggle('tog-on-ran',on); }
+  renderTabla();
+}
+
 function renderTabla(){
-  var tb=el('tbody'); tb.innerHTML='';
+  var tb=el('tbody'); if(!tb) return;
+  tb.innerHTML='';
+  // Cabecera dinámica
+  var thBase=el('thead-base');
+  if(thBase){
+    var perfCols=showPerf
+      ?'<th style="background:#CE93D8;color:#4A148C;font-size:9px;padding:5px 3px;width:38px;">PERF.<br>CANT.</th>'
+       +'<th style="background:#CE93D8;color:#4A148C;font-size:9px;padding:5px 3px;width:46px;">PERF.<br>LADO</th>'
+       +'<th style="background:#CE93D8;color:#4A148C;font-size:9px;padding:5px 3px;width:72px;">PERF.<br>DETALLE</th>':'';
+    var ranCols=showRan
+      ?'<th style="background:#A5D6A7;color:#1B5E20;font-size:9px;padding:5px 3px;width:40px;">RAN.<br>LIBRE</th>'
+       +'<th style="background:#A5D6A7;color:#1B5E20;font-size:9px;padding:5px 3px;width:40px;">RAN.<br>ESPE.</th>'
+       +'<th style="background:#A5D6A7;color:#1B5E20;font-size:9px;padding:5px 3px;width:40px;">RAN.<br>PROF.</th>'
+       +'<th style="background:#A5D6A7;color:#1B5E20;font-size:9px;padding:5px 3px;width:44px;">RAN.<br>LADO</th>'
+       +'<th style="background:#A5D6A7;color:#1B5E20;font-size:9px;padding:5px 3px;width:72px;">RAN.<br>DETALLE</th>':'';
+    thBase.innerHTML=
+      '<th style="width:24px;color:var(--yellow);">#</th>'
+      +'<th class="l" style="min-width:170px;color:var(--yellow);">PRODUCTO</th>'
+      +'<th style="width:48px;color:var(--yellow);">CANT.</th>'
+      +'<th style="width:68px;color:var(--yellow);" id="thL">LARGO<br><span style="font-weight:400;font-size:9px;">(VETA)</span></th>'
+      +'<th style="width:68px;color:var(--yellow);" id="thA">ANCHO</th>'
+      +'<th style="width:50px;color:var(--yellow);">VETA</th>'
+      +'<th style="width:38px;color:var(--yellow);">L1</th><th style="width:38px;color:var(--yellow);">L2</th>'
+      +'<th style="width:38px;color:var(--yellow);">A1</th><th style="width:38px;color:var(--yellow);">A2</th>'
+      +'<th class="l" style="min-width:80px;color:var(--yellow);">OBS.</th>'
+      +perfCols+ranCols
+      +'<th style="width:22px;"></th>';
+  }
+  // Filas
   pcs.forEach(function(p,i){
     var tr=document.createElement('tr');
-    tr.innerHTML=
-      '<td><span style="font-size:11px;color:var(--tx3);font-weight:700;">'+(i+1)+'</span></td>'
-      +'<td class="l" style="min-width:190px;">'+mkMatBtn(i,p.material,'c')+'</td>'
-      +'<td><input class="ti" type="text" inputmode="numeric" value="'+(p.qty||'')+'" placeholder="0" style="width:50px;" data-i="'+i+'" data-k="qty"></td>'
-      +'<td><input class="ti" type="text" inputmode="decimal" value="'+(p.largo||'')+'" placeholder="0" style="width:68px;" data-i="'+i+'" data-k="largo"></td>'
-      +'<td><input class="ti" type="text" inputmode="decimal" value="'+(p.ancho||'')+'" placeholder="0" style="width:68px;" data-i="'+i+'" data-k="ancho"></td>'
-      +'<td><select class="tis" data-i="'+i+'" data-k="veta">'+vetaOpts(p.veta)+'</select></td>'
-      +'<td><select class="tis" data-i="'+i+'" data-k="l1">'+cantoOpts(p.l1)+'</select></td>'
-      +'<td><select class="tis" data-i="'+i+'" data-k="l2">'+cantoOpts(p.l2)+'</select></td>'
-      +'<td><select class="tis" data-i="'+i+'" data-k="a1">'+cantoOpts(p.a1)+'</select></td>'
-      +'<td><select class="tis" data-i="'+i+'" data-k="a2">'+cantoOpts(p.a2)+'</select></td>'
-      +'<td class="l"><input class="ti" type="text" value="'+(p.obs||'')+'" style="width:100%;text-align:left;" data-i="'+i+'" data-k="obs"></td>'
-      +'<td><button type="button" class="db" data-del="'+i+'"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg></button></td>';
+    var dBtn='<button type="button" class="db" data-del="'+i+'"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg></button>';
+    var cells=
+      '<td style="font-size:11px;color:var(--tx3);font-weight:700;text-align:center;padding:4px 2px;">'+(i+1)+'</td>'
+      +'<td style="padding:3px;">'+mkMatBtn(i,p.material,'c')+'</td>'
+      +'<td><input class="ti" type="text" inputmode="numeric" value="'+(p.qty||'')+'" placeholder="0" style="width:42px;" data-i="'+i+'" data-k="qty"></td>'
+      +'<td><input class="ti" type="text" inputmode="decimal" value="'+(p.largo||'')+'" placeholder="0" style="width:60px;" data-i="'+i+'" data-k="largo"></td>'
+      +'<td><input class="ti" type="text" inputmode="decimal" value="'+(p.ancho||'')+'" placeholder="0" style="width:60px;" data-i="'+i+'" data-k="ancho"></td>'
+      +'<td><select class="tis" data-i="'+i+'" data-k="veta" style="width:48px;">'+vetaOpts(p.veta)+'</select></td>'
+      +'<td><select class="tis" data-i="'+i+'" data-k="l1" style="width:36px;">'+cantoOpts(p.l1)+'</select></td>'
+      +'<td><select class="tis" data-i="'+i+'" data-k="l2" style="width:36px;">'+cantoOpts(p.l2)+'</select></td>'
+      +'<td><select class="tis" data-i="'+i+'" data-k="a1" style="width:36px;">'+cantoOpts(p.a1)+'</select></td>'
+      +'<td><select class="tis" data-i="'+i+'" data-k="a2" style="width:36px;">'+cantoOpts(p.a2)+'</select></td>'
+      +'<td><input class="ti" type="text" value="'+(p.obs||'')+'" placeholder="—" style="min-width:76px;text-align:left;" data-i="'+i+'" data-k="obs"></td>';
+    if(showPerf){
+      cells+='<td style="background:#F3E5F5;padding:3px;"><input class="ti" type="text" inputmode="numeric" value="'+(p.perf_cant||'')+'" placeholder="—" style="width:34px;background:#F3E5F5;" data-i="'+i+'" data-k="perf_cant"></td>'
+        +'<td style="background:#F3E5F5;padding:3px;"><input class="ti" type="text" value="'+(p.perf_lado||'')+'" placeholder="—" style="width:42px;background:#F3E5F5;" data-i="'+i+'" data-k="perf_lado"></td>'
+        +'<td style="background:#F3E5F5;padding:3px;"><input class="ti" type="text" value="'+(p.perf_det||'')+'" placeholder="—" style="width:68px;text-align:left;background:#F3E5F5;" data-i="'+i+'" data-k="perf_det"></td>';
+    }
+    if(showRan){
+      cells+='<td style="background:#E8F5E9;padding:3px;"><input class="ti" type="text" value="'+(p.ran_libre||'')+'" placeholder="—" style="width:36px;background:#E8F5E9;" data-i="'+i+'" data-k="ran_libre"></td>'
+        +'<td style="background:#E8F5E9;padding:3px;"><input class="ti" type="text" inputmode="decimal" value="'+(p.ran_espe||'')+'" placeholder="—" style="width:36px;background:#E8F5E9;" data-i="'+i+'" data-k="ran_espe"></td>'
+        +'<td style="background:#E8F5E9;padding:3px;"><input class="ti" type="text" inputmode="decimal" value="'+(p.ran_prof||'')+'" placeholder="—" style="width:36px;background:#E8F5E9;" data-i="'+i+'" data-k="ran_prof"></td>'
+        +'<td style="background:#E8F5E9;padding:3px;"><input class="ti" type="text" value="'+(p.ran_lado||'')+'" placeholder="—" style="width:40px;background:#E8F5E9;" data-i="'+i+'" data-k="ran_lado"></td>'
+        +'<td style="background:#E8F5E9;padding:3px;"><input class="ti" type="text" value="'+(p.ran_det||'')+'" placeholder="—" style="width:68px;text-align:left;background:#E8F5E9;" data-i="'+i+'" data-k="ran_det"></td>';
+    }
+    cells+='<td>'+dBtn+'</td>';
+    tr.innerHTML=cells;
     if(p._duda) tr.classList.add('duda');
     tb.appendChild(tr);
   });
   bindMatBtns(tb, pcs);
-  bindInputs(tb, pcs);
+  bindInputs(tb, pcs, true);
   updSG();
+  renderTapas();
+}
+
+// ── TAPACANTOS ────────────────────────────────────────────
+function renderTapas(){
+  var tb=el('tbodyTapa'); if(!tb) return;
+  if(!tapas.length) tapas=[pvTapa()];
+  tb.innerHTML='';
+  tapas.forEach(function(t,i){
+    var tipoOpts='<option value="">— Seleccionar —</option>'+TAPAS_TIPOS.map(function(tp){
+      return '<option value="'+tp+'"'+(tp===t.tipo?' selected':'')+'>'
+        +tp.replace('TAPACANTO DELGADO ','D-').replace('TAPACANTO GRUESO ','G-')+'</option>';
+    }).join('');
+    var tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td style="font-size:11px;color:var(--tx3);text-align:center;font-weight:700;">'+(i+1)+'</td>'
+      +'<td class="l"><select class="tis" data-i="'+i+'" data-k="tipo" style="min-width:150px;">'+tipoOpts+'</select></td>'
+      +'<td><input class="ti" type="text" inputmode="numeric" value="'+(t.qty||'')+'" placeholder="0" style="width:46px;" data-i="'+i+'" data-k="qty"></td>'
+      +'<td><input class="ti" type="text" inputmode="decimal" value="'+(t.largo||'')+'" placeholder="0" style="width:78px;" data-i="'+i+'" data-k="largo"></td>'
+      +'<td class="l"><input class="ti" type="text" value="'+(t.obs||'')+'" placeholder="—" style="width:100%;text-align:left;" data-i="'+i+'" data-k="obs"></td>'
+      +'<td><button type="button" class="db" data-tdel="'+i+'"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg></button></td>';
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll('[data-k]').forEach(function(inp){
+    var fn=function(){ var i=parseInt(this.dataset.i),k=this.dataset.k; if(!isNaN(i)&&k) tapas[i][k]=this.value; };
+    inp.addEventListener('input',fn); inp.addEventListener('change',fn);
+  });
+  tb.querySelectorAll('[data-tdel]').forEach(function(btn){
+    btn.addEventListener('click',function(){ tapas.splice(parseInt(this.dataset.tdel),1); if(!tapas.length) tapas=[pvTapa()]; renderTapas(); });
+  });
 }
 
 function updSG(){
@@ -894,7 +1060,11 @@ function confirmarPedido(){
     var pid=Array.isArray(ped)?ped[0]&&ped[0].id:ped&&ped.id;
     if(!pid) throw new Error('Sin ID de pedido');
     return sbPost('pedido_piezas',pcs.map(function(p,i){ return {pedido_id:pid,linea:i+1,material:p.material,qty:parseInt(p.qty)||1,largo:Math.round(parseFloat(p.largo)||0),ancho:Math.round(parseFloat(p.ancho)||0),veta:p.veta||'1-Longitud',l1:p.l1||'',l2:p.l2||'',a1:p.a1||'',a2:p.a2||'',obs:p.obs||''}; }))
-    .then(function(){ return addH(pid,'creado',null,null,null,'Pedido: '+nom+' · '+pcs.length+' líneas · '+tot+' piezas'); })
+    .then(function(){ return addH(pid,'creado',null,null,null,
+          'Pedido: '+nom+' · '+pcs.length+' líneas · '+tot+' piezas'
+          +(tapas.filter(function(t){return t.tipo||t.qty;}).length
+            ?' · '+tapas.filter(function(t){return t.tipo||t.qty;}).length+' tapas':'')
+        ); })
     .then(function(){
       el('cfcode').textContent=cod;
       el('cfdet').innerHTML='<strong>'+nom+'</strong>'+(doc?' · '+tipo+': '+doc:'')+'<br>'+sede+'<br>'+pcs.length+' líneas · '+tot+' piezas<br>'+mats.join(', ');
@@ -908,7 +1078,7 @@ function confirmarPedido(){
 }
 
 function resetCliente(){
-  pcs=[];
+  pcs=[]; tapas=[pvTapa()]; showPerf=false; showRan=false;
   ['cnom','ctel','cdoc'].forEach(function(id){ el(id).value=''; });
   el('prevImg').src=''; el('prevWrap').style.display='none'; el('fi').value='';
   el('aist').innerHTML=''; el('aist3').innerHTML=''; el('docRes').style.display='none';
