@@ -642,10 +642,10 @@ var CANTO_COLORES = ['BLANCO','CARAMELO','PAMELA','ONIX','CAPRI','MADERA','CENIZ
 
 // CANTOS: '' vacío, 'D'/'G' = color igual al tablero,
 //         'Dx'/'Gx'/'Dz'/'Gz' = otro color (se pide cuál)
-var CANTOS = ['','D','G','Dx','Gx','Dz','Gz'];
+var CANTOS = ['','D','G','Dx','Dy','Dz','Gx','Gy','Gz'];
 
 // Para cada canto, si requiere especificar color
-function cantoNecesitaColor(c){ return c==='Dx'||c==='Gx'||c==='Dz'||c==='Gz'; }
+function cantoNecesitaColor(c){ return c==='Dx'||c==='Dy'||c==='Dz'||c==='Gx'||c==='Gy'||c==='Gz'; }
 // Material sin enchape
 function matSinEnchape(mat){ return !!MAT_NO_ENCHAPE[mat]; }
 var VETAS  = ['1-Longitud','2-Ancho','Sin veta'];
@@ -802,7 +802,6 @@ el('btnAtras3').addEventListener('click',function(){ irPaso(2); });
 el('btnConfirmar').addEventListener('click',confirmarPedido);
 el('btnNuevoPedido').addEventListener('click',resetCliente);
 el('btnAddRow').addEventListener('click',function(){ pcs.push(pv()); renderTabla(); });
-el('btnAddTapa') && el('btnAddTapa').addEventListener('click',function(){ if(!tapas.length)tapas=[pvTapa()]; tapas.push(pvTapa()); renderTapas(); });
 el('btnAddFormica') && el('btnAddFormica').addEventListener('click',function(){ if(!formicas.length)formicas=[pvFormica()]; formicas.push(pvFormica()); renderFormicas(); });
 el('btnTogglePerf').addEventListener('click',function(){ setTogglePerf(!showPerf); });
 el('btnToggleRan').addEventListener('click',function(){ setToggleRan(!showRan); });
@@ -827,9 +826,12 @@ function irPaso(n){
 }
 function irManual(){
   if(!el('cnom').value.trim()){ alert('Ingresa tu nombre primero.'); el('cnom').focus(); return; }
-  pcs=[pv()]; tapas=[pvTapa()]; formicas=[pvFormica()]; renderTabla();
+  // Primero mostrar el paso 3 para que los elementos existan en el DOM
   ['cs1','cs2','cs3','cs4'].forEach(function(id,i){ el(id).style.display=(i===2)?'block':'none'; });
   [1,2,3,4].forEach(function(i){ var s=el('stp'+i); s.classList.remove('on','dn'); if(i===3)s.classList.add('on'); else if(i<3)s.classList.add('dn'); });
+  // Luego inicializar y renderizar
+  pcs=[pv()]; formicas=[pvFormica()];
+  renderTabla();
   window.scrollTo(0,0);
 }
 
@@ -896,7 +898,9 @@ function llamarIA(b64,mt){
       msg='<div class="ais ok"><span>✓ Se detectaron <strong>'+pcs.length+' tipos de pieza</strong>. Revisa y corrige si algo no está bien.</span></div>';
     }
     el('aist').innerHTML=msg; el('aist3').innerHTML=msg;
-    renderTabla(); irPaso(3);
+    // Mostrar paso 3 antes de renderizar para que el DOM esté listo
+    irPaso(3);
+    setTimeout(function(){ renderTabla(); }, 50);
   })
   .catch(function(err){
     console.error('IA error:',err);
@@ -908,16 +912,7 @@ function llamarIA(b64,mt){
 
 // ── TABLA DE PIEZAS ───────────────────────────────────────
 // Estado toggles y tapacantos
-var showPerf=false, showRan=false, tapas=[];
-function pvTapa(){ return {tipo:'',qty:'',largo:'',obs:''}; }
-var TAPAS_TIPOS=[
-  'TAPACANTO DELGADO BLANCO','TAPACANTO GRUESO BLANCO',
-  'TAPACANTO DELGADO CARAMELO','TAPACANTO DELGADO PAMELA',
-  'TAPACANTO DELGADO ONIX','TAPACANTO DELGADO CAPRI',
-  'TAPACANTO DELGADO MADERA','TAPACANTO DELGADO CENIZA',
-  'TAPACANTO DELGADO NOGAL','TAPACANTO DELGADO WENGUE',
-  'TAPACANTO DELGADO GRIS PERLA','TAPACANTO DELGADO ARENA',
-];
+var showPerf=false, showRan=false;
 
 function mkMatBtn(i, val, prefix){
   var col=MAT_COL[val]||null, txt=val||'— Selecciona el material —', filled=!!val;
@@ -1081,7 +1076,6 @@ function renderTabla(){
   bindMatBtns(tb, pcs);
   bindInputs(tb, pcs, true);
   updSG();
-  renderTapas();
   renderFormicas();
 }
 
@@ -1092,7 +1086,7 @@ var formicas=[];
 function pvFormica(){ return {material:'',qty:'',obs:''}; }
 function renderFormicas(){
   var tb=el('tbodyFormica'); if(!tb) return;
-  if(!formicas.length) formicas=[pvFormica()];
+  if(!formicas||!formicas.length) formicas=[pvFormica()];
   tb.innerHTML='';
   formicas.forEach(function(f,i){
     var fopts=FORMICAS.map(function(fm){
@@ -1189,7 +1183,7 @@ function confirmarPedido(){
 }
 
 function resetCliente(){
-  pcs=[]; tapas=[pvTapa()]; formicas=[pvFormica()]; showPerf=false; showRan=false;
+  pcs=[]; formicas=[pvFormica()]; showPerf=false; showRan=false;
   ['cnom','ctel','cdoc'].forEach(function(id){ el(id).value=''; });
   el('prevImg').src=''; el('prevWrap').style.display='none'; el('fi').value='';
   el('aist').innerHTML=''; el('aist3').innerHTML=''; el('docRes').style.display='none';
