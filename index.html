@@ -1518,24 +1518,31 @@ function switchVTab(tab){
 }
 
 function cargarUsuarios(){
-  var lista=el('ulist'); lista.innerHTML='<div style="color:var(--tx3);padding:20px;text-align:center;">Cargando...</div>';
+  var lista=el('ulist');
+  lista.innerHTML='<div style="color:var(--tx3);padding:20px;text-align:center;">Cargando...</div>';
   sbGet('usuarios','order=nombre.asc').then(function(rows){
     rows=rows||[];
     if(!rows.length){ lista.innerHTML='<div style="color:var(--tx3);padding:20px;">No hay usuarios.</div>'; return; }
-    lista.innerHTML=rows.map(function(u){
-      return '<div class="card" style="margin-bottom:0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:16px 20px;">'
-        +'<div>'
-          +'<div style="font-size:16px;font-weight:800;">'+u.nombre+'</div>'
-          +'<div style="font-size:13px;color:var(--tx3);margin-top:3px;">'
-            +'@'+u.usuario+' · '+(u.rol==='admin'?'<span style="color:var(--red);font-weight:700;">🔑 Admin</span>':'Vendedora')
-          +'</div>'
+    lista.innerHTML='';
+    rows.forEach(function(u){
+      var div=document.createElement('div');
+      div.className='card';
+      div.style.cssText='margin-bottom:0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:16px 20px;';
+      div.innerHTML='<div>'
+        +'<div style="font-size:16px;font-weight:800;">'+u.nombre+'</div>'
+        +'<div style="font-size:13px;color:var(--tx3);margin-top:3px;">@'+u.usuario
+          +' · '+(u.rol==='admin'?'<span style="color:var(--red);font-weight:700;">🔑 Admin</span>':'Vendedora')
+        +'</div>'
         +'</div>'
         +'<div style="display:flex;gap:8px;align-items:center;">'
           +'<span class="badge '+(u.activo?'b-lst':'b-nop')+'">'+(u.activo?'Activo':'Inactivo')+'</span>'
-          +'<button type="button" class="btn bs" style="padding:7px 14px;font-size:12px;" onclick="abrirFormUsuario(''+u.id+'')">✏️ Editar</button>'
-        +'</div>'
-      +'</div>';
-    }).join('');
+          +'<button type="button" class="btn bs" style="padding:7px 14px;font-size:12px;" data-uid="'+u.id+'">✏️ Editar</button>'
+        +'</div>';
+      div.querySelector('button[data-uid]').addEventListener('click',function(){
+        abrirFormUsuario(this.dataset.uid);
+      });
+      lista.appendChild(div);
+    });
   });
 }
 
