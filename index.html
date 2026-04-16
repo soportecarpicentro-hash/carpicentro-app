@@ -129,7 +129,7 @@ tr.duda td .ti, tr.duda td .tis{background:#FFFDE7;}
 .mat-search{width:100%;padding:11px 14px 11px 42px;border:2px solid var(--bd2);border-radius:var(--rads);font-size:14px;outline:none;background:var(--bg);color:var(--tx);font-family:inherit;-webkit-appearance:none;}
 .mat-search:focus{border-color:var(--red);}
 .mat-search-wrap{position:relative;}
-.mat-ico{position:absolute;left:28px;top:50%;transform:translateY(-50%);color:var(--tx3);font-size:16px;pointer-events:none;}
+.mat-ico{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--tx3);font-size:15px;pointer-events:none;}
 .mat-list{overflow-y:auto;flex:1;}
 .mat-group-lbl{padding:8px 16px;font-size:10px;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.7px;background:var(--gl);border-bottom:.5px solid var(--bd);position:sticky;top:0;}
 .mat-item{padding:13px 16px;font-size:14px;cursor:pointer;border-bottom:.5px solid var(--bd);display:flex;align-items:center;gap:10px;transition:background .1s;}
@@ -201,6 +201,11 @@ tr:hover td{background:#FFF5F5;}
 .ovlhdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
 .ovltit{font-size:17px;font-weight:800;}
 .ovlx{width:32px;height:32px;border:1.5px solid var(--bd2);background:var(--gl);border-radius:8px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;font-family:inherit;}
+
+/* VTABS VENDEDORAS */
+.vtab{padding:8px 18px;border-radius:999px;border:2px solid var(--bd);background:var(--bg);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--tx3);transition:all .15s;}
+.vtab.on{background:var(--dark);color:var(--yellow);border-color:var(--dark);}
+.vtab:hover:not(.on){background:var(--bg2);}
 
 /* HISTORIAL */
 .hi{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--bd);}
@@ -378,7 +383,7 @@ tr:hover td{background:#FFF5F5;}
         <div style="background:var(--dark);padding:10px 14px;margin:-24px -24px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
           <div>
             <div style="font-size:13px;font-weight:800;color:var(--yellow);letter-spacing:.5px;">🪵 FORMATO DE DESPIECE — TABLERO</div>
-            <div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:2px;">Melamina · MDF · Fórmica</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:2px;">Melamina · MDF</div>
           </div>
           <!-- Toggles perforación y ranura -->
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
@@ -485,28 +490,46 @@ tr:hover td{background:#FFF5F5;}
 <div id="vv" class="view">
   <div class="wrap">
     <div id="vlista">
-      <div class="shdr">
-        <div>
-          <div style="font-size:22px;font-weight:800;">Pedidos recibidos</div>
-          <div style="font-size:13px;color:var(--tx3);margin-top:2px;" id="psub">—</div>
-        </div>
-        <div class="sbar">
-          <input type="text" id="srch" placeholder="🔍 Buscar..." style="width:200px;">
-          <select id="fest" style="width:165px;">
-            <option value="">Todos los estados</option>
-            <option value="ingresado">Ingresado</option>
-            <option value="revisado">Revisado</option>
-            <option value="en_optiplaning">En Optiplaning</option>
-            <option value="en_produccion">En producción</option>
-            <option value="listo">Listo</option>
-            <option value="entregado">Entregado</option>
-            <option value="no_procedio">No procedió</option>
-          </select>
-          <button type="button" id="btnRefresh" class="btn bs" style="padding:10px 14px;">↻</button>
-        </div>
+      <!-- Tabs admin -->
+      <div id="vTabBar" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:16px;border-bottom:2px solid var(--bd);padding-bottom:12px;">
+        <button type="button" class="vtab on" id="tabPedidos" onclick="switchVTab('pedidos')">📋 Pedidos</button>
+        <button type="button" class="vtab" id="tabUsuarios" onclick="switchVTab('usuarios')">👥 Usuarios</button>
       </div>
-      <div class="stat3" id="stats"></div>
-      <div id="plist"></div>
+
+      <!-- Vista pedidos -->
+      <div id="vPedidosPanel">
+        <div class="shdr">
+          <div>
+            <div style="font-size:22px;font-weight:800;">Pedidos recibidos</div>
+            <div style="font-size:13px;color:var(--tx3);margin-top:2px;" id="psub">—</div>
+          </div>
+          <div class="sbar">
+            <input type="text" id="srch" placeholder="🔍 Buscar..." style="width:200px;">
+            <select id="fest" style="width:165px;">
+              <option value="">Todos los estados</option>
+              <option value="ingresado">Ingresado</option>
+              <option value="revisado">Revisado</option>
+              <option value="en_optiplaning">En Optiplaning</option>
+              <option value="en_produccion">En producción</option>
+              <option value="listo">Listo</option>
+              <option value="entregado">Entregado</option>
+              <option value="no_procedio">No procedió</option>
+            </select>
+            <button type="button" id="btnRefresh" class="btn bs" style="padding:10px 14px;">↻</button>
+          </div>
+        </div>
+        <div class="stat3" id="stats"></div>
+        <div id="plist"></div>
+      </div>
+
+      <!-- Vista usuarios (solo admin) -->
+      <div id="vUsuariosPanel" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+          <div style="font-size:20px;font-weight:800;">👥 Gestión de usuarios</div>
+          <button type="button" class="btn bp" style="padding:9px 16px;font-size:13px;" onclick="abrirFormUsuario(null)">+ Nuevo usuario</button>
+        </div>
+        <div id="ulist" style="display:flex;flex-direction:column;gap:10px;"></div>
+      </div>
     </div>
 
     <div id="vdet" style="display:none;">
@@ -551,6 +574,24 @@ tr:hover td{background:#FFF5F5;}
           </table>
         </div>
       </div>
+      <!-- PANEL FÓRMICA VENDEDORAS -->
+      <div class="card" id="dFormicaPanel" style="margin-bottom:14px;display:none;overflow:hidden;">
+        <div style="background:#B71C1C;padding:10px 16px;margin:-24px -24px 14px;">
+          <div style="font-size:14px;font-weight:800;color:#fff;">🎨 Fórmicas del pedido</div>
+        </div>
+        <div class="tw">
+          <table>
+            <thead><tr>
+              <th style="width:30px;">#</th>
+              <th class="l">Material Fórmica</th>
+              <th style="width:110px;">Cantidad</th>
+              <th class="l">Observación</th>
+            </tr></thead>
+            <tbody id="dtbFormica"></tbody>
+          </table>
+        </div>
+      </div>
+
       <div class="card">
         <div style="font-size:15px;font-weight:800;margin-bottom:14px;">🕐 Historial de cambios</div>
         <div id="hlist"></div>
@@ -583,6 +624,44 @@ tr:hover td{background:#FFF5F5;}
     <div class="btn-row" style="margin-top:4px;">
       <button type="button" id="btnCancelarEdit" class="btn bs">Cancelar</button>
       <button type="button" id="btnGuardarEdit" class="btn bp">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- OVERLAY GESTIÓN USUARIO (ADMIN) -->
+<div class="ovl" id="uovl">
+  <div class="ovlbox" style="max-width:480px;">
+    <div class="ovlhdr">
+      <div class="ovltit" id="uovlTit">➕ Nuevo usuario</div>
+      <button type="button" onclick="el('uovl').classList.remove('open')" class="ovlx">✕</button>
+    </div>
+    <div class="fg"><label class="fl">Nombre completo</label><input type="text" id="uNombre" placeholder="Ej. María García"></div>
+    <div class="fg"><label class="fl">Usuario (login)</label><input type="text" id="uUsuario" placeholder="Ej. mgarcia" autocomplete="off"></div>
+    <div class="fg">
+      <label class="fl">Contraseña</label>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="uPass" placeholder="Escribe la contraseña" style="flex:1;" autocomplete="new-password">
+        <button type="button" class="btn bs" style="padding:8px 12px;font-size:12px;" onclick="el('uPass').value=genPass()">🎲 Generar</button>
+      </div>
+    </div>
+    <div class="fg">
+      <label class="fl">Rol</label>
+      <select id="uRol">
+        <option value="vendedora">Vendedora</option>
+        <option value="admin">Administrador</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label class="fl">Estado</label>
+      <select id="uActivo">
+        <option value="true">Activo</option>
+        <option value="false">Inactivo</option>
+      </select>
+    </div>
+    <div id="uerr" style="display:none;background:var(--rl);color:var(--red);padding:10px;border-radius:var(--rads);font-size:13px;margin-bottom:10px;"></div>
+    <div class="btn-row" style="margin-top:8px;">
+      <button type="button" class="btn bs" onclick="el('uovl').classList.remove('open')">Cancelar</button>
+      <button type="button" class="btn bp" id="btnGuardarU" onclick="guardarUsuario()">💾 Guardar</button>
     </div>
   </div>
 </div>
@@ -760,6 +839,9 @@ function doLogin(){
       el('sesionInfo').style.display='flex';
       el('vc').classList.remove('on'); el('vv').classList.add('on');
       el('btnC').classList.remove('on'); el('btnV').classList.add('on');
+      // Mostrar tab de usuarios solo para admin
+      var tabBar=el('vTabBar');
+      if(tabBar) tabBar.style.display=sesion.rol==='admin'?'flex':'none';
       cargarPedidos();
     } else { el('lerr').style.display='block'; }
   }).finally(function(){ btn.textContent='Ingresar →'; btn.disabled=false; });
@@ -870,7 +952,61 @@ function irManual(){
 var imgPendientes=[]; // Array de {b64, type, nombre}
 
 el('upz').addEventListener('click',function(){ el('fi').click(); });
-el('btnCamara').addEventListener('click',function(){ el('fiCam').click(); });
+el('btnCamara').addEventListener('click',function(){
+  // Intentar getUserMedia (funciona en desktop con webcam)
+  if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+    abrirCamaraStream();
+  } else {
+    // Fallback: file input con capture
+    el('fiCam').click();
+  }
+});
+
+function abrirCamaraStream(){
+  // Crear overlay de cámara
+  var ov=document.createElement('div');
+  ov.id='camOvl';
+  ov.style.cssText='position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;';
+  ov.innerHTML='<div style="font-size:14px;color:#fff;font-weight:700;">📸 Apunta la cámara a tu lista de medidas</div>'
+    +'<video id="camVideo" autoplay playsinline style="max-width:100%;max-height:70vh;border-radius:12px;border:3px solid #FFD600;"></video>'
+    +'<div style="display:flex;gap:12px;">'
+      +'<button id="btnCapturar" style="background:#FFD600;color:#000;border:none;padding:14px 32px;border-radius:999px;font-size:16px;font-weight:800;cursor:pointer;">📷 Capturar</button>'
+      +'<button id="btnCerrarCam" style="background:rgba(255,255,255,.2);color:#fff;border:none;padding:14px 24px;border-radius:999px;font-size:14px;cursor:pointer;">Cancelar</button>'
+    +'</div>'
+    +'<canvas id="camCanvas" style="display:none;"></canvas>';
+  document.body.appendChild(ov);
+
+  var stream=null;
+  navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}}})
+  .then(function(s){
+    stream=s;
+    var vid=document.getElementById('camVideo');
+    vid.srcObject=s;
+  })
+  .catch(function(){
+    // Fallback si no hay acceso
+    document.body.removeChild(ov);
+    el('fiCam').click();
+  });
+
+  document.getElementById('btnCapturar').addEventListener('click',function(){
+    var vid=document.getElementById('camVideo');
+    var cv=document.getElementById('camCanvas');
+    cv.width=vid.videoWidth; cv.height=vid.videoHeight;
+    cv.getContext('2d').drawImage(vid,0,0);
+    cv.toBlob(function(blob){
+      var file=new File([blob],'camara-'+Date.now()+'.jpg',{type:'image/jpeg'});
+      if(stream) stream.getTracks().forEach(function(t){t.stop();});
+      document.body.removeChild(ov);
+      agregarImagenes([file]);
+    },'image/jpeg',0.90);
+  });
+
+  document.getElementById('btnCerrarCam').addEventListener('click',function(){
+    if(stream) stream.getTracks().forEach(function(t){t.stop();});
+    document.body.removeChild(ov);
+  });
+}
 el('fi').addEventListener('change',function(){ agregarImagenes(this.files); this.value=''; });
 el('fiCam').addEventListener('change',function(){ agregarImagenes(this.files); this.value=''; });
 el('upz').addEventListener('dragover',function(e){ e.preventDefault(); el('upz').classList.add('drag'); });
@@ -1255,15 +1391,16 @@ function renderFormicas(){
 }
 
 function updSG(){
+  var pcsConDatos=pcs.filter(function(p){return p.material||p.largo||p.ancho;});
   var tot=pcs.reduce(function(s,p){ return s+(parseInt(p.qty)||0); },0);
   var mats=[...new Set(pcs.filter(function(p){return p.material;}).map(function(p){return p.material;}))];
   var cc=pcs.filter(function(p){ return p.l1||p.l2||p.a1||p.a2; }).length;
   var g=el('sg'); if(!g) return;
-  g.innerHTML='<div class="sc"><div class="sl">Total piezas</div><div class="sv">'+tot+'</div></div>'
-    +'<div class="sc"><div class="sl">Líneas</div><div class="sv">'+pcs.length+'</div></div>'
-    +'<div class="sc"><div class="sl">Con enchape</div><div class="sv">'+cc+'</div></div>'
-    +'<div class="sc"><div class="sl">Materiales</div><div class="sv">'+mats.length+'</div>'
-    +'<div style="font-size:10px;color:var(--tx3);">'+(mats.length===1?mats[0].split(' ').slice(-1)[0]:'distintos')+'</div></div>';
+  g.innerHTML='<div class="sc"><div class="sl">Total piezas</div><div class="sv">'+(tot||'—')+'</div></div>'
+    +'<div class="sc"><div class="sl">Líneas</div><div class="sv">'+(pcsConDatos.length||'—')+'</div></div>'
+    +'<div class="sc"><div class="sl">Con enchape</div><div class="sv">'+(cc||'—')+'</div></div>'
+    +'<div class="sc"><div class="sl">Materiales</div><div class="sv">'+(mats.length||'—')+'</div>'
+    +'<div style="font-size:10px;color:var(--tx3);">'+(mats.length===1?mats[0].split(' ').slice(-1)[0]:mats.length>1?'distintos':'')+'</div></div>';
 }
 
 // ── CONFIRMAR PEDIDO ──────────────────────────────────────
@@ -1299,11 +1436,30 @@ function confirmarPedido(){
   .then(function(ped){
     var pid=Array.isArray(ped)?ped[0]&&ped[0].id:ped&&ped.id;
     if(!pid) throw new Error('Sin ID de pedido');
-    return sbPost('pedido_piezas',pcs.map(function(p,i){ return {pedido_id:pid,linea:i+1,material:p.material,qty:parseInt(p.qty)||1,largo:Math.round(parseFloat(p.largo)||0),ancho:Math.round(parseFloat(p.ancho)||0),veta:p.veta||'1-Longitud',l1:p.l1||'',l2:p.l2||'',a1:p.a1||'',a2:p.a2||'',obs:p.obs||''}; }))
+    var frmActivas=formicas?formicas.filter(function(f){return f.material&&f.qty;}):[];
+    return sbPost('pedido_piezas',pcs.map(function(p,i){
+      return {pedido_id:pid,linea:i+1,material:p.material,
+        qty:parseInt(p.qty)||1,
+        largo:Math.round(parseFloat(p.largo)||0),
+        ancho:Math.round(parseFloat(p.ancho)||0),
+        veta:p.veta||'1-Longitud',
+        l1:p.l1||'',l2:p.l2||'',a1:p.a1||'',a2:p.a2||'',
+        obs:(p.obs||'')+(p.col_d?' [D/G:'+p.col_d+']':'')};
+    }))
+    .then(function(){
+      if(!frmActivas.length) return Promise.resolve();
+      return sbPost('pedido_piezas',frmActivas.map(function(f,i){
+        return {pedido_id:pid,linea:pcs.length+i+1,
+          material:'FORMICA: '+f.material,
+          qty:parseInt(f.qty)||1,
+          largo:0,ancho:0,veta:'Sin veta',
+          l1:'',l2:'',a1:'',a2:'',
+          obs:'FORMICA'+(f.obs?' | '+f.obs:'')};
+      }));
+    })
     .then(function(){ return addH(pid,'creado',null,null,null,
           'Pedido: '+nom+' · '+pcs.length+' líneas · '+tot+' piezas'
-          +(tapas.filter(function(t){return t.tipo||t.qty;}).length
-            ?' · '+tapas.filter(function(t){return t.tipo||t.qty;}).length+' tapas':'')
+          +(frmActivas.length?' · '+frmActivas.length+' fórmica(s)':'')
         ); })
     .then(function(){
       el('cfcode').textContent=cod;
@@ -1348,6 +1504,89 @@ el('btnCerrarEdit').addEventListener('click',function(){ el('eovl').classList.re
 el('btnCancelarEdit').addEventListener('click',function(){ el('eovl').classList.remove('open'); });
 el('btnGuardarEdit').addEventListener('click',guardarEdicion);
 el('btnAddEditRow').addEventListener('click',function(){ pzEdit.push(pv()); renderEditT(); });
+
+// ── GESTIÓN USUARIOS (ADMIN) ─────────────────────────
+var uEditId=null; // null = nuevo, id = editar
+
+function switchVTab(tab){
+  var isPed=tab==='pedidos';
+  el('vPedidosPanel').style.display=isPed?'block':'none';
+  el('vUsuariosPanel').style.display=isPed?'none':'block';
+  el('tabPedidos').classList.toggle('on',isPed);
+  el('tabUsuarios').classList.toggle('on',!isPed);
+  if(!isPed) cargarUsuarios();
+}
+
+function cargarUsuarios(){
+  var lista=el('ulist'); lista.innerHTML='<div style="color:var(--tx3);padding:20px;text-align:center;">Cargando...</div>';
+  sbGet('usuarios','order=nombre.asc').then(function(rows){
+    rows=rows||[];
+    if(!rows.length){ lista.innerHTML='<div style="color:var(--tx3);padding:20px;">No hay usuarios.</div>'; return; }
+    lista.innerHTML=rows.map(function(u){
+      return '<div class="card" style="margin-bottom:0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:16px 20px;">'
+        +'<div>'
+          +'<div style="font-size:16px;font-weight:800;">'+u.nombre+'</div>'
+          +'<div style="font-size:13px;color:var(--tx3);margin-top:3px;">'
+            +'@'+u.usuario+' · '+(u.rol==='admin'?'<span style="color:var(--red);font-weight:700;">🔑 Admin</span>':'Vendedora')
+          +'</div>'
+        +'</div>'
+        +'<div style="display:flex;gap:8px;align-items:center;">'
+          +'<span class="badge '+(u.activo?'b-lst':'b-nop')+'">'+(u.activo?'Activo':'Inactivo')+'</span>'
+          +'<button type="button" class="btn bs" style="padding:7px 14px;font-size:12px;" onclick="abrirFormUsuario(''+u.id+'')">✏️ Editar</button>'
+        +'</div>'
+      +'</div>';
+    }).join('');
+  });
+}
+
+function genPass(){
+  var chars='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#';
+  var p='';for(var i=0;i<10;i++) p+=chars[Math.floor(Math.random()*chars.length)];
+  return p;
+}
+
+function abrirFormUsuario(id){
+  uEditId=id;
+  var isNew=!id;
+  el('uovlTit').textContent=isNew?'➕ Nuevo usuario':'✏️ Editar usuario';
+  el('uerr').style.display='none';
+  if(isNew){
+    el('uNombre').value=''; el('uUsuario').value='';
+    el('uPass').value=''; el('uRol').value='vendedora'; el('uActivo').value='true';
+  } else {
+    sbGet('usuarios','id=eq.'+id).then(function(rows){
+      var u=rows&&rows[0]; if(!u) return;
+      el('uNombre').value=u.nombre||'';
+      el('uUsuario').value=u.usuario||'';
+      el('uPass').value='';
+      el('uRol').value=u.rol||'vendedora';
+      el('uActivo').value=String(u.activo!==false);
+    });
+  }
+  el('uovl').classList.add('open');
+  setTimeout(function(){el('uNombre').focus();},120);
+}
+
+function guardarUsuario(){
+  var nom=el('uNombre').value.trim(), usr=el('uUsuario').value.trim().toLowerCase();
+  var pass=el('uPass').value.trim(), rol=el('uRol').value;
+  var activo=el('uActivo').value==='true';
+  var err=el('uerr');
+  if(!nom||!usr){ err.textContent='Nombre y usuario son obligatorios.'; err.style.display='block'; return; }
+  if(!uEditId&&!pass){ err.textContent='La contraseña es obligatoria para usuarios nuevos.'; err.style.display='block'; return; }
+  var datos={nombre:nom,usuario:usr,rol:rol,activo:activo};
+  if(pass) datos.password_hash=pass; // La app usa password_hash como campo de contraseña
+  var btn=el('btnGuardarU'); btn.textContent='Guardando...'; btn.disabled=true;
+  var prom=uEditId
+    ? sbPatch('usuarios','id=eq.'+uEditId,datos)
+    : sbPost('usuarios',datos);
+  prom.then(function(){
+    el('uovl').classList.remove('open');
+    cargarUsuarios();
+  }).catch(function(e){
+    err.textContent='Error: '+e.message; err.style.display='block';
+  }).finally(function(){ btn.textContent='💾 Guardar'; btn.disabled=false; });
+}
 
 function cargarPedidos(){
   el('psub').textContent='Cargando...';
@@ -1429,7 +1668,10 @@ function abrirDet(id){
       +'<div class="sc"><div class="sl">Líneas</div><div class="sv">'+pzs.length+'</div></div>'
       +'<div class="sc"><div class="sl">Materiales</div><div class="sv">'+mats.length+'</div></div>'
       +'<div class="sc"><div class="sl">Sede</div><div class="sv" style="font-size:14px;">'+pedAct.sede.replace('Sede ','')+'</div></div>';
-    el('dtb').innerHTML=pzs.map(function(p,i){
+    // Separar tablero y fórmicas
+    var pzsTablero=pzs.filter(function(p){ return !p.material.startsWith('FORMICA:'); });
+    var pzsFormica=pzs.filter(function(p){ return p.material.startsWith('FORMICA:'); });
+    el('dtb').innerHTML=pzsTablero.map(function(p,i){
       var noEc=MAT_NO_ENCHAPE&&MAT_NO_ENCHAPE[p.material];
       return '<tr><td><span style="font-size:11px;color:var(--tx3);font-weight:700;">'+(i+1)+'</span></td>'
         +'<td class="l" style="font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+p.material+'">'+p.material+'</td>'
@@ -1437,11 +1679,24 @@ function abrirDet(id){
         +'<td style="font-size:11px;">'+(p.veta==='1-Longitud'?'L':p.veta==='2-Ancho'?'A':'—')+'</td>'
         +(noEc?'<td colspan="4" style="text-align:center;font-size:10px;color:#999;background:#f5f5f5;">Sin enchape</td>'
           :'<td>'+(p.l1||'—')+'</td><td>'+(p.l2||'—')+'</td><td>'+(p.a1||'—')+'</td><td>'+(p.a2||'—')+'</td>')
-        +'<td class="l" style="font-size:12px;color:var(--tx2);">'+(p.obs||'')+(p.col_d?' [Color: '+p.col_d+']':'')+'</td></tr>';
+        +'<td class="l" style="font-size:12px;color:var(--tx2);">'+(p.obs||'')+'</td></tr>';
     }).join('');
-    // Mostrar fórmica si hay en datos extras del pedido
-    var fCard=el('dFormica');
-    if(fCard) fCard.style.display='none';
+    // Panel de fórmicas
+    var fPanel=el('dFormicaPanel');
+    if(fPanel){
+      if(pzsFormica.length){
+        fPanel.style.display='block';
+        el('dtbFormica').innerHTML=pzsFormica.map(function(f,i){
+          return '<tr><td style="font-size:11px;color:var(--tx3);font-weight:700;">'+(i+1)+'</td>'
+            +'<td class="l" style="font-size:13px;font-weight:700;">'+f.material.replace('FORMICA: ','')+'</td>'
+            +'<td style="font-weight:800;">'+f.qty+' plancha(s)</td>'
+            +'<td class="l" style="font-size:12px;color:var(--tx2);">'+(f.obs||'').replace('FÓRMICA · ','').replace('FÓRMICA','')+'</td>'
+            +'</tr>';
+        }).join('');
+      } else {
+        fPanel.style.display='none';
+      }
+    }
   });
   sbGet('pedido_historial','pedido_id=eq.'+id+'&order=created_at.desc').then(function(hs){
     hs=hs||[];
