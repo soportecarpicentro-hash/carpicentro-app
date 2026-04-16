@@ -146,7 +146,7 @@ tr.duda td .ti, tr.duda td .tis{background:#FFFDE7;}
 .mat-btn-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
 
 /* TABLA */
-.tw{overflow-x:auto;border-radius:var(--rads);border:2px solid var(--dark);min-width:0;}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:var(--rads);border:2px solid var(--dark);}
 table{width:100%;border-collapse:collapse;font-size:13px;}
 thead{background:var(--dark);}
 th{padding:11px 7px;text-align:center;font-size:10px;font-weight:700;color:var(--yellow);text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--yellow);white-space:nowrap;}
@@ -492,8 +492,8 @@ tr:hover td{background:#FFF5F5;}
     <div id="vlista">
       <!-- Tabs admin -->
       <div id="vTabBar" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:16px;border-bottom:2px solid var(--bd);padding-bottom:12px;">
-        <button type="button" class="vtab on" id="tabPedidos" onclick="switchVTab('pedidos')">📋 Pedidos</button>
-        <button type="button" class="vtab" id="tabUsuarios" onclick="switchVTab('usuarios')">👥 Usuarios</button>
+        <button type="button" class="vtab on" id="tabPedidos">📋 Pedidos</button>
+        <button type="button" class="vtab" id="tabUsuarios">👥 Usuarios</button>
       </div>
 
       <!-- Vista pedidos -->
@@ -757,7 +757,7 @@ var pcs=[],allP=[],pedAct=null,pzEdit=[],sesion=null,unidad='mm',matCb=null,matC
 
 // ── HELPERS ──────────────────────────────────────────────
 function el(id){ return document.getElementById(id); }
-function pv(){ return {material:'',qty:'',largo:'',ancho:'',veta:'1-Longitud',l1:'',l2:'',a1:'',a2:'',col_l1:'',col_l2:'',col_a1:'',col_a2:'',col_d:'',obs:'',perf_cant:'',perf_lado:'',perf_det:'',ran_libre:'',ran_espe:'',ran_prof:'',ran_lado:'',ran_det:''}; }
+function pv(){ return {material:'',qty:'',largo:'',ancho:'',veta:'1-Longitud',l1:'',l2:'',a1:'',a2:'',col_d:'',col_dx:'',col_gx:'',obs:'',perf_cant:'',perf_lado:'',perf_det:'',ran_libre:'',ran_espe:'',ran_prof:'',ran_lado:'',ran_det:''}; }
 function pvFormica(){ return {material:'',qty:'',obs:''}; }
 function fC(d){ if(!d)return''; var dt=new Date(d); return dt.toLocaleDateString('es-PE',{day:'2-digit',month:'short'})+' '+dt.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}); }
 function fL(d){ if(!d)return''; var dt=new Date(d); return dt.toLocaleDateString('es-PE',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})+' · '+dt.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}); }
@@ -930,10 +930,10 @@ function irStepBtn(n){
   window.scrollTo({top:0,behavior:'instant'});
 }
 function irPaso(n){
-  if(n===2 && !el('cnom').value.trim()){ alert('Por favor ingresa tu nombre para continuar.'); el('cnom').focus(); return; }
-  if(n===2 && el('cmet').value==='manual'){ irManual(); return; }
-  ['cs1','cs2','cs3','cs4'].forEach(function(id,i){ el(id).style.display=(i+1===n)?'block':'none'; });
-  [1,2,3,4].forEach(function(i){ var s=el('stp'+i); s.classList.remove('on','dn'); if(i===n)s.classList.add('on'); else if(i<n)s.classList.add('dn'); });
+  if(n===2 && el('cnom') && !el('cnom').value.trim()){ alert('Por favor ingresa tu nombre para continuar.'); el('cnom').focus(); return; }
+  if(n===2 && el('cmet') && el('cmet').value==='manual'){ irManual(); return; }
+  ['cs1','cs2','cs3','cs4'].forEach(function(id,i){ if(el(id)) el(id).style.display=(i+1===n)?'block':'none'; });
+  [1,2,3,4].forEach(function(i){ var s=el('stp'+i); if(s){ s.classList.remove('on','dn'); if(i===n)s.classList.add('on'); else if(i<n)s.classList.add('dn'); }});
   window.scrollTo({top:0,behavior:'instant'});
 }
 function irManual(){
@@ -990,16 +990,29 @@ function abrirCamaraStream(){
   });
 
   document.getElementById('btnCapturar').addEventListener('click',function(){
-    var vid=document.getElementById('camVideo');
-    var cv=document.getElementById('camCanvas');
-    cv.width=vid.videoWidth; cv.height=vid.videoHeight;
-    cv.getContext('2d').drawImage(vid,0,0);
-    cv.toBlob(function(blob){
-      var file=new File([blob],'camara-'+Date.now()+'.jpg',{type:'image/jpeg'});
-      if(stream) stream.getTracks().forEach(function(t){t.stop();});
-      document.body.removeChild(ov);
-      agregarImagenes([file]);
-    },'image/jpeg',0.90);
+    var btnCap=this;
+    var cnt=5;
+    btnCap.disabled=true;
+    btnCap.textContent='📷 '+cnt+'...';
+    var timer=setInterval(function(){
+      cnt--;
+      if(cnt>0){
+        btnCap.textContent='📷 '+cnt+'...';
+      } else {
+        clearInterval(timer);
+        btnCap.textContent='✓ Capturando...';
+        var vid=document.getElementById('camVideo');
+        var cv=document.getElementById('camCanvas');
+        cv.width=vid.videoWidth; cv.height=vid.videoHeight;
+        cv.getContext('2d').drawImage(vid,0,0);
+        cv.toBlob(function(blob){
+          var file=new File([blob],'camara-'+Date.now()+'.jpg',{type:'image/jpeg'});
+          if(stream) stream.getTracks().forEach(function(t){t.stop();});
+          document.body.removeChild(ov);
+          agregarImagenes([file]);
+        },'image/jpeg',0.90);
+      }
+    },1000);
   });
 
   document.getElementById('btnCerrarCam').addEventListener('click',function(){
@@ -1067,7 +1080,7 @@ function leerTodasConIA(){
       return {material:p.material||'MELA PELIKANO BLANCO',qty:Math.max(1,parseInt(p.qty)||1),
         largo:parseInt(p.largo)||'',ancho:parseInt(p.ancho)||'',veta:p.veta||'1-Longitud',
         l1:p.l1||'',l2:p.l2||'',a1:p.a1||'',a2:p.a2||'',obs:p.obs||'',
-        col_l1:'',col_l2:'',col_a1:'',col_a2:'',col_d:'',
+        col_d:'',col_dx:'',col_gx:'',
         perf_cant:'',perf_lado:'',perf_det:'',ran_libre:'',ran_espe:'',ran_prof:'',ran_lado:'',ran_det:'',
         _duda:!!(p.obs&&p.obs.indexOf('REVISAR:')>=0)};
     });
@@ -1253,32 +1266,42 @@ function renderTabla(){
        +'<th style="background:#A5D6A7;color:#1B5E20;font-size:9px;padding:5px 3px;width:44px;">RAN<br>LADO</th>'
        +'<th style="background:#A5D6A7;color:#1B5E20;font-size:9px;padding:5px 3px;width:70px;">RAN<br>DETALLE</th>':'';
     thBase.innerHTML=
-      '<th style="width:22px;color:var(--yellow);">#</th>'
-      +'<th class="l" style="width:160px;color:var(--yellow);">PRODUCTO</th>'
-      +'<th style="width:44px;color:var(--yellow);">CANT.</th>'
-      +'<th style="width:76px;color:var(--yellow);" id="thL">LARGO<br><span style="font-weight:400;font-size:9px;">(VETA)</span></th>'
-      +'<th style="width:76px;color:var(--yellow);" id="thA">ANCHO</th>'
-      +'<th style="width:48px;color:var(--yellow);">VETA</th>'
-      +'<th style="width:36px;color:var(--yellow);">L1</th><th style="width:36px;color:var(--yellow);">L2</th>'
-      +'<th style="width:36px;color:var(--yellow);">A1</th><th style="width:36px;color:var(--yellow);">A2</th>'
-      +'<th class="l" style="min-width:70px;color:var(--yellow);">OBS.</th>'
-      +perfCols+ranCols+'<th style="width:22px;"></th>';
+      '<th style="width:20px;color:var(--yellow);">#</th>'
+      +'<th class="l" style="min-width:140px;width:150px;color:var(--yellow);">PRODUCTO</th>'
+      +'<th style="width:40px;color:var(--yellow);">CANT.</th>'
+      +'<th style="width:70px;color:var(--yellow);" id="thL">LARGO<br><span style="font-weight:400;font-size:9px;">(VETA)</span></th>'
+      +'<th style="width:70px;color:var(--yellow);" id="thA">ANCHO</th>'
+      +'<th style="width:44px;color:var(--yellow);">VETA</th>'
+      +'<th style="width:80px;color:var(--yellow);">L1</th><th style="width:80px;color:var(--yellow);">L2</th>'
+      +'<th style="width:80px;color:var(--yellow);">A1</th><th style="width:80px;color:var(--yellow);">A2</th>'
+      +'<th class="l" style="min-width:100px;color:var(--yellow);">OBS.</th>'
+      +perfCols+ranCols+'<th style="width:20px;"></th>';
   }
 
   pcs.forEach(function(p,i){
     var noEc=matSinEnchape(p.material);
     var dBtn='<button type="button" class="db" data-del="'+i+'"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg></button>';
 
-    // Selector de color D/G (color igual al tablero → vacío, otro color → desplegable)
+    // Selector de color para Dx/Dy/Dz/Gx/Gy/Gz
+    // Usa el color ya elegido para el mismo tipo (Dx comparte con otros Dx de la fila)
+    function getColorTipo(canto){
+      // Dx/Dy/Dz comparten col_dx; Gx/Gy/Gz comparten col_gx
+      if(canto==='Dx'||canto==='Dy'||canto==='Dz') return p.col_dx||'';
+      if(canto==='Gx'||canto==='Gy'||canto==='Gz') return p.col_gx||'';
+      return '';
+    }
     function colorSel(lado, canto, colorVal){
       if(!canto) return '';
-      // Si es D o G puro, color del tablero, no pedir color
       if(canto==='D'||canto==='G') return '';
-      // Si es Dx/Gx/Dz/Gz → requiere color
+      // Para Dx/Dy/Dz → todos usan col_dx. Para Gx/Gy/Gz → todos usan col_gx
+      var isD=(canto==='Dx'||canto==='Dy'||canto==='Dz');
+      var dataKey=isD?'col_dx':'col_gx';
+      var currentColor=isD?(p.col_dx||''):(p.col_gx||'');
       var copts=CANTO_COLORES.map(function(cc){
-        return '<option value="'+cc+'"'+(colorVal===cc?' selected':'')+'>'+cc+'</option>';
+        return '<option value="'+cc+'"'+(currentColor===cc?' selected':'')+'>'+cc+'</option>';
       }).join('');
-      return '<select class="tis" data-i="'+i+'" data-k="col_'+lado+'" style="width:72px;font-size:10px;border-color:#9C27B0;" title="Color canto '+canto+'"><option value="">Color…</option>'+copts+'</select>';
+      var borderC=isD?'#7B1FA2':'#1565C0';
+      return '<select class="tis" data-i="'+i+'" data-k="'+dataKey+'" style="width:70px;font-size:10px;border-color:'+borderC+';margin-top:2px;" title="Color '+canto+'"><option value="">Color…</option>'+copts+'</select>';
     }
 
     // Selector color D general (cuando ponen D en varios lados y quieren indicar el color una vez)
@@ -1288,11 +1311,11 @@ function renderTabla(){
 
     var cells=
       '<td style="font-size:11px;color:var(--tx3);font-weight:700;text-align:center;padding:3px 2px;">'+(i+1)+'</td>'
-      +'<td style="padding:3px;">'+mkMatBtn(i,p.material,'c')+'</td>'
-      +'<td><input class="ti" type="text" inputmode="numeric" value="'+(p.qty||'')+'" placeholder="—" style="width:44px;" data-i="'+i+'" data-k="qty"></td>'
-      +'<td><input class="ti" type="text" inputmode="decimal" value="'+(p.largo||'')+'" placeholder="—" style="width:58px;" data-i="'+i+'" data-k="largo"></td>'
-      +'<td><input class="ti" type="text" inputmode="decimal" value="'+(p.ancho||'')+'" placeholder="—" style="width:58px;" data-i="'+i+'" data-k="ancho"></td>'
-      +'<td><select class="tis" data-i="'+i+'" data-k="veta" style="width:44px;">'+vetaOpts(p.veta)+'</select></td>';
+      +'<td style="padding:3px;min-width:140px;max-width:180px;">'+mkMatBtn(i,p.material,'c')+'</td>'
+      +'<td><input class="ti" type="text" inputmode="numeric" value="'+(p.qty||'')+'" placeholder="—" style="width:40px;font-size:12px;" data-i="'+i+'" data-k="qty"></td>'
+      +'<td><input class="ti" type="text" inputmode="decimal" value="'+(p.largo||'')+'" placeholder="—" style="width:66px;font-size:12px;" data-i="'+i+'" data-k="largo"></td>'
+      +'<td><input class="ti" type="text" inputmode="decimal" value="'+(p.ancho||'')+'" placeholder="—" style="width:66px;font-size:12px;" data-i="'+i+'" data-k="ancho"></td>'
+      +'<td><select class="tis" data-i="'+i+'" data-k="veta" style="width:44px;font-size:11px;">'+vetaOpts(p.veta)+'</select></td>';
 
     if(noEc){
       // Sin canto: mostrar celda gris indicando que no aplica
@@ -1301,19 +1324,19 @@ function renderTabla(){
       cells+=
         '<td><div style="display:flex;flex-direction:column;gap:2px;">'
           +'<select class="tis" data-i="'+i+'" data-k="l1" style="width:34px;font-size:11px;">'+cantoOpts(p.l1)+'</select>'
-          +colorSel('l1',p.l1,p.col_l1)
+          +colorSel('l1',p.l1,'') /* color calculado internamente */
         +'</div></td>'
         +'<td><div style="display:flex;flex-direction:column;gap:2px;">'
           +'<select class="tis" data-i="'+i+'" data-k="l2" style="width:34px;font-size:11px;">'+cantoOpts(p.l2)+'</select>'
-          +colorSel('l2',p.l2,p.col_l2)
+          +colorSel('l2',p.l2,'') /* color calculado internamente */
         +'</div></td>'
         +'<td><div style="display:flex;flex-direction:column;gap:2px;">'
           +'<select class="tis" data-i="'+i+'" data-k="a1" style="width:34px;font-size:11px;">'+cantoOpts(p.a1)+'</select>'
-          +colorSel('a1',p.a1,p.col_a1)
+          +colorSel('a1',p.a1,'') /* color calculado internamente */
         +'</div></td>'
         +'<td><div style="display:flex;flex-direction:column;gap:2px;">'
           +'<select class="tis" data-i="'+i+'" data-k="a2" style="width:34px;font-size:11px;">'+cantoOpts(p.a2)+'</select>'
-          +colorSel('a2',p.a2,p.col_a2)
+          +colorSel('a2',p.a2,'') /* color calculado internamente */
         +'</div></td>';
     }
 
@@ -1417,10 +1440,10 @@ function confirmarPedido(){
     if(matSinEnchape(p.material)) return;
     var cantosD=[p.l1,p.l2,p.a1,p.a2].some(function(c){return c==='D'||c==='G';});
     if(cantosD && !p.col_d){ sinColor.push('Fila '+(i+1)+': falta el color de canto D/G'); }
-    if(cantoNecesitaColor(p.l1)&&!p.col_l1) sinColor.push('Fila '+(i+1)+': L1 ('+p.l1+') sin color');
-    if(cantoNecesitaColor(p.l2)&&!p.col_l2) sinColor.push('Fila '+(i+1)+': L2 ('+p.l2+') sin color');
-    if(cantoNecesitaColor(p.a1)&&!p.col_a1) sinColor.push('Fila '+(i+1)+': A1 ('+p.a1+') sin color');
-    if(cantoNecesitaColor(p.a2)&&!p.col_a2) sinColor.push('Fila '+(i+1)+': A2 ('+p.a2+') sin color');
+    var tieneDx=[p.l1,p.l2,p.a1,p.a2].some(function(c){return c==='Dx'||c==='Dy'||c==='Dz';});
+    var tieneGx=[p.l1,p.l2,p.a1,p.a2].some(function(c){return c==='Gx'||c==='Gy'||c==='Gz';});
+    if(tieneDx&&!p.col_dx) sinColor.push('Fila '+(i+1)+': Dx/Dy/Dz sin color de canto delgado extra');
+    if(tieneGx&&!p.col_gx) sinColor.push('Fila '+(i+1)+': Gx/Gy/Gz sin color de canto grueso extra');
   });
   if(sinColor.length){ alert('⚠️ Debes indicar el color del canto en:\n'+sinColor.join('\n')); return; }
   var nom=el('cnom').value.trim(); if(!nom){ alert('Ingresa tu nombre.'); return; }
@@ -1444,7 +1467,7 @@ function confirmarPedido(){
         ancho:Math.round(parseFloat(p.ancho)||0),
         veta:p.veta||'1-Longitud',
         l1:p.l1||'',l2:p.l2||'',a1:p.a1||'',a2:p.a2||'',
-        obs:(p.obs||'')+(p.col_d?' [D/G:'+p.col_d+']':'')};
+        obs:(p.obs||'')+(p.col_d?' [D/G:'+p.col_d+']':'')+(p.col_dx?' [Dx/Dy/Dz:'+p.col_dx+']':'')+(p.col_gx?' [Gx/Gy/Gz:'+p.col_gx+']':'')};
     }))
     .then(function(){
       if(!frmActivas.length) return Promise.resolve();
@@ -1488,14 +1511,20 @@ function resetCliente(){
   imgPendientes=[];
   var g=el('imgGaleria'); if(g) g.innerHTML='';
   var w=el('btnLeerWrap'); if(w) w.style.display='none';
-  ['cnom','ctel','cdoc'].forEach(function(id){ el(id).value=''; });
-  el('prevImg').src=''; el('prevWrap').style.display='none'; el('fi').value='';
-  el('aist').innerHTML=''; el('aist3').innerHTML=''; el('docRes').style.display='none';
+  ['cnom','ctel','cdoc'].forEach(function(id){ if(el(id)) el(id).value=''; });
+  if(el('fi')) el('fi').value='';
+  if(el('fiCam')) el('fiCam').value='';
+  if(el('aist')) el('aist').innerHTML='';
+  if(el('aist3')) el('aist3').innerHTML='';
+  if(el('docRes')) el('docRes').style.display='none';
+  setTogglePerf(false); setToggleRan(false);
   irPaso(1);
 }
 
 // ── PANEL VENDEDORAS ──────────────────────────────────────
 el('btnRefresh').addEventListener('click',cargarPedidos);
+el('tabPedidos') && el('tabPedidos').addEventListener('click',function(){ switchVTab('pedidos'); });
+el('tabUsuarios') && el('tabUsuarios').addEventListener('click',function(){ switchVTab('usuarios'); });
 el('srch').addEventListener('input',filtrarP);
 el('fest').addEventListener('change',filtrarP);
 el('btnVolver').addEventListener('click',function(){ el('vdet').style.display='none'; el('vlista').style.display='block'; cargarPedidos(); });
