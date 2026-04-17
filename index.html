@@ -526,7 +526,7 @@ tr:hover td{background:#FFF5F5;}
       <div id="vUsuariosPanel" style="display:none;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
           <div style="font-size:20px;font-weight:800;">👥 Gestión de usuarios</div>
-          <button type="button" class="btn bp" style="padding:9px 16px;font-size:13px;" onclick="abrirFormUsuario(null)">+ Nuevo usuario</button>
+          <button type="button" id="btnNuevoUsuario" class="btn bp" style="padding:9px 16px;font-size:13px;">+ Nuevo usuario</button>
         </div>
         <div id="ulist" style="display:flex;flex-direction:column;gap:10px;"></div>
       </div>
@@ -633,7 +633,7 @@ tr:hover td{background:#FFF5F5;}
   <div class="ovlbox" style="max-width:480px;">
     <div class="ovlhdr">
       <div class="ovltit" id="uovlTit">➕ Nuevo usuario</div>
-      <button type="button" onclick="el('uovl').classList.remove('open')" class="ovlx">✕</button>
+      <button type="button" id="btnCerrarUovl" class="ovlx">✕</button>
     </div>
     <div class="fg"><label class="fl">Nombre completo</label><input type="text" id="uNombre" placeholder="Ej. María García"></div>
     <div class="fg"><label class="fl">Usuario (login)</label><input type="text" id="uUsuario" placeholder="Ej. mgarcia" autocomplete="off"></div>
@@ -641,7 +641,7 @@ tr:hover td{background:#FFF5F5;}
       <label class="fl">Contraseña</label>
       <div style="display:flex;gap:8px;">
         <input type="text" id="uPass" placeholder="Escribe la contraseña" style="flex:1;" autocomplete="new-password">
-        <button type="button" class="btn bs" style="padding:8px 12px;font-size:12px;" onclick="el('uPass').value=genPass()">🎲 Generar</button>
+        <button type="button" class="btn bs" style="padding:8px 12px;font-size:12px;" id="btnGenPass">🎲 Generar</button>
       </div>
     </div>
     <div class="fg">
@@ -660,8 +660,8 @@ tr:hover td{background:#FFF5F5;}
     </div>
     <div id="uerr" style="display:none;background:var(--rl);color:var(--red);padding:10px;border-radius:var(--rads);font-size:13px;margin-bottom:10px;"></div>
     <div class="btn-row" style="margin-top:8px;">
-      <button type="button" class="btn bs" onclick="el('uovl').classList.remove('open')">Cancelar</button>
-      <button type="button" class="btn bp" id="btnGuardarU" onclick="guardarUsuario()">💾 Guardar</button>
+      <button type="button" id="btnCancelarU" class="btn bs">Cancelar</button>
+      <button type="button" id="btnGuardarU" class="btn bp">💾 Guardar</button>
     </div>
   </div>
 </div>
@@ -1081,7 +1081,9 @@ function leerTodasConIA(){
         largo:parseInt(p.largo)||'',ancho:parseInt(p.ancho)||'',veta:p.veta||'1-Longitud',
         l1:p.l1||'',l2:p.l2||'',a1:p.a1||'',a2:p.a2||'',obs:p.obs||'',
         col_d:'',col_dx:'',col_gx:'',
-        perf_cant:'',perf_lado:'',perf_det:'',ran_libre:'',ran_espe:'',ran_prof:'',ran_lado:'',ran_det:'',
+        perf_cant:p.perf_cant||'',perf_lado:p.perf_lado||'',perf_det:p.perf_det||'',
+        ran_libre:p.ran_libre||'',ran_espe:p.ran_espe||'',ran_prof:p.ran_prof||'',
+        ran_lado:p.ran_lado||'',ran_det:p.ran_det||'',
         _duda:!!(p.obs&&p.obs.indexOf('REVISAR:')>=0)};
     });
     var msg=conDuda.length>0
@@ -1272,9 +1274,10 @@ function renderTabla(){
       +'<th style="width:70px;color:var(--yellow);" id="thL">LARGO<br><span style="font-weight:400;font-size:9px;">(VETA)</span></th>'
       +'<th style="width:70px;color:var(--yellow);" id="thA">ANCHO</th>'
       +'<th style="width:44px;color:var(--yellow);">VETA</th>'
-      +'<th style="width:80px;color:var(--yellow);">L1</th><th style="width:80px;color:var(--yellow);">L2</th>'
-      +'<th style="width:80px;color:var(--yellow);">A1</th><th style="width:80px;color:var(--yellow);">A2</th>'
-      +'<th class="l" style="min-width:100px;color:var(--yellow);">OBS.</th>'
+      +'<th style="width:60px;color:var(--yellow);">L1</th><th style="width:60px;color:var(--yellow);">L2</th>'
+      +'<th style="width:60px;color:var(--yellow);">A1</th><th style="width:60px;color:var(--yellow);">A2</th>'
+      +'<th style="width:80px;color:#90CAF9;font-size:9px;">D/G<br>COLOR</th>'
+      +'<th class="l" style="min-width:80px;color:var(--yellow);">OBS.</th>'
       +perfCols+ranCols+'<th style="width:20px;"></th>';
   }
 
@@ -1317,44 +1320,35 @@ function renderTabla(){
       +'<td><input class="ti" type="text" inputmode="decimal" value="'+(p.ancho||'')+'" placeholder="—" style="width:66px;font-size:12px;" data-i="'+i+'" data-k="ancho"></td>'
       +'<td><select class="tis" data-i="'+i+'" data-k="veta" style="width:44px;font-size:11px;">'+vetaOpts(p.veta)+'</select></td>';
 
-    if(noEc){
-      // Sin canto: mostrar celda gris indicando que no aplica
-      cells+='<td colspan="4" style="text-align:center;background:#EEEEEE;color:#999;font-size:10px;padding:4px;">Sin enchape</td>';
-    } else {
-      cells+=
-        '<td><div style="display:flex;flex-direction:column;gap:2px;">'
-          +'<select class="tis" data-i="'+i+'" data-k="l1" style="width:34px;font-size:11px;">'+cantoOpts(p.l1)+'</select>'
-          +colorSel('l1',p.l1,'') /* color calculado internamente */
-        +'</div></td>'
-        +'<td><div style="display:flex;flex-direction:column;gap:2px;">'
-          +'<select class="tis" data-i="'+i+'" data-k="l2" style="width:34px;font-size:11px;">'+cantoOpts(p.l2)+'</select>'
-          +colorSel('l2',p.l2,'') /* color calculado internamente */
-        +'</div></td>'
-        +'<td><div style="display:flex;flex-direction:column;gap:2px;">'
-          +'<select class="tis" data-i="'+i+'" data-k="a1" style="width:34px;font-size:11px;">'+cantoOpts(p.a1)+'</select>'
-          +colorSel('a1',p.a1,'') /* color calculado internamente */
-        +'</div></td>'
-        +'<td><div style="display:flex;flex-direction:column;gap:2px;">'
-          +'<select class="tis" data-i="'+i+'" data-k="a2" style="width:34px;font-size:11px;">'+cantoOpts(p.a2)+'</select>'
-          +colorSel('a2',p.a2,'') /* color calculado internamente */
-        +'</div></td>';
+    // Función helper para select de canto individual
+    function cantoCelda(lado, canto){
+      var sel='<select class="tis" data-i="'+i+'" data-k="'+lado+'" style="width:38px;font-size:11px;">'+cantoOpts(canto)+'</select>';
+      var colorHtml=colorSel(lado,canto,'');
+      return '<td style="padding:3px 2px;vertical-align:middle;"><div style="display:flex;flex-direction:column;align-items:center;gap:2px;">'+sel+colorHtml+'</div></td>';
     }
 
-    // Color para D/G (color del tablero → se pide en col_d)
+    if(noEc){
+      cells+='<td colspan="4" style="text-align:center;background:#EEEEEE;color:#999;font-size:10px;padding:4px;">Sin enchape</td>';
+    } else {
+      cells+=cantoCelda('l1',p.l1)+cantoCelda('l2',p.l2)+cantoCelda('a1',p.a1)+cantoCelda('a2',p.a2);
+    }
+
+    // Color D/G: columna propia pequeña, solo si hay D o G
     var colDHtml='';
     if(!noEc && cantosD){
       var copts2=CANTO_COLORES.map(function(cc){return '<option value="'+cc+'"'+(p.col_d===cc?' selected':'')+'>'+cc+'</option>';}).join('');
-      colDHtml='<div style="display:flex;align-items:center;gap:4px;font-size:10px;color:#555;white-space:nowrap;">'
-        +'<span style="font-size:10px;font-weight:700;">Color D/G:</span>'
-        +'<select class="tis" data-i="'+i+'" data-k="col_d" style="width:80px;font-size:10px;border-color:#1565C0;">'
-          +'<option value="">Seleccionar…</option>'+copts2
-        +'</select></div>';
+      colDHtml='<td style="padding:2px;vertical-align:middle;">'
+        +'<div style="font-size:9px;color:#1565C0;font-weight:700;text-align:center;white-space:nowrap;margin-bottom:2px;">D/G Color</div>'
+        +'<select class="tis" data-i="'+i+'" data-k="col_d" style="width:76px;font-size:10px;border-color:#1565C0;">'
+          +'<option value="">—</option>'+copts2
+        +'</select>'
+      +'</td>';
+    } else if(!noEc){
+      colDHtml='<td style="padding:2px;"></td>';
     }
+    cells+=colDHtml;
 
-    cells+='<td class="l"><div style="display:flex;flex-direction:column;gap:3px;">';
-    if(colDHtml) cells+=colDHtml;
-    cells+='<input class="ti" type="text" value="'+(p.obs||'')+'" placeholder="—" style="min-width:76px;text-align:left;" data-i="'+i+'" data-k="obs">';
-    cells+='</div></td>';
+    cells+='<td class="l" style="min-width:80px;"><input class="ti" type="text" value="'+(p.obs||'')+'" placeholder="—" style="width:100%;text-align:left;font-size:12px;" data-i="'+i+'" data-k="obs"></td>';
 
     if(showPerf){
       cells+='<td style="background:#F3E5F5;padding:2px;"><input class="ti" type="text" inputmode="numeric" value="'+(p.perf_cant||'')+'" placeholder="—" style="width:34px;background:#F3E5F5;" data-i="'+i+'" data-k="perf_cant"></td>'
@@ -1525,6 +1519,12 @@ function resetCliente(){
 el('btnRefresh').addEventListener('click',cargarPedidos);
 el('tabPedidos') && el('tabPedidos').addEventListener('click',function(){ switchVTab('pedidos'); });
 el('tabUsuarios') && el('tabUsuarios').addEventListener('click',function(){ switchVTab('usuarios'); });
+// Listeners overlay usuarios
+el('btnCerrarUovl') && el('btnCerrarUovl').addEventListener('click',function(){ el('uovl').classList.remove('open'); });
+el('btnCancelarU') && el('btnCancelarU').addEventListener('click',function(){ el('uovl').classList.remove('open'); });
+el('btnGuardarU') && el('btnGuardarU').addEventListener('click',guardarUsuario);
+el('btnNuevoUsuario') && el('btnNuevoUsuario').addEventListener('click',function(){ abrirFormUsuario(null); });
+el('btnGenPass') && el('btnGenPass').addEventListener('click',function(){ if(el('uPass')) el('uPass').value=genPass(); });
 el('srch').addEventListener('input',filtrarP);
 el('fest').addEventListener('change',filtrarP);
 el('btnVolver').addEventListener('click',function(){ el('vdet').style.display='none'; el('vlista').style.display='block'; cargarPedidos(); });
@@ -1566,10 +1566,19 @@ function cargarUsuarios(){
         +'<div style="display:flex;gap:8px;align-items:center;">'
           +'<span class="badge '+(u.activo?'b-lst':'b-nop')+'">'+(u.activo?'Activo':'Inactivo')+'</span>'
           +'<button type="button" class="btn bs" style="padding:7px 14px;font-size:12px;" data-uid="'+u.id+'">✏️ Editar</button>'
+          +(sesion&&sesion.id!==u.id?'<button type="button" class="btn bdanger" style="padding:7px 12px;font-size:12px;" data-del-uid="'+u.id+'" data-unom="'+u.nombre+'">🗑️</button>':'')
         +'</div>';
       div.querySelector('button[data-uid]').addEventListener('click',function(){
         abrirFormUsuario(this.dataset.uid);
       });
+      var btnDel=div.querySelector('button[data-del-uid]');
+      if(btnDel){
+        btnDel.addEventListener('click',function(){
+          var uid=this.dataset.delUid, unom=this.dataset.unom;
+          if(!confirm('¿Eliminar usuario "'+unom+'"?\nEsta acción no se puede deshacer.')) return;
+          sbDel('usuarios','id=eq.'+uid).then(function(){ cargarUsuarios(); });
+        });
+      }
       lista.appendChild(div);
     });
   });
