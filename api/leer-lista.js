@@ -11,81 +11,100 @@ export default async function handler(req, res) {
   if (!KEY) return res.status(500).json({ error: 'ANTHROPIC_API_KEY no configurada' });
 
   const prompt = `Eres el sistema de lectura de listas de corte de CARPICENTRO (Lima, Perú).
-Lee la imagen y extrae TODAS las piezas siguiendo estas reglas exactas:
+Lee la imagen y extrae TODAS las piezas siguiendo estas reglas exactas.
 
-═══ REGLA DE CANTOS — MUY IMPORTANTE ═══
+═══ PASO 1: IDENTIFICAR EL MATERIAL ═══
+Busca el nombre del material escrito arriba de la lista (ej: "ROBLE GRIS", "BLANCO", "CARAMELO").
+Ese material aplica a TODAS las piezas de esa sección.
+Si no se indica material → usar "MELA PELIKANO BLANCO".
 
-Cada medida tiene LARGO y ANCHO. Los cantos se indican con líneas decorando los números:
+═══ PASO 2: LEER CADA PIEZA ═══
+Cada pieza tiene formato: (CANTIDAD) LARGO x ANCHO
+Ejemplo: "② 420 x 330" → qty=2, largo=420, ancho=330
+Las líneas decorativas encima/debajo de los números indican los cantos.
 
-TIPO DE LÍNEA:
-  — (línea simple/recta)   = canto DELGADO = "D"
-  ≈ (línea ondulada/gusanito) = canto GRUESO = "G"
+═══ PASO 3: INTERPRETAR LAS LÍNEAS DE CANTO ═══
 
-CANTIDAD DE LÍNEAS indica cuántos lados llevan canto:
-  1 sola línea  = solo UN lado de esa medida lleva canto (el otro queda vacío "")
-  2 líneas      = AMBOS lados de esa medida llevan canto
+HAY DOS TIPOS DE LÍNEA:
+  — línea recta/simple = canto DELGADO = "D"
+  ≈ línea ondulada/gusanito = canto GRUESO = "G"
 
-POSICIÓN de las líneas (arriba o abajo del número):
-  La PRIMERA medida de la lista establece el patrón de posición:
-  - Si en la primera medida las líneas están ARRIBA del largo → L1 es el lado con canto, L2 es el opuesto
-  - Si en la primera medida las líneas están ABAJO del largo → L2 es el lado con canto, L1 es el opuesto
-  TODAS las medidas siguientes usan el MISMO patrón de posición que la primera.
+REGLA DE POSICIÓN — CRÍTICA:
+  Mira la PRIMERA pieza de la lista para determinar el patrón:
+  • Si las líneas están ENCIMA de los números → la línea de arriba es L1 (largo superior) y la de abajo es L2 (largo inferior)
+  • Si las líneas están DEBAJO de los números → igual: arriba=L1, abajo=L2
+  TODAS las piezas siguientes usan el MISMO patrón que la primera.
 
-EJEMPLOS COMPLETOS:
+REGLA DE CANTIDAD — CÓMO ASIGNAR L1, L2, A1, A2:
+  Para el LARGO (determina L1 y L2):
+    • 1 línea recta encima + 1 gusanito debajo → L1="D", L2="G"
+    • 1 gusanito encima + 1 línea recta debajo → L1="G", L2="D"
+    • 2 líneas rectas (una encima, una debajo) → L1="D", L2="D"
+    • 2 gusanitos (uno encima, uno debajo) → L1="G", L2="G"
+    • 1 sola línea recta (solo encima o solo debajo) → L1="D", L2="" (solo un lado)
+    • 1 solo gusanito → L1="G", L2="" (solo un lado)
+    • Sin líneas → L1="", L2=""
 
-Ejemplo A — líneas arriba del largo (patrón: arriba=L1, abajo=L2):
-  Línea simple arriba + gusanito arriba del LARGO:  L1="D", L2="" (un solo canto delgado arriba)
-  Gusanito arriba del LARGO:                        L1="G", L2="" (un solo canto grueso arriba)
-  2 líneas simples del LARGO (arriba y abajo):      L1="D", L2="D" (ambos lados delgado)
-  2 gusanitos del LARGO:                            L1="G", L2="G" (ambos lados grueso)
-  Línea simple arriba + gusanito abajo del LARGO:   L1="D", L2="G" (delgado arriba, grueso abajo)
+  Para el ANCHO (determina A1 y A2) — misma lógica:
+    • 2 líneas rectas → A1="D", A2="D"
+    • 2 gusanitos → A1="G", A2="G"
+    • 1 línea recta + 1 gusanito → A1="D", A2="G" (o según posición)
+    • 1 sola línea recta → A1="D", A2=""
+    • Sin líneas → A1="", A2=""
 
-Ejemplo B — líneas abajo del largo (patrón: abajo=L1, arriba=L2):
-  Línea simple abajo del LARGO:   L1="D", L2=""
-  2 líneas abajo del LARGO:       L1="D", L2="D"  ← misma lógica, diferente posición física
+EJEMPLO REAL de esta imagen de referencia (material: ROBLE GRIS, patrón: líneas encima):
 
-Para el ANCHO (A1/A2) aplica la misma lógica pero mirando izquierda/derecha del número de ancho.
-  Si no hay líneas en el ancho → A1="", A2=""
-  Si hay 1 línea en el ancho → un solo lado lleva canto
-  Si hay 2 líneas en el ancho → A1 y A2 llevan canto
+  ② 420 x 330:
+    Sobre 420: línea recta encima (=L1=D) + gusanito debajo (=L2=G)
+    Sobre 330: línea recta encima (=A1=D) + línea recta debajo (=A2=D)
+    → qty=2, largo=420, ancho=330, L1="D", L2="G", A1="D", A2="D"
 
-A VECES los cantos se escriben con LETRAS en vez de líneas:
-  Letras bajo el diagrama de la pieza: "D G D D" → L1=D, L2=G, A1=D, A2=D
-  Letras "DD" = ambos largos delgado, "GG" = ambos largos grueso
-  Letra sola "D" = un lado delgado, "G" = un lado grueso
+  ② 864 x 330:
+    Mismo patrón. Sobre 864: línea recta+gusanito → L1="D", L2="G"
+    Sobre 330: dos líneas rectas → A1="D", A2="D"
+    → qty=2, largo=864, ancho=330, L1="D", L2="G", A1="D", A2="D"
 
-═══ PERFORACIÓN ═══
-Indicada con puntos (o,o), letra P o notación "2P/1982":
+  ② 864 x 80:
+    Sobre 864: dos líneas rectas → L1="D", L2="D"
+    Sobre 80: dos líneas rectas → A1="D", A2="D"
+    → qty=2, largo=864, ancho=80, L1="D", L2="D", A1="D", A2="D"
+
+  ② 372 x 422:
+    Sobre 372: dos gusanitos → L1="G", L2="G"
+    Sobre 422: dos gusanitos → A1="G", A2="G"
+    → qty=2, largo=372, ancho=422, L1="G", L2="G", A1="G", A2="G"
+
+═══ PASO 4: PERFORACIÓN ═══
+Indicada con puntos (o,o) sobre la pieza, o notación "2P/1982":
   perf_cant = número de perforaciones (ej: "2")
   perf_lado = medida del lado (ej: "1982")
-  perf_det  = detalle completo (ej: "2P/1982")
+  perf_det  = detalle (ej: "2P/1982")
 
-═══ RANURA ═══
-Indicada con "R" o formato R/LIBRE/ESPE/PROF:
-  ran_libre="18", ran_espe="3", ran_prof="8", ran_lado="580"
-  Ejemplo "R/18/3/8" lado=580 → ran_libre=18, ran_espe=3, ran_prof=8, ran_lado=580
+═══ PASO 5: RANURA ═══
+Formato R/LIBRE/ESPE/PROF con lado indicado:
+  "R/18/3/8" lado=580 → ran_libre="18", ran_espe="3", ran_prof="8", ran_lado="580"
 
-═══ MEDIDAS ═══
-Siempre en milímetros. "420 x 330" → largo=420, ancho=330.
-"4→ 420x330" o "4= 420x330" → qty=4, largo=420, ancho=330.
-Si hay secciones por material (Blanco, Caramelo, etc.) → aplicar ese material a sus piezas.
-Material por defecto si no se indica: "MELA PELIKANO BLANCO"
-IGNORAR completamente dibujos, bocetos y flechas de muebles.
+═══ PASO 6: OBSERVACIONES ═══
+Si hay texto adicional legible (ej: "R. Costados", "Techo Pso", "Divina") → ponlo en obs.
+Si algo es ilegible → obs="REVISAR: [descripción]"
+IGNORAR: dibujos de muebles, marcas de agua, nombres de personas, fechas.
 
 ═══ RESPUESTA ═══
-SOLO JSON sin texto adicional ni markdown:
+SOLO JSON sin texto adicional ni bloques markdown:
 
-{"piezas":[{"material":"MELA PELIKANO BLANCO","qty":2,"largo":420,"ancho":330,"veta":"1-Longitud","l1":"D","l2":"G","a1":"D","a2":"D","perf_cant":"","perf_lado":"","perf_det":"","ran_libre":"","ran_espe":"","ran_prof":"","ran_lado":"","ran_det":"","obs":""}]}
+{"piezas":[
+  {"material":"ROBLE GRIS","qty":2,"largo":420,"ancho":330,"veta":"1-Longitud","l1":"D","l2":"G","a1":"D","a2":"D","perf_cant":"","perf_lado":"","perf_det":"","ran_libre":"","ran_espe":"","ran_prof":"","ran_lado":"","ran_det":"","obs":"R. Costados"}
+]}
 
 Campos:
-- material: string
+- material: string (del encabezado de la sección)
 - qty: entero positivo
 - largo, ancho: enteros en mm
 - veta: "1-Longitud" | "2-Ancho" | "Sin veta"
 - l1,l2,a1,a2: "D"|"G"|"Dx"|"Dy"|"Dz"|"Gx"|"Gy"|"Gz"|""
 - perf_cant,perf_lado,perf_det: string ("" si no hay)
 - ran_libre,ran_espe,ran_prof,ran_lado,ran_det: string ("" si no hay)
-- obs: "" o "REVISAR: [descripción]" solo si algo es realmente ilegible
+- obs: string con texto adicional de la pieza, o "" si no hay
 
 SOLO EL JSON.`;
 
