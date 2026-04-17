@@ -1,6 +1,4 @@
-// api/buscar-doc.js — Proxy RENIEC/SUNAT
-// Múltiples APIs + parseo robusto de todos los formatos de respuesta
-
+// api/buscar-doc.js — Proxy RENIEC/SUNAT (evita CORS desde el browser)
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -14,57 +12,56 @@ export default async function handler(req, res) {
   const num = String(numero).trim().replace(/\D/g, '');
   const esRUC = tipo === 'RUC';
 
-  if (esRUC && num.length !== 11) return res.status(200).json({ nombre: null, error: 'RUC debe tener 11 dígitos.' });
-  if (!esRUC && tipo === 'DNI' && num.length !== 8) return res.status(200).json({ nombre: null, error: 'DNI debe tener 8 dígitos.' });
+  if (esRUC && num.length !== 11)
+    return res.status(200).json({ nombre: null, error: 'RUC debe tener 11 dígitos.' });
+  if (!esRUC && tipo === 'DNI' && num.length !== 8)
+    return res.status(200).json({ nombre: null, error: 'DNI debe tener 8 dígitos.' });
 
-  function extraerNombre(d) {
+  // Extraer nombre de cualquier formato de respuesta de las APIs peruanas
+  function extraer(d) {
     if (!d || typeof d !== 'object') return null;
-    if (d.nombre && String(d.nombre).trim().length > 2) return String(d.nombre).trim();
-    if (d.razonSocial && String(d.razonSocial).trim().length > 2) return String(d.razonSocial).trim();
-    if (d.nombreCompleto && String(d.nombreCompleto).trim().length > 2) return String(d.nombreCompleto).trim();
-    if (d.name && String(d.name).trim().length > 2) return String(d.name).trim();
-    // Formato con partes separadas (RENIEC v2)
-    const n = [d.nombres, d.apellidoPaterno, d.apellidoMaterno].filter(Boolean).join(' ').trim();
-    if (n.length > 2) return n;
+    for (const k of ['nombre','razonSocial','nombreCompleto','name','razon_social']) {
+      if (d[k] && String(d[k]).trim().length > 2) return String(d[k]).trim();
+    }
+    // RENIEC devuelve partes separadas
+    const partes = [d.nombres, d.apellidoPaterno, d.apellidoMaterno].filter(Boolean);
+    if (partes.length) { const n=partes.join(' ').trim(); if(n.length>2) return n; }
     return null;
   }
 
-  // Token del entorno o token de respaldo
-  const tok = process.env.APIS_NET_PE_TOKEN || 'apis-token-13621.LuUTvIBcFMq0WxI5lbPa5d5OJkAuiN17';
+  // Token del entorno (configurable en Vercel env vars) con fallbacks
+  const TOKEN = process.env.APIS_NET_PE_TOKEN || '';
 
-  const urls = esRUC
-    ? [
-        [`https://api.apis.net.pe/v2/sunat/ruc?numero=${num}`, tok],
-        [`https://api.apis.net.pe/v2/sunat/ruc?numero=${num}`, ''],
-        [`https://api.apis.net.pe/v1/ruc?numero=${num}`, tok],
-        [`https://api.apis.net.pe/v1/ruc?numero=${num}`, ''],
-      ]
-    : [
-        [`https://api.apis.net.pe/v2/reniec/dni?numero=${num}`, tok],
-        [`https://api.apis.net.pe/v2/reniec/dni?numero=${num}`, ''],
-        [`https://api.apis.net.pe/v1/dni?numero=${num}`, tok],
-        [`https://api.apis.net.pe/v1/dni?numero=${num}`, ''],
-      ];
+  // Lista de endpoints a probar en orden
+  const urls = esRUC ? [
+    { url: `https://api.apis.net.pe/v2/sunat/ruc?numero=${num}`, tok: TOKEN },
+    { url: `https://api.apis.net.pe/v2/sunat/ruc?numero=${num}`, tok: '' },
+    { url: `https://api.apis.net.pe/v1/ruc?numero=${num}`, tok: TOKEN },
+    { url: `https://api.apis.net.pe/v1/ruc?numero=${num}`, tok: '' },
+  ] : [
+    { url: `https://api.apis.net.pe/v2/reniec/dni?numero=${num}`, tok: TOKEN },
+    { url: `https://api.apis.net.pe/v2/reniec/dni?numero=${num}`, tok: '' },
+    { url: `https://api.apis.net.pe/v1/dni?numero=${num}`, tok: TOKEN },
+    { url: `https://api.apis.net.pe/v1/dni?numero=${num}`, tok: '' },
+  ];
 
-  for (const [url, token] of urls) {
+  for (const { url, tok } of urls) {
     try {
-      const headers = { Accept: 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-
+      const hdrs = { 'Accept': 'application/json', 'Content-Type': 'application/json' };
+      if (tok) hdrs['Authorization'] = `Bearer ${tok}`;
       const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 8000);
-      const r = await fetch(url, { headers, signal: ctrl.signal });
-      clearTimeout(t);
-
-      if (!r.ok) continue;
-      const data = await r.json();
-      const nombre = extraerNombre(data);
+      const timer = setTimeout(() => ctrl.abort(), 8000);
+      const resp = await fetch(url, { headers: hdrs, signal: ctrl.signal });
+      clearTimeout(timer);
+      if (!resp.ok) continue;
+      const data = await resp.json();
+      const nombre = extraer(data);
       if (nombre) return res.status(200).json({ nombre });
     } catch (_) { continue; }
   }
 
   return res.status(200).json({
     nombre: null,
-    error: `${tipo} no encontrado. Ingresa el nombre manualmente.`
+    error: `${tipo} no encontrado en el registro. Ingresa el nombre manualmente.`
   });
 }
