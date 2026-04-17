@@ -1258,15 +1258,15 @@ function renderTabla(){
   var thBase=el('thead-base');
   if(thBase){
     var perfCols=showPerf
-      ?'<th style="background:#CE93D8;color:#4A148C;font-size:9px;padding:5px 3px;width:38px;">PERF<br>CANT.</th>'
-       +'<th style="background:#CE93D8;color:#4A148C;font-size:9px;padding:5px 3px;width:46px;">PERF<br>LADO</th>'
-       +'<th style="background:#CE93D8;color:#4A148C;font-size:9px;padding:5px 3px;width:70px;">PERF<br>DETALLE</th>':'';
+      ?'<th style="background:#CE93D8;color:#4A148C;font-size:9px;padding:5px 4px;width:52px;">PERF<br>CANT.</th>'
+       +'<th style="background:#CE93D8;color:#4A148C;font-size:9px;padding:5px 4px;width:68px;">PERF<br>LADO</th>'
+       +'<th style="background:#CE93D8;color:#4A148C;font-size:9px;padding:5px 4px;width:90px;">PERF<br>DETALLE</th>':'';
     var ranCols=showRan
-      ?'<th style="background:#A5D6A7;color:#1B5E20;font-size:9px;padding:5px 3px;width:40px;">RAN<br>LIBRE</th>'
-       +'<th style="background:#A5D6A7;color:#1B5E20;font-size:9px;padding:5px 3px;width:40px;">RAN<br>ESPE.</th>'
-       +'<th style="background:#A5D6A7;color:#1B5E20;font-size:9px;padding:5px 3px;width:40px;">RAN<br>PROF.</th>'
-       +'<th style="background:#A5D6A7;color:#1B5E20;font-size:9px;padding:5px 3px;width:44px;">RAN<br>LADO</th>'
-       +'<th style="background:#A5D6A7;color:#1B5E20;font-size:9px;padding:5px 3px;width:70px;">RAN<br>DETALLE</th>':'';
+      ?'<th style="background:#A5D6A7;color:#1B5E20;font-size:9px;padding:5px 4px;width:52px;">RAN<br>LIBRE</th>'
+       +'<th style="background:#A5D6A7;color:#1B5E20;font-size:9px;padding:5px 4px;width:52px;">RAN<br>ESPE.</th>'
+       +'<th style="background:#A5D6A7;color:#1B5E20;font-size:9px;padding:5px 4px;width:52px;">RAN<br>PROF.</th>'
+       +'<th style="background:#A5D6A7;color:#1B5E20;font-size:9px;padding:5px 4px;width:60px;">RAN<br>LADO</th>'
+       +'<th style="background:#A5D6A7;color:#1B5E20;font-size:9px;padding:5px 4px;width:90px;">RAN<br>DETALLE</th>':'';
     thBase.innerHTML=
       '<th style="width:20px;color:var(--yellow);">#</th>'
       +'<th class="l" style="min-width:140px;width:150px;color:var(--yellow);">PRODUCTO</th>'
@@ -1351,16 +1351,16 @@ function renderTabla(){
     cells+='<td class="l" style="min-width:80px;"><input class="ti" type="text" value="'+(p.obs||'')+'" placeholder="—" style="width:100%;text-align:left;font-size:12px;" data-i="'+i+'" data-k="obs"></td>';
 
     if(showPerf){
-      cells+='<td style="background:#F3E5F5;padding:2px;"><input class="ti" type="text" inputmode="numeric" value="'+(p.perf_cant||'')+'" placeholder="—" style="width:34px;background:#F3E5F5;" data-i="'+i+'" data-k="perf_cant"></td>'
-        +'<td style="background:#F3E5F5;padding:2px;"><input class="ti" type="text" value="'+(p.perf_lado||'')+'" placeholder="—" style="width:42px;background:#F3E5F5;" data-i="'+i+'" data-k="perf_lado"></td>'
-        +'<td style="background:#F3E5F5;padding:2px;"><input class="ti" type="text" value="'+(p.perf_det||'')+'" placeholder="—" style="width:66px;text-align:left;background:#F3E5F5;" data-i="'+i+'" data-k="perf_det"></td>';
+      cells+='<td style="background:#F3E5F5;padding:3px;"><input class="ti" type="text" inputmode="numeric" value="'+(p.perf_cant||'')+'" placeholder="—" style="width:46px;font-size:13px;font-weight:600;background:#F3E5F5;text-align:center;" data-i="'+i+'" data-k="perf_cant"></td>'
+        +'<td style="background:#F3E5F5;padding:3px;"><input class="ti" type="text" inputmode="numeric" value="'+(p.perf_lado||'')+'" placeholder="—" style="width:60px;font-size:13px;font-weight:600;background:#F3E5F5;text-align:center;" data-i="'+i+'" data-k="perf_lado"></td>'
+        +'<td style="background:#F3E5F5;padding:3px;"><input class="ti" type="text" value="'+(p.perf_det||'')+'" placeholder="—" style="width:82px;font-size:12px;text-align:left;background:#F3E5F5;" data-i="'+i+'" data-k="perf_det"></td>';
     }
     if(showRan){
-      cells+='<td style="background:#E8F5E9;padding:2px;"><input class="ti" type="text" value="'+(p.ran_libre||'')+'" placeholder="—" style="width:36px;background:#E8F5E9;" data-i="'+i+'" data-k="ran_libre"></td>'
-        +'<td style="background:#E8F5E9;padding:2px;"><input class="ti" type="text" inputmode="decimal" value="'+(p.ran_espe||'')+'" placeholder="—" style="width:36px;background:#E8F5E9;" data-i="'+i+'" data-k="ran_espe"></td>'
-        +'<td style="background:#E8F5E9;padding:2px;"><input class="ti" type="text" inputmode="decimal" value="'+(p.ran_prof||'')+'" placeholder="—" style="width:36px;background:#E8F5E9;" data-i="'+i+'" data-k="ran_prof"></td>'
-        +'<td style="background:#E8F5E9;padding:2px;"><input class="ti" type="text" value="'+(p.ran_lado||'')+'" placeholder="—" style="width:40px;background:#E8F5E9;" data-i="'+i+'" data-k="ran_lado"></td>'
-        +'<td style="background:#E8F5E9;padding:2px;"><input class="ti" type="text" value="'+(p.ran_det||'')+'" placeholder="—" style="width:66px;text-align:left;background:#E8F5E9;" data-i="'+i+'" data-k="ran_det"></td>';
+      cells+='<td style="background:#E8F5E9;padding:3px;"><input class="ti" type="text" inputmode="decimal" value="'+(p.ran_libre||'')+'" placeholder="—" style="width:46px;font-size:13px;font-weight:600;background:#E8F5E9;text-align:center;" data-i="'+i+'" data-k="ran_libre"></td>'
+        +'<td style="background:#E8F5E9;padding:3px;"><input class="ti" type="text" inputmode="decimal" value="'+(p.ran_espe||'')+'" placeholder="—" style="width:46px;font-size:13px;font-weight:600;background:#E8F5E9;text-align:center;" data-i="'+i+'" data-k="ran_espe"></td>'
+        +'<td style="background:#E8F5E9;padding:3px;"><input class="ti" type="text" inputmode="decimal" value="'+(p.ran_prof||'')+'" placeholder="—" style="width:46px;font-size:13px;font-weight:600;background:#E8F5E9;text-align:center;" data-i="'+i+'" data-k="ran_prof"></td>'
+        +'<td style="background:#E8F5E9;padding:3px;"><input class="ti" type="text" inputmode="decimal" value="'+(p.ran_lado||'')+'" placeholder="—" style="width:54px;font-size:13px;font-weight:600;background:#E8F5E9;text-align:center;" data-i="'+i+'" data-k="ran_lado"></td>'
+        +'<td style="background:#E8F5E9;padding:3px;"><input class="ti" type="text" value="'+(p.ran_det||'')+'" placeholder="—" style="width:82px;font-size:12px;text-align:left;background:#E8F5E9;" data-i="'+i+'" data-k="ran_det"></td>';
     }
     cells+='<td>'+dBtn+'</td>';
 
