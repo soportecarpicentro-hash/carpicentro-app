@@ -991,7 +991,7 @@ function abrirCamaraStream(){
 
   document.getElementById('btnCapturar').addEventListener('click',function(){
     var btnCap=this;
-    var cnt=5;
+    var cnt=10;
     btnCap.disabled=true;
     btnCap.textContent='📷 '+cnt+'...';
     var timer=setInterval(function(){
@@ -1270,7 +1270,7 @@ function renderTabla(){
     thBase.innerHTML=
       '<th style="width:20px;color:var(--yellow);">#</th>'
       +'<th class="l" style="min-width:140px;width:150px;color:var(--yellow);">PRODUCTO</th>'
-      +'<th style="width:40px;color:var(--yellow);">CANT.</th>'
+      +'<th style="width:54px;color:var(--yellow);">CANT.</th>'
       +'<th style="width:70px;color:var(--yellow);" id="thL">LARGO<br><span style="font-weight:400;font-size:9px;">(VETA)</span></th>'
       +'<th style="width:70px;color:var(--yellow);" id="thA">ANCHO</th>'
       +'<th style="width:44px;color:var(--yellow);">VETA</th>'
@@ -1315,7 +1315,7 @@ function renderTabla(){
     var cells=
       '<td style="font-size:11px;color:var(--tx3);font-weight:700;text-align:center;padding:3px 2px;">'+(i+1)+'</td>'
       +'<td style="padding:3px;min-width:140px;max-width:180px;">'+mkMatBtn(i,p.material,'c')+'</td>'
-      +'<td><input class="ti" type="text" inputmode="numeric" value="'+(p.qty||'')+'" placeholder="—" style="width:40px;font-size:12px;" data-i="'+i+'" data-k="qty"></td>'
+      +'<td><input class="ti" type="text" inputmode="numeric" value="'+(p.qty||'')+'" placeholder="—" style="width:54px;font-size:11px;text-align:center;" data-i="'+i+'" data-k="qty"></td>'
       +'<td><input class="ti" type="text" inputmode="decimal" value="'+(p.largo||'')+'" placeholder="—" style="width:66px;font-size:12px;" data-i="'+i+'" data-k="largo"></td>'
       +'<td><input class="ti" type="text" inputmode="decimal" value="'+(p.ancho||'')+'" placeholder="—" style="width:66px;font-size:12px;" data-i="'+i+'" data-k="ancho"></td>'
       +'<td><select class="tis" data-i="'+i+'" data-k="veta" style="width:44px;font-size:11px;">'+vetaOpts(p.veta)+'</select></td>';
