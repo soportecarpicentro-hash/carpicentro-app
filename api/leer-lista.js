@@ -10,81 +10,94 @@ export default async function handler(req, res) {
   const KEY = process.env.ANTHROPIC_API_KEY;
   if (!KEY) return res.status(500).json({ error: 'ANTHROPIC_API_KEY no configurada' });
 
-  // ── PARÁMETROS DE INTERPRETACIÓN (según formato CARPICENTRO) ──
   const prompt = `Eres el sistema de lectura de listas de corte de CARPICENTRO (Lima, Perú).
-Lee la imagen y extrae TODAS las piezas de corte siguiendo EXACTAMENTE estos parámetros:
+Lee la imagen y extrae TODAS las piezas siguiendo estas reglas exactas:
 
-═══ REGLAS DE CANTO (enchape) ═══
-— (línea simple, guion) debajo o encima de la medida = canto DELGADO = "D"
-≈ o ~~~ (línea doble/ondulada) debajo o encima de la medida = canto GRUESO = "G"
-La posición de la línea indica el lado:
-  Línea sobre el número LARGO → L1 = canto lado largo superior
-  Línea bajo el número LARGO  → L2 = canto lado largo inferior
-  Línea sobre el número ANCHO → A1 = canto lado ancho izquierdo  
-  Línea bajo el número ANCHO  → A2 = canto lado ancho derecho
+═══ REGLA DE CANTOS — MUY IMPORTANTE ═══
 
-EJEMPLO CONCRETO (de los parámetros reales):
-  420 x 330 con línea simple encima y doble debajo del largo, simple en los anchos:
-  → largo=420, ancho=330, L1="D", L2="G", A1="D", A2="D"
-  El mismo ejemplo con la línea abajo también es válido — interpretar según posición real.
+Cada medida tiene LARGO y ANCHO. Los cantos se indican con líneas decorando los números:
 
-También pueden escribir el canto CON LETRAS debajo del diagrama:
-  D = delgado en ese lado, G = grueso en ese lado
-  "D G D D" debajo de la pieza → L1=D, L2=G, A1=D, A2=D
+TIPO DE LÍNEA:
+  — (línea simple/recta)   = canto DELGADO = "D"
+  ≈ (línea ondulada/gusanito) = canto GRUESO = "G"
 
-═══ REGLAS DE PERFORACIÓN ═══
-Se indica con: puntos (o,o) sobre la pieza, letra "P" o "Perf", o notación "2P/1982"
+CANTIDAD DE LÍNEAS indica cuántos lados llevan canto:
+  1 sola línea  = solo UN lado de esa medida lleva canto (el otro queda vacío "")
+  2 líneas      = AMBOS lados de esa medida llevan canto
+
+POSICIÓN de las líneas (arriba o abajo del número):
+  La PRIMERA medida de la lista establece el patrón de posición:
+  - Si en la primera medida las líneas están ARRIBA del largo → L1 es el lado con canto, L2 es el opuesto
+  - Si en la primera medida las líneas están ABAJO del largo → L2 es el lado con canto, L1 es el opuesto
+  TODAS las medidas siguientes usan el MISMO patrón de posición que la primera.
+
+EJEMPLOS COMPLETOS:
+
+Ejemplo A — líneas arriba del largo (patrón: arriba=L1, abajo=L2):
+  Línea simple arriba + gusanito arriba del LARGO:  L1="D", L2="" (un solo canto delgado arriba)
+  Gusanito arriba del LARGO:                        L1="G", L2="" (un solo canto grueso arriba)
+  2 líneas simples del LARGO (arriba y abajo):      L1="D", L2="D" (ambos lados delgado)
+  2 gusanitos del LARGO:                            L1="G", L2="G" (ambos lados grueso)
+  Línea simple arriba + gusanito abajo del LARGO:   L1="D", L2="G" (delgado arriba, grueso abajo)
+
+Ejemplo B — líneas abajo del largo (patrón: abajo=L1, arriba=L2):
+  Línea simple abajo del LARGO:   L1="D", L2=""
+  2 líneas abajo del LARGO:       L1="D", L2="D"  ← misma lógica, diferente posición física
+
+Para el ANCHO (A1/A2) aplica la misma lógica pero mirando izquierda/derecha del número de ancho.
+  Si no hay líneas en el ancho → A1="", A2=""
+  Si hay 1 línea en el ancho → un solo lado lleva canto
+  Si hay 2 líneas en el ancho → A1 y A2 llevan canto
+
+A VECES los cantos se escriben con LETRAS en vez de líneas:
+  Letras bajo el diagrama de la pieza: "D G D D" → L1=D, L2=G, A1=D, A2=D
+  Letras "DD" = ambos largos delgado, "GG" = ambos largos grueso
+  Letra sola "D" = un lado delgado, "G" = un lado grueso
+
+═══ PERFORACIÓN ═══
+Indicada con puntos (o,o), letra P o notación "2P/1982":
   perf_cant = número de perforaciones (ej: "2")
-  perf_lado = medida del lado donde va la perforación (ej: "1982")  
-  perf_det  = descripción completa (ej: "2P/1982" o "o,o S0")
+  perf_lado = medida del lado (ej: "1982")
+  perf_det  = detalle completo (ej: "2P/1982")
 
-EJEMPLO: pieza 1982 x 580 con "o,o" y "2P/1982":
-  → perf_cant="2", perf_lado="1982", perf_det="2P/1982"
-
-═══ REGLAS DE RANURA ═══
-Se indica con "R" o ranura, formato R/LIBRE/ESPE/PROF con lado indicado aparte
-  ran_libre = medida libre (ej: "18")
-  ran_espe  = espesor (ej: "3")
-  ran_prof  = profundidad (ej: "8")
-  ran_lado  = lado donde va la ranura (ej: "580")
-  ran_det   = descripción adicional
-
-EJEMPLO: "R/18/3/8" con lado D=580:
-  → ran_libre="18", ran_espe="3", ran_prof="8", ran_lado="580", ran_det=""
+═══ RANURA ═══
+Indicada con "R" o formato R/LIBRE/ESPE/PROF:
+  ran_libre="18", ran_espe="3", ran_prof="8", ran_lado="580"
+  Ejemplo "R/18/3/8" lado=580 → ran_libre=18, ran_espe=3, ran_prof=8, ran_lado=580
 
 ═══ MEDIDAS ═══
 Siempre en milímetros. "420 x 330" → largo=420, ancho=330.
-Formato "4= 420x330" o "4→ 420x330" → qty=4, largo=420, ancho=330.
-Secciones por material: aplicar ese material a todas sus piezas.
-Material por defecto: "MELA PELIKANO BLANCO"
-IGNORAR dibujos de muebles, bocetos y flechas decorativas.
+"4→ 420x330" o "4= 420x330" → qty=4, largo=420, ancho=330.
+Si hay secciones por material (Blanco, Caramelo, etc.) → aplicar ese material a sus piezas.
+Material por defecto si no se indica: "MELA PELIKANO BLANCO"
+IGNORAR completamente dibujos, bocetos y flechas de muebles.
 
 ═══ RESPUESTA ═══
-SOLO JSON válido, sin texto adicional ni bloques de código:
+SOLO JSON sin texto adicional ni markdown:
 
 {"piezas":[{"material":"MELA PELIKANO BLANCO","qty":2,"largo":420,"ancho":330,"veta":"1-Longitud","l1":"D","l2":"G","a1":"D","a2":"D","perf_cant":"","perf_lado":"","perf_det":"","ran_libre":"","ran_espe":"","ran_prof":"","ran_lado":"","ran_det":"","obs":""}]}
 
-Campos obligatorios:
+Campos:
 - material: string
 - qty: entero positivo
 - largo, ancho: enteros en mm
-- veta: "1-Longitud" | "2-Ancho" | "Sin veta"  
+- veta: "1-Longitud" | "2-Ancho" | "Sin veta"
 - l1,l2,a1,a2: "D"|"G"|"Dx"|"Dy"|"Dz"|"Gx"|"Gy"|"Gz"|""
-- perf_cant,perf_lado,perf_det: string (vacío si no hay perforación)
-- ran_libre,ran_espe,ran_prof,ran_lado,ran_det: string (vacío si no hay ranura)
-- obs: "" o "REVISAR: [descripción]" si algo es ilegible o ambiguo
+- perf_cant,perf_lado,perf_det: string ("" si no hay)
+- ran_libre,ran_espe,ran_prof,ran_lado,ran_det: string ("" si no hay)
+- obs: "" o "REVISAR: [descripción]" solo si algo es realmente ilegible
 
 SOLO EL JSON.`;
 
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': KEY, 'anthropic-version': '2023-06-01' },
+      headers: { 'Content-Type':'application/json', 'x-api-key':KEY, 'anthropic-version':'2023-06-01' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6', max_tokens: 4096,
-        messages: [{ role: 'user', content: [
-          { type: 'image', source: { type: 'base64', media_type: media_type||'image/jpeg', data: imagen_b64 } },
-          { type: 'text', text: prompt }
+        model:'claude-sonnet-4-6', max_tokens:4096,
+        messages:[{ role:'user', content:[
+          { type:'image', source:{ type:'base64', media_type:media_type||'image/jpeg', data:imagen_b64 }},
+          { type:'text', text:prompt }
         ]}]
       })
     });
