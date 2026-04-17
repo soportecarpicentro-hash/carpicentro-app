@@ -1,5 +1,5 @@
-// api/buscar-doc.js — Proxy RENIEC/SUNAT sin CORS
-// Intenta múltiples APIs y parsea distintos formatos de respuesta
+// api/buscar-doc.js — Proxy RENIEC/SUNAT
+// Múltiples APIs + parseo robusto de todos los formatos de respuesta
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -9,59 +9,53 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { tipo, numero } = req.body || {};
-  if (!tipo || !numero) return res.status(400).json({ error: 'Se requiere tipo y numero' });
+  if (!tipo || !numero) return res.status(400).json({ error: 'Faltan tipo y numero' });
 
   const num = String(numero).trim().replace(/\D/g, '');
   const esRUC = tipo === 'RUC';
 
-  if (esRUC && num.length !== 11)
-    return res.status(200).json({ nombre: null, error: 'El RUC debe tener 11 dígitos.' });
-  if (!esRUC && tipo === 'DNI' && num.length !== 8)
-    return res.status(200).json({ nombre: null, error: 'El DNI debe tener 8 dígitos.' });
+  if (esRUC && num.length !== 11) return res.status(200).json({ nombre: null, error: 'RUC debe tener 11 dígitos.' });
+  if (!esRUC && tipo === 'DNI' && num.length !== 8) return res.status(200).json({ nombre: null, error: 'DNI debe tener 8 dígitos.' });
 
-  const TOKEN = process.env.APIS_NET_PE_TOKEN || 'apis-token-13621.LuUTvIBcFMq0WxI5lbPa5d5OJkAuiN17';
-
-  // Función para extraer nombre de cualquier formato de respuesta
   function extraerNombre(d) {
     if (!d || typeof d !== 'object') return null;
-    // Formato 1: nombre directo
-    if (d.nombre && d.nombre.length > 2) return d.nombre.trim();
-    if (d.razonSocial && d.razonSocial.length > 2) return d.razonSocial.trim();
-    if (d.nombreCompleto && d.nombreCompleto.length > 2) return d.nombreCompleto.trim();
-    if (d.name && d.name.length > 2) return d.name.trim();
-    // Formato 2: partes separadas
-    if (d.nombres || d.apellidoPaterno) {
-      const partes = [d.nombres, d.apellidoPaterno, d.apellidoMaterno].filter(Boolean);
-      const resultado = partes.join(' ').trim();
-      if (resultado.length > 2) return resultado;
-    }
+    if (d.nombre && String(d.nombre).trim().length > 2) return String(d.nombre).trim();
+    if (d.razonSocial && String(d.razonSocial).trim().length > 2) return String(d.razonSocial).trim();
+    if (d.nombreCompleto && String(d.nombreCompleto).trim().length > 2) return String(d.nombreCompleto).trim();
+    if (d.name && String(d.name).trim().length > 2) return String(d.name).trim();
+    // Formato con partes separadas (RENIEC v2)
+    const n = [d.nombres, d.apellidoPaterno, d.apellidoMaterno].filter(Boolean).join(' ').trim();
+    if (n.length > 2) return n;
     return null;
   }
 
-  const intentosDNI = [
-    { url: `https://api.apis.net.pe/v2/reniec/dni?numero=${num}`, headers: { Authorization: `Bearer ${TOKEN}` } },
-    { url: `https://api.apis.net.pe/v2/reniec/dni?numero=${num}`, headers: {} },
-    { url: `https://api.apis.net.pe/v1/dni?numero=${num}`, headers: { Authorization: `Bearer ${TOKEN}` } },
-    { url: `https://api.apis.net.pe/v1/dni?numero=${num}`, headers: {} },
-  ];
+  // Token del entorno o token de respaldo
+  const tok = process.env.APIS_NET_PE_TOKEN || 'apis-token-13621.LuUTvIBcFMq0WxI5lbPa5d5OJkAuiN17';
 
-  const intentosRUC = [
-    { url: `https://api.apis.net.pe/v2/sunat/ruc?numero=${num}`, headers: { Authorization: `Bearer ${TOKEN}` } },
-    { url: `https://api.apis.net.pe/v2/sunat/ruc?numero=${num}`, headers: {} },
-    { url: `https://api.apis.net.pe/v1/ruc?numero=${num}`, headers: { Authorization: `Bearer ${TOKEN}` } },
-  ];
+  const urls = esRUC
+    ? [
+        [`https://api.apis.net.pe/v2/sunat/ruc?numero=${num}`, tok],
+        [`https://api.apis.net.pe/v2/sunat/ruc?numero=${num}`, ''],
+        [`https://api.apis.net.pe/v1/ruc?numero=${num}`, tok],
+        [`https://api.apis.net.pe/v1/ruc?numero=${num}`, ''],
+      ]
+    : [
+        [`https://api.apis.net.pe/v2/reniec/dni?numero=${num}`, tok],
+        [`https://api.apis.net.pe/v2/reniec/dni?numero=${num}`, ''],
+        [`https://api.apis.net.pe/v1/dni?numero=${num}`, tok],
+        [`https://api.apis.net.pe/v1/dni?numero=${num}`, ''],
+      ];
 
-  const intentos = esRUC ? intentosRUC : intentosDNI;
-
-  for (const intento of intentos) {
+  for (const [url, token] of urls) {
     try {
+      const headers = { Accept: 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 7000);
-      const r = await fetch(intento.url, {
-        headers: { Accept: 'application/json', ...intento.headers },
-        signal: ctrl.signal,
-      });
+      const t = setTimeout(() => ctrl.abort(), 8000);
+      const r = await fetch(url, { headers, signal: ctrl.signal });
       clearTimeout(t);
+
       if (!r.ok) continue;
       const data = await r.json();
       const nombre = extraerNombre(data);
@@ -71,6 +65,6 @@ export default async function handler(req, res) {
 
   return res.status(200).json({
     nombre: null,
-    error: `${tipo} no encontrado. Por favor ingresa el nombre manualmente.`
+    error: `${tipo} no encontrado. Ingresa el nombre manualmente.`
   });
 }
