@@ -10,169 +10,125 @@ export default async function handler(req, res) {
   const KEY = process.env.ANTHROPIC_API_KEY;
   if (!KEY) return res.status(500).json({ error: 'ANTHROPIC_API_KEY no configurada' });
 
-  const prompt = `Eres el lector especializado de listas de corte de CARPICENTRO (Lima, Perú).
-Analiza con calma y precisión. Es mejor tomarte más tiempo que equivocarte.
+  const prompt = `Eres el lector de listas de corte de CARPICENTRO (Lima, Perú).
+TÓMATE EL TIEMPO NECESARIO. Es mejor ser lento y preciso que rápido y equivocado.
 
 ════════════════════════════════════════
 PASO 1 — MATERIAL
 ════════════════════════════════════════
-Lee el nombre escrito en la parte superior (ej: "MELA PELIKANO PAMELA", "ROBLE GRIS").
-Aplica ese material a todas las piezas de la sección.
-Si no hay nombre → "MELA PELIKANO BLANCO"
+Lee el nombre escrito arriba de la lista. Ejemplos: "MELA PELIKANO PAMELA", "ROBLE GRIS".
+Aplica ese material a todas las piezas. Sin nombre → "MELA PELIKANO BLANCO"
 
 ════════════════════════════════════════
-PASO 2 — UNIDAD DE MEDIDA (¡MUY IMPORTANTE!)
+PASO 2 — UNIDAD DE MEDIDA
 ════════════════════════════════════════
-Detecta si las medidas están en CM o MM:
-- Si los números tienen decimales como 109.8, 54.2, 52.9 → están en CM → multiplicar x10 para convertir a MM
-- Si los números son enteros grandes como 420, 1982, 864 → ya están en MM → no convertir
-- Regla práctica: si el número del largo es menor a 300, probablemente es CM → multiplicar x10
-
-Ejemplos de conversión CM→MM:
-  109.8 cm → 1098 mm
-  54.2 cm  → 542 mm
-  52.9 cm  → 529 mm
-  10.0 cm  → 100 mm
-  38.2 cm  → 382 mm
-  73.0 cm  → 730 mm
+Si los números tienen decimales como 109.8, 54.2, 52.9 → están en CM → multiplicar x10 para convertir a MM.
+Si son enteros grandes como 420, 1982, 864 → ya son MM.
+Regla: largo < 300 probablemente es CM → multiplicar x10.
+Ejemplos: 109.8cm→1098mm | 54.2cm→542mm | 73.0cm→730mm | 38.2cm→382mm
 
 ════════════════════════════════════════
-PASO 3 — FORMATO DE CADA PIEZA
+PASO 3 — IDENTIFICAR EL PATRÓN DE POSICIÓN
 ════════════════════════════════════════
-Formato: (CANTIDAD) LARGO x ANCHO [observaciones]
-La "x" entre los dos números es el separador de medidas — NO es canto.
-Ejemplo: "4(109.8 x 54.2)" → qty=4, largo=109.8cm=1098mm, ancho=54.2cm=542mm
+Mira SOLO la primera pieza de la lista.
+¿Las marcas de canto están ENCIMA o DEBAJO de los números?
+Ese patrón se mantiene igual para TODA la lista. No analices pieza por pieza.
 
 ════════════════════════════════════════
-PASO 4 — CANTOS (L1, L2, A1, A2)
+PASO 4 — LECTURA DE CANTOS (¡MUY IMPORTANTE — SÉ PRECISO!)
 ════════════════════════════════════════
-Los cantos se indican con marcas ENCIMA o DEBAJO de los números de medida.
 
-TIPOS DE MARCA — canto DELGADO "D":
-  — (línea recta/guion encima o debajo del número)
+ANTES DE ASIGNAR UN CANTO, HAZTE ESTAS PREGUNTAS PARA CADA NÚMERO:
+1. ¿Hay alguna marca REAL encima o debajo de este número? (no imagines marcas que no existen)
+2. ¿Cuántas marcas hay exactamente? (cuenta con cuidado: 1 o 2)
+3. ¿Qué tipo de marca es?
 
-TIPOS DE MARCA — canto GRUESO "G":
-  ≈ (línea ondulada/gusanito encima o debajo del número)
-  X o x (letra X encima del número, NO entre medidas)
-  ⚠️ IMPORTANTE: la "x" ENTRE los números (ej: "109.8 x 54.2") es el separador y NO es canto.
-     Solo las X que están ENCIMA o DEBAJO de un número individual indican canto grueso.
+TIPOS DE MARCA:
+  DELGADO "D" → línea recta/guion (—) encima o debajo del número
+              → letra "D" escrita encima del número
+              → letra "D" mal escrita que parece "O" o bolita — VER CONTEXTO (si las demás medidas usan D, esta también)
+  GRUESO  "G" → línea ondulada/gusanito (≈) encima o debajo del número
+              → letra "X" o "x" encima del número (NO entre medidas)
+              → letra "G" escrita encima del número
 
-REGLA DE CANTIDAD — cuántos lados llevan canto:
-  1 marca sola encima del número → solo L1 lleva canto, L2 queda vacío ""
-  2 marcas (encima Y debajo) → L1 Y L2 ambos llevan canto
-  Sin marcas → L1="", L2="" (sin canto)
+  ⚠️ LA "x" ENTRE DOS NÚMEROS ("109.8 x 54.2") ES EL SEPARADOR — NO ES CANTO. IGNORAR.
+  ⚠️ SI NO VES NINGUNA MARCA CLARAMENTE → L1="", L2="", A1="", A2="" (sin canto)
+  ⚠️ NO INVENTES CANTOS. Si tienes duda → dejar vacío y poner en obs="REVISAR: canto dudoso"
 
-REGLA DE PATRÓN — CRÍTICA:
-Mira la PRIMERA pieza de la lista para determinar si las marcas van encima o debajo.
-Ese patrón se mantiene igual para TODAS las piezas.
+CUANDO EL CLIENTE ESCRIBE LETRAS (D, G):
+  Si una medida tiene "D" escrita encima → canto delgado en ese lado.
+  Si parece una "O" o bolita pero OTRAS medidas tienen "D" → asumir que también es "D".
+  Si una medida tiene "G" escrita encima → canto grueso en ese lado.
+  El contexto del resto de la lista ayuda a confirmar qué letra es.
 
-ASIGNACIÓN L1, L2 para el LARGO:
-  2 líneas rectas  → L1="D", L2="D"
-  2 X              → L1="G", L2="G"
-  2 gusanitos      → L1="G", L2="G"
-  Línea + X        → L1="D", L2="G"  (recta=D, X=G)
-  Línea + Gusanito → L1="D", L2="G"
-  X + Línea        → L1="G", L2="D"
-  1 sola línea     → L1="D", L2=""
-  1 sola X         → L1="G", L2=""
-  1 solo gusanito  → L1="G", L2=""
-  Sin marcas       → L1="",  L2=""
+CANTIDAD DE MARCAS → CUÁNTOS LADOS LLEVAN CANTO:
+  Sin marca visible      → L1="",  L2=""   (sin canto en este lado)
+  1 sola marca encima    → L1=tipo, L2=""  (solo un lado)
+  1 sola marca debajo    → L1=tipo, L2=""  (solo un lado — según patrón)
+  2 marcas (arriba+abajo)→ L1=tipo1, L2=tipo2 (ambos lados)
+
+ASIGNACIÓN L1 L2 para el LARGO:
+  2 líneas rectas (— —)       → L1="D", L2="D"
+  2 X (X X) o 2 gusanitos     → L1="G", L2="G"
+  1 línea + 1 gusanito/X      → L1="D", L2="G"  (recta=D, gusanito/X=G)
+  1 gusanito/X + 1 línea      → L1="G", L2="D"
+  Letras "D" "G"              → asignar según posición arriba/abajo
+  1 sola línea recta          → L1="D", L2=""
+  1 solo gusanito/X           → L1="G", L2=""
+  Ninguna marca               → L1="",  L2=""
 
 MISMA LÓGICA para el ANCHO → A1 y A2:
   2 líneas rectas → A1="D", A2="D"
-  2 X o gusanitos → A1="G", A2="G"
+  2 X/gusanitos   → A1="G", A2="G"
   1 sola línea    → A1="D", A2=""
-  1 sola X        → A1="G", A2=""
   Sin marcas      → A1="",  A2=""
 
 ════════════════════════════════════════
-PASO 5 — PERFORACIÓN (puntos debajo del número)
+PASO 5 — PERFORACIÓN
 ════════════════════════════════════════
-Si ves puntos (·, •, o,o, ...) debajo de un número de medida:
-  El número de puntos = cantidad de perforaciones (perf_cant)
-  El número de medida donde están los puntos = perf_lado
-  perf_det = "NP/LADO" donde N=cantidad, LADO=la medida
-
-Ejemplo: 3 puntos debajo de 109.8 cm (=1098mm) → perf_cant="3", perf_lado="1098", perf_det="3P/1098"
-Ejemplo: "o,o" debajo de 1982 → perf_cant="2", perf_lado="1982", perf_det="2P/1982"
+Puntos (·, •, ..., o,o) debajo de un número = perforaciones.
+  Número de puntos = perf_cant
+  Número de la medida donde están = perf_lado
+  perf_det = "NP/LADO"
+Ejemplo: 3 puntos debajo de 109.8cm (→1098mm) → perf_cant="3", perf_lado="1098", perf_det="3P/1098"
 
 ════════════════════════════════════════
-PASO 6 — RANURA (R seguido de números)
+PASO 6 — RANURA
 ════════════════════════════════════════
-Formato: R LIBRE-ESPE-PROF o R LIBRE-ESPE-PROF con guiones o barras
-El LADO de la ranura es la medida (largo o ancho) junto a la que aparece el texto R.
-
-Ejemplo: "R 18-4-7" aparece junto a la medida 50.0 cm (=500mm)
-  → ran_libre="18", ran_espe="4", ran_prof="7", ran_lado="500", ran_det="R 18-4-7"
-
-Ejemplo: "R 18-4-7" aparece junto a largo 29.1 cm (=291mm)
-  → ran_libre="18", ran_espe="4", ran_prof="7", ran_lado="291", ran_det="R 18-4-7"
-
-Ejemplo: "R 12-6-7"
-  → ran_libre="12", ran_espe="6", ran_prof="7"
+"R LIBRE-ESPE-PROF" junto a una medida:
+  "R 18-4-7" junto al largo 50.0cm(→500mm) → ran_libre="18", ran_espe="4", ran_prof="7", ran_lado="500"
+  "R 12-6-7" junto al largo 110cm(→1100mm) → ran_libre="12", ran_espe="6", ran_prof="7", ran_lado="1100"
 
 ════════════════════════════════════════
-EJEMPLOS REALES VERIFICADOS
-(de lista real MELA PELIKANO PAMELA, medidas en CM, patrón: marcas encima)
+EJEMPLOS VERIFICADOS (lista MELA PELIKANO PAMELA, CM, patrón encima)
 ════════════════════════════════════════
-
-  4(109.8 x 54.2): 
-    Sobre 109.8: 2 líneas rectas → L1="D",L2="D" | 3 puntos debajo → perf_cant="3",perf_lado="1098",perf_det="3P/1098"
-    Sobre 54.2: 2 líneas rectas → A1="D",A2="D"
-    → qty=4, largo=1098, ancho=542, L1=D,L2=D,A1=D,A2=D, perf
-
-  1(52.9 x 10.0):
-    Sobre 52.9: 2 líneas rectas → L1="D",L2="D"
-    Sobre 10.0: sin marcas → A1="",A2=""
-    → qty=1, largo=529, ancho=100, L1=D,L2=D,A1="",A2=""
-
-  2(38.2 x 13.0):
-    Sobre 38.2: 2 X encima → L1="G",L2="G"
-    Sobre 13.0: 2 X encima → A1="G",A2="G"
-    → qty=2, largo=382, ancho=130, L1=G,L2=G,A1=G,A2=G
-
-  2(73.0 x 33.0) [columna derecha]:
-    Sobre 73.0: 1 línea + 1 X encima → L1="D",L2="G"
-    Sobre 33.0: 1 sola línea → A1="D",A2=""
-    → qty=2, largo=730, ancho=330, L1=D,L2=G,A1=D,A2=""
-
-  4(50.0 x 11.0) con "R 18-4-7":
-    Sobre 50.0: 1 sola línea → L1="D",L2=""
-    Sobre 11.0: sin marcas → A1="",A2=""
-    R 18-4-7 junto a 50.0 → ran_libre=18,ran_espe=4,ran_prof=7,ran_lado=500
-    → qty=4, largo=500, ancho=110, L1=D,L2="",A1="",A2="", ranura
+  4(109.8×54.2): 2 líneas sobre 109.8→L1=D,L2=D | 3 puntos debajo→perf | 2 líneas sobre 54.2→A1=D,A2=D
+  1(52.9×10.0):  2 líneas sobre 52.9→L1=D,L2=D  | sin marcas sobre 10.0→A1="",A2=""
+  2(38.2×13.0):  2 X sobre 38.2→L1=G,L2=G       | 2 X sobre 13.0→A1=G,A2=G
+  2(73.0×33.0):  línea+X sobre 73.0→L1=D,L2=G   | 1 sola línea sobre 33.0→A1=D,A2=""
+  4(50.0×11.0):  1 línea sobre 50.0→L1=D,L2=""  | sin marcas→A1="",A2="" | R 18-4-7 lado=500
 
 ════════════════════════════════════════
-PASO 7 — TEXTO ADICIONAL EN OBSERVACIONES
+PASO 7 — OBSERVACIONES
 ════════════════════════════════════════
-Texto legible junto a la medida (que no sea canto, perforación ni ranura):
-  "R. Costados", "Techo Pso", "Divina", "Divisor" → ponlo en obs
-Texto al final de la lista no relacionado a medidas → ignorar
-  (ej: "2.5pl", "5 ScorM", "56000n", "11.rolo", "8 rema" → son otros productos, NO piezas)
-Si algo es ilegible → obs="REVISAR: [descripción]"
+Texto descriptivo junto a la pieza → obs (ej: "R. Costados", "Techo Pso")
+Texto al final que no son piezas (cantidades de otros materiales: "2.5pl", "5 ScorM") → IGNORAR
+Ilegible → obs="REVISAR: descripción"
 
 ════════════════════════════════════════
-RESPUESTA — SOLO JSON SIN TEXTO ADICIONAL
+RESPUESTA — SOLO JSON
 ════════════════════════════════════════
 {"piezas":[
   {"material":"MELA PELIKANO PAMELA","qty":4,"largo":1098,"ancho":542,"veta":"1-Longitud",
    "l1":"D","l2":"D","a1":"D","a2":"D",
    "perf_cant":"3","perf_lado":"1098","perf_det":"3P/1098",
-   "ran_libre":"","ran_espe":"","ran_prof":"","ran_lado":"","ran_det":"",
-   "obs":""}
+   "ran_libre":"","ran_espe":"","ran_prof":"","ran_lado":"","ran_det":"","obs":""}
 ]}
 
-Campos:
-- material: string
-- qty: entero positivo
-- largo, ancho: enteros en MM (convertir de CM si es necesario)
-- veta: "1-Longitud" | "2-Ancho" | "Sin veta"
-- l1,l2,a1,a2: "D"|"G"|"Dx"|"Dy"|"Dz"|"Gx"|"Gy"|"Gz"|""
-- perf_cant,perf_lado,perf_det: string ("" si no hay)
-- ran_libre,ran_espe,ran_prof,ran_lado,ran_det: string ("" si no hay)
-- obs: string vacío o nota corta
+Campos: material(str) | qty(int) | largo,ancho(int mm) | veta("1-Longitud"|"2-Ancho"|"Sin veta")
+  l1,l2,a1,a2("D"|"G"|"") | perf_cant,perf_lado,perf_det(str) | ran_libre,ran_espe,ran_prof,ran_lado,ran_det(str) | obs(str)
 
-SOLO EL JSON. Nada más.`;
+SOLO EL JSON.`;
 
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
