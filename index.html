@@ -371,7 +371,7 @@ tr:hover td{background:#FFF5F5;}
         <ul style="margin-left:14px;list-style:disc;">
           <li>Especificar todas las medidas en <strong>milímetros (mm)</strong>.</li>
           <li>El sentido de la veta de la pieza se indica en la columna <strong>LARGO (VETA)</strong>.</li>
-          <li>Especificar el canto delgado con la <strong>D</strong> y el canto grueso con la letra <strong>G</strong>. <strong>"Dx, Dy, Dz"</strong> significa otro color de canto delgado. <strong>"Gx, Gy, Gz"</strong> significa otro color de canto grueso.</li>
+          <li>Especificar el canto delgado con la <strong>D</strong> y el canto grueso con la letra <strong>G</strong>. <strong>"Dx, Dm, Dz"</strong> significa otro color de canto delgado. <strong>"Gx, Gm, Gz"</strong> significa otro color de canto grueso.</li>
           <li>Especificar el lado de medida en servicio de ranura y perforación.</li>
           <li>Dimensión mínima de pieza es <strong>250 × 60 mm</strong>.</li>
         </ul>
@@ -399,6 +399,7 @@ tr:hover td{background:#FFF5F5;}
           <span>📐 Unidad:</span>
           <button type="button" id="uMM" class="ubtn on">MM</button>
           <button type="button" id="uCM" class="ubtn">CM</button>
+          <button type="button" id="uM" class="ubtn">M</button>
           <span id="uLabel" style="font-size:12px;color:var(--tx3);">Medidas en milímetros</span>
         </div>
 
@@ -552,6 +553,8 @@ tr:hover td{background:#FFF5F5;}
           <div style="margin-top:10px;" id="dest"></div>
         </div>
       </div>
+      <div class="card" id="dFotoCliente" style="margin-bottom:14px;display:none;"></div>
+
       <div class="card" style="margin-bottom:14px;">
         <div style="font-size:15px;font-weight:800;margin-bottom:10px;">📝 Nota interna <span style="font-size:12px;color:var(--tx3);font-weight:400;">(solo el equipo la ve)</span></div>
         <textarea id="nota" rows="2" placeholder="Ej. Cliente urgente · Verificar stock..."></textarea>
@@ -1364,10 +1367,10 @@ var CANTO_COLORES = ["BLANCO", "CARAMELO", "PAMELA", "ONIX", "CAPRI", "MADERA", 
 
 // CANTOS: '' vacío, 'D'/'G' = color igual al tablero,
 //         'Dx'/'Gx'/'Dz'/'Gz' = otro color (se pide cuál)
-var CANTOS = ['','D','G','Dx','Dy','Dz','Gx','Gy','Gz'];
+var CANTOS = ['','D','G','Dx','Dm','Dz','Gx','Gm','Gz'];
 
 // Para cada canto, si requiere especificar color
-function cantoNecesitaColor(c){ return c==='Dx'||c==='Dy'||c==='Dz'||c==='Gx'||c==='Gy'||c==='Gz'; }
+function cantoNecesitaColor(c){ return c==='Dx'||c==='Dm'||c==='Dz'||c==='Gx'||c==='Gm'||c==='Gz'; }
 // Material sin enchape
 function matSinEnchape(mat){ return !!MAT_NO_ENCHAPE[mat]; }
 var VETAS  = ['1-Longitud','2-Ancho','Sin veta'];
@@ -1553,7 +1556,9 @@ function setUnidad(u){
   unidad=u;
   el('uMM').classList.toggle('on',u==='mm');
   el('uCM').classList.toggle('on',u==='cm');
-  el('uLabel').textContent=u==='mm'?'Medidas en milímetros':'Medidas en centímetros (se convierten a mm al confirmar)';
+  if(el('uM')) el('uM').classList.toggle('on',u==='m');
+  var labels={'mm':'Medidas en milímetros','cm':'Medidas en centímetros (se convierten a mm al confirmar)','m':'Medidas en metros (se convierten a mm al confirmar)'};
+  el('uLabel').textContent=labels[u]||labels['mm'];
   el('thL').textContent='Largo ('+u.toUpperCase()+')';
   el('thA').textContent='Ancho ('+u.toUpperCase()+')';
 }
@@ -1929,15 +1934,15 @@ function renderTabla(){
     // Usa el color ya elegido para el mismo tipo (Dx comparte con otros Dx de la fila)
     function getColorTipo(canto){
       // Dx/Dy/Dz comparten col_dx; Gx/Gy/Gz comparten col_gx
-      if(canto==='Dx'||canto==='Dy'||canto==='Dz') return p.col_dx||'';
-      if(canto==='Gx'||canto==='Gy'||canto==='Gz') return p.col_gx||'';
+      if(canto==='Dx'||canto==='Dm'||canto==='Dz') return p.col_dx||'';
+      if(canto==='Gx'||canto==='Gm'||canto==='Gz') return p.col_gx||'';
       return '';
     }
     function colorSel(lado, canto, colorVal){
       if(!canto) return '';
       if(canto==='D'||canto==='G') return '';
       // Para Dx/Dy/Dz → todos usan col_dx. Para Gx/Gy/Gz → todos usan col_gx
-      var isD=(canto==='Dx'||canto==='Dy'||canto==='Dz');
+      var isD=(canto==='Dx'||canto==='Dm'||canto==='Dz');
       var dataKey=isD?'col_dx':'col_gx';
       var currentColor=isD?(p.col_dx||''):(p.col_gx||'');
       var copts=CANTO_COLORES.map(function(cc){
@@ -2074,7 +2079,13 @@ function updSG(){
 
 // ── CONFIRMAR PEDIDO ──────────────────────────────────────
 function confirmarPedido(){
-  if(unidad==='cm'){ pcs.forEach(function(p){ if(p.largo)p.largo=Math.round(parseFloat(p.largo)*10); if(p.ancho)p.ancho=Math.round(parseFloat(p.ancho)*10); }); setUnidad('mm'); renderTabla(); }
+  if(unidad==='cm'){
+    pcs.forEach(function(p){ if(p.largo)p.largo=Math.round(parseFloat(p.largo)*10); if(p.ancho)p.ancho=Math.round(parseFloat(p.ancho)*10); });
+    setUnidad('mm'); renderTabla();
+  } else if(unidad==='m'){
+    pcs.forEach(function(p){ if(p.largo)p.largo=Math.round(parseFloat(p.largo)*1000); if(p.ancho)p.ancho=Math.round(parseFloat(p.ancho)*1000); });
+    setUnidad('mm'); renderTabla();
+  }
   var sinMat=pcs.filter(function(p){ return !p.material; });
   if(sinMat.length){ alert('⚠️ Hay '+sinMat.length+' pieza(s) sin material seleccionado.'); return; }
   var inv=pcs.filter(function(p){ return !p.largo||!p.ancho; });
@@ -2086,10 +2097,10 @@ function confirmarPedido(){
     if(matSinEnchape(p.material)) return;
     var cantosD=[p.l1,p.l2,p.a1,p.a2].some(function(c){return c==='D'||c==='G';});
     if(cantosD && !p.col_d){ sinColor.push('Fila '+(i+1)+': falta el color de canto D/G'); }
-    var tieneDx=[p.l1,p.l2,p.a1,p.a2].some(function(c){return c==='Dx'||c==='Dy'||c==='Dz';});
-    var tieneGx=[p.l1,p.l2,p.a1,p.a2].some(function(c){return c==='Gx'||c==='Gy'||c==='Gz';});
-    if(tieneDx&&!p.col_dx) sinColor.push('Fila '+(i+1)+': Dx/Dy/Dz sin color de canto delgado extra');
-    if(tieneGx&&!p.col_gx) sinColor.push('Fila '+(i+1)+': Gx/Gy/Gz sin color de canto grueso extra');
+    var tieneDx=[p.l1,p.l2,p.a1,p.a2].some(function(c){return c==='Dx'||c==='Dm'||c==='Dz';});
+    var tieneGx=[p.l1,p.l2,p.a1,p.a2].some(function(c){return c==='Gx'||c==='Gm'||c==='Gz';});
+    if(tieneDx&&!p.col_dx) sinColor.push('Fila '+(i+1)+': Dx/Dm/Dz sin color de canto delgado extra');
+    if(tieneGx&&!p.col_gx) sinColor.push('Fila '+(i+1)+': Gx/Gm/Gz sin color de canto grueso extra');
   });
   if(sinColor.length){ alert('⚠️ Debes indicar el color del canto en:\n'+sinColor.join('\n')); return; }
   var nom=el('cnom').value.trim(); if(!nom){ alert('Ingresa tu nombre.'); return; }
@@ -2113,7 +2124,7 @@ function confirmarPedido(){
         ancho:Math.round(parseFloat(p.ancho)||0),
         veta:p.veta||'1-Longitud',
         l1:p.l1||'',l2:p.l2||'',a1:p.a1||'',a2:p.a2||'',
-        obs:(p.obs||'')+(p.col_d?' [D/G:'+p.col_d+']':'')+(p.col_dx?' [Dx/Dy/Dz:'+p.col_dx+']':'')+(p.col_gx?' [Gx/Gy/Gz:'+p.col_gx+']':'')};
+        obs:(p.obs||'')+(p.col_d?' [D/G:'+p.col_d+']':'')+(p.col_dx?' [Dx/Dm/Dz:'+p.col_dx+']':'')+(p.col_gx?' [Gx/Gm/Gz:'+p.col_gx+']':'')};
     }))
     .then(function(){
       if(!frmActivas.length) return Promise.resolve();
@@ -2126,10 +2137,20 @@ function confirmarPedido(){
           obs:'FORMICA'+(f.obs?' | '+f.obs:'')};
       }));
     })
-    .then(function(){ return addH(pid,'creado',null,null,null,
+    .then(function(){
+      // Guardar fotos del cliente en el historial
+      var fotosB64=imgPendientes.map(function(img){return {b64:img.b64.substring(0,500000),type:img.type};});
+      var prom=Promise.resolve();
+      if(fotosB64.length){
+        prom=addH(pid,'fotos',null,null,null,JSON.stringify(fotosB64));
+      }
+      return prom.then(function(){
+        return addH(pid,'creado',null,null,null,
           'Pedido: '+nom+' · '+pcs.length+' líneas · '+tot+' piezas'
           +(frmActivas.length?' · '+frmActivas.length+' fórmica(s)':'')
-        ); })
+        );
+      });
+    })
     .then(function(){
       el('cfcode').textContent=cod;
       el('cfdet').innerHTML='<strong>'+nom+'</strong>'+(doc?' · '+tipo+': '+doc:'')+'<br>'+sede+'<br>'+pcs.length+' líneas · '+tot+' piezas<br>'+mats.join(', ')
@@ -2404,7 +2425,28 @@ function abrirDet(id){
   });
   sbGet('pedido_historial','pedido_id=eq.'+id+'&order=created_at.desc').then(function(hs){
     hs=hs||[];
+    // Mostrar fotos del cliente (acción='fotos')
+    var fotoPanel=el('dFotoCliente');
+    if(fotoPanel){
+      var fotasH=hs.filter(function(h){return h.accion==='fotos';});
+      if(fotasH.length){
+        try{
+          var imgs=JSON.parse(fotasH[0].detalle||'[]');
+          if(imgs.length){
+            fotoPanel.innerHTML='<div style="font-size:15px;font-weight:800;margin-bottom:10px;">📷 Fotos del cliente</div>'
+              +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+              +imgs.map(function(img,ii){
+                return '<img src="'+img.b64+'" style="height:130px;border-radius:8px;cursor:pointer;border:2px solid var(--bd);object-fit:cover;" '
+                  +'data-src-open="1" style="cursor:pointer;" title="Ver foto '+(ii+1)+' a tamaño completo">';
+              }).join('')+'</div>';
+            fotoPanel.style.display='block';
+          } else { fotoPanel.style.display='none'; }
+        }catch(e){ fotoPanel.style.display='none'; }
+      } else { fotoPanel.style.display='none'; }
+    }
     var isAdminH=sesion&&sesion.rol==='admin';
+    // Filtrar fotos del listado de historial (ya se muestran arriba)
+    hs=hs.filter(function(h){return h.accion!=='fotos';});
     el('hlist').innerHTML=hs.length?hs.map(function(h){
       return '<div class="hi" style="position:relative;padding-right:'+(isAdminH?'32px':'4px')+';">'
         +'<div class="hdot"></div>'
@@ -2556,6 +2598,10 @@ function descargarExcel(){
 }
 
 // ── INIT ─────────────────────────────────────────────────
+// Delegación de eventos para fotos de cliente (evitar onclick inline)
+document.addEventListener('click',function(e){
+  if(e.target.dataset.srcOpen && e.target.src) window.open(e.target.src);
+});
 el('lsub') && (el('lsub').textContent=new Date().toLocaleDateString('es-PE',{weekday:'short',day:'numeric',month:'short',year:'numeric'}));
 
 }); // fin DOMContentLoaded
