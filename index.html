@@ -412,7 +412,7 @@ tr:hover td{background:#FFF5F5;}
           <select id="colorDGGlobal" style="font-size:13px;padding:6px 12px;border:1.5px solid #1565C0;border-radius:8px;min-width:160px;">
             <option value="">— Seleccionar color —</option>
           </select>
-          <span style="font-size:11px;color:#666;font-style:italic;">Aplica a todas las piezas · Dm, Gm se asignan por fila</span>
+
         </div>
 
         <!-- Tabla principal (scroll horizontal) -->
@@ -1753,7 +1753,12 @@ function leerTodasConIA(){
     setTimeout(function(){ renderTabla(); },50);
   }).catch(function(err){
     console.error('IA error:',err);
-    setAI('er','No se pudo leer: '+(err.message||'error')+'. Intenta con fotos más claras o ingresa manualmente.');
+    var msg=err.message||'error desconocido';
+    // Simplificar mensajes técnicos de JSON
+    if(msg.indexOf('JSON')>=0||msg.indexOf('token')>=0||msg.indexOf('Unexpected')>=0){
+      msg='El servidor tuvo un problema temporal. Por favor intenta de nuevo en unos segundos.';
+    }
+    setAI('er','⚠️ '+msg);
     pcs=[pv()]; formicas=[pvFormica()];
     irPaso(3); setTimeout(function(){ renderTabla(); },50);
   }).finally(function(){ el('btnLeerIA').disabled=false; });
@@ -1778,7 +1783,17 @@ function comprimirB64(b64, type){
 function llamarIA_raw(b64,mt){
   return fetch('/api/leer-lista',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({imagen_b64:b64,media_type:mt||'image/jpeg'})})
-  .then(function(r){if(!r.ok)return r.json().then(function(e){throw new Error(e.error||'Error '+r.status);});return r.json();});
+  .then(function(r){
+    // Leer siempre como texto primero para evitar crash si no es JSON
+    return r.text().then(function(txt){
+      var data;
+      try { data=JSON.parse(txt); } catch(e) {
+        throw new Error('Respuesta inválida del servidor. Por favor intenta de nuevo.');
+      }
+      if(!r.ok) throw new Error(data.error||'Error del servidor ('+r.status+')');
+      return data;
+    });
+  });
 }
 
 // Compatibilidad: procesarImg ahora agrega a galería
