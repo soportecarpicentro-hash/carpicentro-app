@@ -221,7 +221,7 @@ SOLO EL JSON, sin texto adicional.`;
       method: 'POST',
       headers: { 'Content-Type':'application/json', 'x-api-key':KEY, 'anthropic-version':'2023-06-01' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6', max_tokens: 4096,
+        model: 'claude-sonnet-4-6', max_tokens: 8192,
         system: sistema,
         messages: [
           { role:'user', content:[
@@ -236,12 +236,27 @@ SOLO EL JSON, sin texto adicional.`;
     if (!r2.ok) { const e=await r2.text(); return res.status(502).json({ error:'Error API fase 2', detalle:e.slice(0,200) }); }
     const d2 = await r2.json();
     const texto = (d2.content||[]).map(c=>c.text||'').join('');
+    // Extracción robusta del JSON — maneja texto antes/después y bloques de código
     const clean = texto.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
-    const match = clean.match(/\{[\s\S]*\}/);
-    if (!match) return res.status(422).json({ error:'Sin JSON', descripcion, raw:texto.slice(0,300) });
+    // Buscar el JSON empezando desde la primera llave { hasta la última }
+    const firstBrace = clean.indexOf('{');
+    const lastBrace = clean.lastIndexOf('}');
     let parsed;
-    try { parsed=JSON.parse(match[0]); }
-    catch(e) { return res.status(422).json({ error:'JSON inválido', descripcion, raw:match[0].slice(0,300) }); }
+    if (firstBrace === -1 || lastBrace === -1 || firstBrace >= lastBrace) {
+      return res.status(422).json({ error:'Sin JSON en respuesta', descripcion, raw:clean.slice(0,500) });
+    }
+    const jsonStr = clean.slice(firstBrace, lastBrace + 1);
+    try { parsed = JSON.parse(jsonStr); }
+    catch(e) {
+      // Intentar reparar JSON truncado: buscar el último objeto completo
+      const lastComma = jsonStr.lastIndexOf('},');
+      if (lastComma > 0) {
+        try { parsed = JSON.parse(jsonStr.slice(0, lastComma) + '}]}'); }
+        catch(e2) { return res.status(422).json({ error:'JSON inválido', descripcion, raw:jsonStr.slice(0,500) }); }
+      } else {
+        return res.status(422).json({ error:'JSON inválido', descripcion, raw:jsonStr.slice(0,500) });
+      }
+    }
     if (!parsed.piezas||!Array.isArray(parsed.piezas))
       return res.status(422).json({ error:'Sin piezas', descripcion, parsed });
     parsed.piezas = parsed.piezas.map(p => ({
