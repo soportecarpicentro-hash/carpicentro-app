@@ -1551,6 +1551,7 @@ el('btnTogglePerf').addEventListener('click',function(){ setTogglePerf(!showPerf
 el('btnToggleRan').addEventListener('click',function(){ setToggleRan(!showRan); });
 el('uMM').addEventListener('click',function(){ setUnidad('mm'); });
 el('uCM').addEventListener('click',function(){ setUnidad('cm'); });
+el('uM').addEventListener('click',function(){ setUnidad('m'); });
 
 function setUnidad(u){
   unidad=u;
@@ -1574,6 +1575,8 @@ function irStepBtn(n){
   [1,2,3,4].forEach(function(i){ var s2=el('stp'+i); s2.classList.remove('on','dn'); if(i===n)s2.classList.add('on'); else if(i<n)s2.classList.add('dn'); });
   window.scrollTo({top:0,behavior:'instant'});
 }
+// Exponer globalmente para que funcionen los onclick del HTML
+window.irStepBtn = irStepBtn;
 function irPaso(n){
   if(n===2 && el('cnom') && !el('cnom').value.trim()){ alert('Por favor ingresa tu nombre para continuar.'); el('cnom').focus(); return; }
   if(n===2 && el('cmet') && el('cmet').value==='manual'){ irManual(); return; }
@@ -1849,9 +1852,10 @@ function cantoOpts(v){ return CANTOS.map(function(c){ return '<option value="'+c
 function vetaOpts(v){ return VETAS.map(function(vt){ return '<option value="'+vt+'"'+(vt===v?' selected':'')+'>'+(vt==='1-Longitud'?'Largo':vt==='2-Ancho'?'Ancho':'Sin')+'</option>'; }).join(''); }
 
 function bindMatBtns(tb, arr){
-  tb.querySelectorAll('.mat-btn').forEach(function(btn){
+  tb.querySelectorAll('.mat-btn[data-prefix]').forEach(function(btn){
     btn.addEventListener('click',function(){
       var i=parseInt(this.dataset.i), prefix=this.dataset.prefix;
+      matFiltroTipo=null; // reset filtro — tablero muestra todos los grupos
       abrirMat(function(mat){ arr[i].material=mat; if(prefix==='c') renderTabla(); else renderEditT(); }, arr[i].material);
     });
   });
@@ -2433,12 +2437,15 @@ function abrirDet(id){
         try{
           var imgs=JSON.parse(fotasH[0].detalle||'[]');
           if(imgs.length){
-            fotoPanel.innerHTML='<div style="font-size:15px;font-weight:800;margin-bottom:10px;">📷 Fotos del cliente</div>'
-              +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+            fotoPanel.innerHTML='<div style="font-size:15px;font-weight:800;margin-bottom:12px;">📷 Fotos del cliente ('+(imgs.length)+' foto(s))</div>'
+              +'<div style="display:flex;gap:10px;flex-wrap:wrap;">'
               +imgs.map(function(img,ii){
-                return '<img src="'+img.b64+'" style="height:130px;border-radius:8px;cursor:pointer;border:2px solid var(--bd);object-fit:cover;" '
-                  +'data-src-open="1" style="cursor:pointer;" title="Ver foto '+(ii+1)+' a tamaño completo">';
+                return '<img src="'+img.b64+'" data-foto-idx="'+ii+'" '
+                  +'style="height:130px;width:130px;border-radius:8px;cursor:pointer;border:2px solid var(--bd);object-fit:cover;" '
+                  +'title="Foto '+(ii+1)+' — clic para ver a tamaño completo">';
               }).join('')+'</div>';
+            // Guardar imgs para el overlay
+            fotoPanel._imgs=imgs;
             fotoPanel.style.display='block';
           } else { fotoPanel.style.display='none'; }
         }catch(e){ fotoPanel.style.display='none'; }
@@ -2598,13 +2605,65 @@ function descargarExcel(){
 }
 
 // ── INIT ─────────────────────────────────────────────────
-// Delegación de eventos para fotos de cliente (evitar onclick inline)
+// ── OVERLAY FOTO CLIENTE ──
+var fotoOvlImgs=[];
 document.addEventListener('click',function(e){
-  if(e.target.dataset.srcOpen && e.target.src) window.open(e.target.src);
+  var tgt=e.target;
+  // Abrir overlay al hacer click en miniatura de foto
+  if(tgt.hasAttribute('data-foto-idx')){
+    var panel=document.getElementById('dFotoCliente');
+    fotoOvlImgs=panel&&panel._imgs?panel._imgs:[];
+    var idx=parseInt(tgt.getAttribute('data-foto-idx'));
+    abrirFotoOvl(idx);
+    return;
+  }
+  // Cerrar overlay al click en fondo o botón cerrar
+  if(tgt.id==='btnFotoCerrar'||tgt.id==='fotoOvl'){ cerrarFotoOvl(); return; }
+  // Descargar foto
+  if(tgt.id==='btnFotoDesc'){ descargarFotoOvl(); return; }
+  // Navegar entre fotos con flechas del teclado (también aquí por si acaso)
 });
+// Cerrar overlay con Escape
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape') cerrarFotoOvl();
+});
+function abrirFotoOvl(idx){
+  if(!fotoOvlImgs||!fotoOvlImgs[idx]) return;
+  var img=fotoOvlImgs[idx];
+  var ovl=document.getElementById('fotoOvl');
+  if(!ovl) return;
+  document.getElementById('fotoOvlImg').src=img.b64;
+  document.getElementById('fotoOvlNum').textContent='Foto '+(idx+1)+' de '+fotoOvlImgs.length;
+  ovl.style.display='flex';
+}
+function cerrarFotoOvl(){
+  var ovl=document.getElementById('fotoOvl');
+  if(ovl){ ovl.style.display='none'; var img=document.getElementById('fotoOvlImg'); if(img) img.src=''; }
+}
+function descargarFotoOvl(){
+  var imgEl=document.getElementById('fotoOvlImg');
+  if(!imgEl||!imgEl.src||imgEl.src==='about:blank') return;
+  var a=document.createElement('a');
+  a.href=imgEl.src;
+  a.download='foto-cliente-'+Date.now()+'.jpg';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+// Exponer globalmente
+window.abrirFotoOvl=abrirFotoOvl;
+window.cerrarFotoOvl=cerrarFotoOvl;
+window.descargarFotoOvl=descargarFotoOvl;
 el('lsub') && (el('lsub').textContent=new Date().toLocaleDateString('es-PE',{weekday:'short',day:'numeric',month:'short',year:'numeric'}));
 
 }); // fin DOMContentLoaded
 </script>
+<!-- OVERLAY FOTO CLIENTE -->
+<div id="fotoOvl" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.92);flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px;">
+  <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
+    <button id="btnFotoDesc" style="background:#FFD600;color:#000;border:none;padding:10px 22px;border-radius:999px;font-size:14px;font-weight:700;cursor:pointer;">⬇ Descargar</button>
+    <button id="btnFotoCerrar" style="background:rgba(255,255,255,.2);color:#fff;border:none;padding:10px 22px;border-radius:999px;font-size:14px;cursor:pointer;">✕ Cerrar</button>
+  </div>
+  <img id="fotoOvlImg" src="" style="max-width:95vw;max-height:80vh;border-radius:12px;object-fit:contain;">
+  <div id="fotoOvlNum" style="color:rgba(255,255,255,.6);font-size:13px;"></div>
+</div>
 </body>
 </html>
