@@ -1,4 +1,5 @@
 // api/leer-lista.js — Claude Vision para listas de corte CARPICENTRO
+// Usa dos fases: describir visualmente → luego interpretar
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -10,162 +11,239 @@ export default async function handler(req, res) {
   const KEY = process.env.ANTHROPIC_API_KEY;
   if (!KEY) return res.status(500).json({ error: 'ANTHROPIC_API_KEY no configurada' });
 
-  // Enviamos DOS mensajes al modelo:
-  // 1. Un "preflight" que le pide describir visualmente la imagen antes de interpretar
-  // 2. Luego la interpretación final con las reglas
-  // Esto mejora dramáticamente la precisión porque el modelo "ve" antes de "deducir"
+  const sistema = `Eres el lector de listas de corte de CARPICENTRO (Lima, Perú).
+Eres muy preciso. Cuando tienes duda, prefieres dejar un campo vacío y marcar obs="REVISAR" antes que inventar datos.
 
-  const sistemaPrompt = `Eres el lector de listas de corte de CARPICENTRO (Lima, Perú).
-Trabajas en DOS FASES para máxima precisión:
-FASE 1: Describes visualmente lo que ves (líneas, marcas, letras sobre los números)
-FASE 2: Conviertes esa descripción visual en el JSON estructurado
+══════════════════════════════════════════════
+ESTRUCTURA DEL JSON DE SALIDA
+══════════════════════════════════════════════
+Cada pieza tiene estos campos exactos:
+{
+  "material": string,     // nombre del material
+  "qty": int,             // cantidad
+  "largo": int,           // en MM
+  "ancho": int,           // en MM
+  "veta": string,         // "1-Longitud" | "2-Ancho" | "Sin veta"
+  "l1": string,           // borde SUPERIOR del largo   → "D"|"G"|"DM"|"GM"|"Dx"|"Dz"|"Gx"|"Gz"|""
+  "l2": string,           // borde INFERIOR del largo   → mismo
+  "a1": string,           // borde IZQUIERDO del ancho  → mismo
+  "a2": string,           // borde DERECHO del ancho    → mismo
+  "perf_cant": string,    // cantidad de perforaciones
+  "perf_lado": string,    // medida del lado con perforaciones
+  "perf_det": string,     // descripción ej: "2P/1982"
+  "ran_libre": string,    // ranura: espacio libre
+  "ran_espe": string,     // ranura: espesor
+  "ran_prof": string,     // ranura: profundidad
+  "ran_lado": string,     // ranura: lado (medida)
+  "ran_det": string,      // descripción completa ej: "R/18/3/8/512"
+  "obs": string           // observaciones o "REVISAR: motivo"
+}
 
-═══ REGLAS DE INTERPRETACIÓN ═══
+══════════════════════════════════════════════
+REGLA 1 — MATERIAL
+══════════════════════════════════════════════
+Busca el nombre del material escrito en el encabezado de la lista o sección.
+Si el material tiene letras como "RH", "LINO", "CINO" → son variantes del nombre.
+Ejemplos reales:
+  "CINO RH/LINO" → material = "MELA PELIKANO CINO" (o el nombre que más se entienda)
+  "ROBLE GRIS"   → material = "MELA PELIKANO ROBLE GRIS"
+  Sin nombre     → "MELA PELIKANO BLANCO"
 
-MATERIAL: Nombre escrito arriba de la lista. Si no hay → "MELA PELIKANO BLANCO"
+══════════════════════════════════════════════
+REGLA 2 — UNIDAD DE MEDIDA
+══════════════════════════════════════════════
+DETECTA la unidad mirando los números:
+• Números con 1 decimal ≤ 3 dígitos antes del punto (ej: 57.4, 116.9, 50.0) → CM → ×10 → MM
+• Números enteros ≥ 4 dígitos (ej: 1960, 580, 1169) → ya son MM → no convertir
+• Si ves "M" como unidad escrita → ×1000 → MM
+Regla práctica: si el largo es menor a 300 sin decimales → probablemente CM → ×10
 
-UNIDAD DE MEDIDA:
-- Números con decimales (109.8, 54.2, 73.0) → CM → multiplicar x10 → MM
-- Números enteros grandes (420, 1982, 864) → ya son MM
-- Si ves "M" o "m" como unidad → multiplicar x1000 → MM
+Ejemplos de conversión:
+  196 cm → 1960 mm | 57.4 cm → 574 mm | 51.2 cm → 512 mm | 50 cm → 500 mm
+  46.3 cm → 463 mm | 84.2 cm → 842 mm | 116.9 cm → 1169 mm | 48.1 cm → 481 mm
 
-FORMATO DE PIEZA: (CANTIDAD) LARGO x ANCHO [anotaciones]
-La "x" o "×" ENTRE los números es separador de medidas — NO es canto.
+══════════════════════════════════════════════
+REGLA 3 — FORMATO DE PIEZA
+══════════════════════════════════════════════
+Formato típico: (CANTIDAD) LARGO × ANCHO [anotaciones]
+La cantidad puede estar como número encerrado en círculo ①②③ o como número normal.
+La "×" o "x" entre dos números es SEPARADOR de medidas — NO es canto.
 
-═══ CANTOS — MÉTODO DE LECTURA EN 3 PASOS ═══
+══════════════════════════════════════════════
+REGLA 4 — CANTOS (la más importante)
+══════════════════════════════════════════════
+Los cantos son marcas visuales sobre los números. El Excel de referencia usa:
+  L1 = borde SUPERIOR del LARGO   (P_EDGE_MAT_UP)
+  L2 = borde INFERIOR del LARGO   (P_EGDE_MAT_LO)
+  A1 = borde IZQUIERDO del ANCHO  (P_EDGE_MAT_SX)
+  A2 = borde DERECHO del ANCHO    (P_EDGE_MAT_DX)
 
-PASO A — ¿Qué tipo de marca hay?
-  Línea recta/guion (—) = DELGADO = "D"
-  Línea ondulada/gusanito (≈ o ~~~) = GRUESO = "G"  
-  Letra X encima del número = GRUESO = "G"
-  Letra "D" escrita encima = DELGADO = "D" (aunque parezca "O" o bolita, si las demás son "D" → también es "D")
-  Letra "G" escrita encima = GRUESO = "G"
-  Letra "Dm" escrita = "Dm" (canto delgado diferente color)
-  Letra "Gm" escrita = "Gm" (canto grueso diferente color)
+TIPOS DE MARCA → VALOR:
+  Línea recta/guion (—) encima o debajo  → "D"  (delgado)
+  Línea ondulada/gusanito (≈)            → "G"  (grueso)
+  Letra X encima del número              → "G"  (grueso, equivalente a gusanito)
+  Letra "D" escrita encima               → "D"  (aunque parezca "O" si el contexto es "D")
+  Letra "G" escrita encima               → "G"
+  Abreviación "DM" o "Dm"               → "DM" (delgado diferente color)
+  Abreviación "GM" o "Gm"               → "GM" (grueso diferente color)
+  Sin marca visible                      → ""   (sin canto — NO inventar)
 
-PASO B — ¿Cuántas marcas tiene ese número?
-  0 marcas → sin canto: ambos lados vacíos ""
-  1 marca (solo encima O solo debajo) → UN solo lado lleva canto, el otro vacío
-  2 marcas (encima Y debajo, o tipos diferentes) → AMBOS lados llevan canto
-
-PASO C — ¿Las marcas van arriba o abajo? (Patrón de la PRIMERA pieza)
-  Mira SOLO la primera pieza para detectar si las marcas van encima o debajo de los números.
+PASO A — DETECTAR PATRÓN de posición (PRIMERA PIEZA):
+  ¿Las marcas están ENCIMA o DEBAJO de los números?
   Ese patrón se aplica a TODAS las piezas de la lista.
-  Marca arriba → L1 (o A1); Marca abajo → L2 (o A2)
+  Si las marcas van ENCIMA: la marca de arriba = L1, la de abajo = L2
+  Si las marcas van DEBAJO: la marca de abajo = L1, la de arriba = L2
+  (En la práctica casi siempre van encima)
 
-COMBINACIONES PARA EL LARGO → L1 y L2:
-  Sin marcas                    → L1="",  L2=""
-  1 línea recta (arriba)        → L1="D", L2=""
-  1 línea recta (abajo)         → L1="D", L2=""  [según patrón]
-  2 líneas rectas               → L1="D", L2="D"
-  1 gusanito/X                  → L1="G", L2=""
-  2 gusanitos/X                 → L1="G", L2="G"
-  1 línea + 1 gusanito/X        → L1="D", L2="G"  (recta=D arriba, gusanito=G abajo)
-  1 gusanito/X + 1 línea        → L1="G", L2="D"
+PASO B — CONTAR marcas sobre el LARGO:
+  0 marcas → L1="", L2=""
+  1 marca sola → L1=tipo, L2=""
+  2 marcas distintas (recta + gusanito) → L1=tipo_arriba, L2=tipo_abajo
+  2 marcas iguales (recta + recta) → L1="D", L2="D"
+  2 gusanitos/X → L1="G", L2="G"
 
-MISMA LÓGICA para el ANCHO → A1 y A2
+PASO C — CONTAR marcas sobre el ANCHO → misma lógica para A1 y A2
 
-⚠️ REGLAS CRÍTICAS:
-1. NO INVENTES cantos. Si no ves marca claramente → dejar vacío ""
-2. Cuenta las marcas con cuidado: 1 ó 2
-3. La "x" entre dos números (ej: "109.8 x 54.2") NO es canto — es separador
-4. Solo las X encima o debajo de UN número individual son cantos gruesos
+REGLA CRÍTICA: Si NO hay marca visible → campo vacío "". NUNCA inventar cantos.
 
-═══ PERFORACIÓN ═══
+══════════════════════════════════════════════
+REGLA 5 — RANURA
+══════════════════════════════════════════════
+Se indica como "RAN", "R", "RA", "RANURA" seguido de números.
+Formato en el Excel de referencia: R/LIBRE/ESPE/PROF/LADO
+  Ej: "R/18/3/8/512" → ran_libre="18", ran_espe="3", ran_prof="8", ran_lado="512", ran_det="R/18/3/8/512"
+  Ej: "RAN." junto a largo 512→ consultar especificaciones → obs="REVISAR: especificaciones de ranura"
+  Ej: "R18-3-8" → libre=18, espe=3, prof=8; lado = la medida junto a la que aparece
+
+Si el cliente pone "RAN." sin más detalles → obs="Indicar especificaciones de ranura"
+
+══════════════════════════════════════════════
+REGLA 6 — PERFORACIÓN
+══════════════════════════════════════════════
 Puntos (• o,o ...) debajo de un número = perforaciones
-  cant_puntos=perf_cant | medida_donde_están=perf_lado | perf_det="NP/LADO"
-  Ej: 3 puntos bajo 109.8cm(=1098mm) → perf_cant="3", perf_lado="1098", perf_det="3P/1098"
+  cantidad de puntos = perf_cant | medida donde están = perf_lado | perf_det = "NP/LADO"
+  Ej: punto junto a 196 cm(=1960mm) → perf_cant="1", perf_lado="1960", perf_det="1P/1960"
 
-═══ RANURA ═══
-"R LIBRE-ESPE-PROF" junto a una medida:
-  Ej: "R 18-4-7" con largo=50cm(=500mm) → ran_libre="18", ran_espe="4", ran_prof="7", ran_lado="500"
+══════════════════════════════════════════════
+REGLA 7 — TEXTO ADICIONAL Y OBSERVACIONES
+══════════════════════════════════════════════
+"CUADRICULADO" al final de la lista → es nota del papel, ignorar
+Texto descriptivo por pieza → obs
+Si hay ranura incompleta → obs = "Indicar especificaciones de ranura"
+Texto ilegible → obs = "REVISAR: [descripción]"
+Notas al final que no son piezas → IGNORAR
 
-═══ TEXTO ADICIONAL ═══
-Texto descriptivo junto a la pieza → obs (ej: "R. Costados", "Techo Pso")
-Texto al final que no son piezas (cantidades de otros materiales) → IGNORAR completamente
+══════════════════════════════════════════════
+EJEMPLOS VERIFICADOS (lista CINO RH, medidas en CM, marcas encima)
+══════════════════════════════════════════════
+[Excel de referencia confirma estas interpretaciones]
 
-═══ EJEMPLOS VERIFICADOS (MELA PELIKANO PAMELA, en CM, marcas encima) ═══
-  4(109.8×54.2): 2 líneas sobre 109.8→L1=D,L2=D | 3 puntos→3P/1098 | 2 líneas sobre 54.2→A1=D,A2=D
-  1(52.9×10.0):  2 líneas sobre 52.9→L1=D,L2=D  | nada sobre 10.0→A1="",A2=""
-  2(38.2×13.0):  2 X sobre 38.2→L1=G,L2=G       | 2 X sobre 13.0→A1=G,A2=G
-  2(73.0×33.0):  1 línea+1 X sobre 73.0→L1=D,L2=G | 1 sola línea sobre 33→A1=D,A2=""
-  4(50.0×11.0):  1 línea sobre 50→L1=D,L2=""    | nada sobre 11→A1="",A2="" | R18-4-7→ran
+  Imagen: 196×58 ② con 1 línea encima del largo, 1 línea encima del ancho
+  Resultado: qty=2, largo=1960, ancho=580, L1="D", L2="", A1="D", A2=""
+  [Excel: P_EDGE_MAT_UP=D, P_EDGE_MAT_SX=D]
 
-═══ RESPUESTA ═══
-SOLO JSON sin texto adicional ni markdown:
-{"piezas":[{"material":"MELA PELIKANO PAMELA","qty":4,"largo":1098,"ancho":542,"veta":"1-Longitud","l1":"D","l2":"D","a1":"D","a2":"D","perf_cant":"3","perf_lado":"1098","perf_det":"3P/1098","ran_libre":"","ran_espe":"","ran_prof":"","ran_lado":"","ran_det":"","obs":""}]}
+  Imagen: 57.4×58 ③ con 1 línea encima del largo, sin marca en ancho
+  Resultado: qty=3, largo=574, ancho=580, L1="D", L2="", A1="", A2=""
+  [Excel: P_EDGE_MAT_UP=D, resto vacío]
 
-Campos: material(str) | qty(int) | largo,ancho(int mm) | veta("1-Longitud"|"2-Ancho"|"Sin veta")
-  l1,l2,a1,a2("D"|"G"|"Dm"|"Gm"|"Dx"|"Dz"|"Gx"|"Gz"|"") 
-  perf_cant,perf_lado,perf_det(str) | ran_libre,ran_espe,ran_prof,ran_lado,ran_det(str) | obs(str)`;
+  Imagen: 51.2×20 ⑥ RAN. con 2 líneas encima del largo, sin marca ancho
+  Resultado: qty=6, largo=512, ancho=200, L1="D", L2="D", A1="", A2="", obs="Indicar especificaciones de ranura"
+  [Excel: P_EDGE_MAT_UP=D, P_EGDE_MAT_LO=D, P_IDESC=R/18/3/8/512]
 
-  // Prompt de dos fases: primero describir, luego interpretar
-  const prompt_describe = `Antes de interpretar, describe visualmente lo que ves en esta lista de corte:
-1. ¿Qué material dice arriba?
-2. ¿Las medidas tienen decimales (CM) o son enteros grandes (MM)?
-3. Para las primeras 3 piezas: ¿qué marcas ves exactamente encima y debajo de cada número? 
-   (líneas rectas, gusanitos, letras X, letras D o G, puntos, etc.)
-4. ¿Las marcas van encima o debajo de los números?
-5. ¿Hay texto de ranura (R) o perforación (puntos)?
+  Imagen: 46.3×8 ⑮ sin marcas en largo ni ancho
+  Resultado: qty=15, largo=463, ancho=80, L1="", L2="", A1="", A2=""
+  [Excel: todas las celdas de canto vacías]
 
-Sé muy específico sobre las marcas visuales. No interpretes aún, solo describe lo que ves.`;
+  Imagen: 86×86 ⑦ sin marcas
+  Resultado: qty=7, largo=860, ancho=860, L1="", L2="", A1="", A2=""
 
-  const prompt_interpret = `Ahora, basándote en tu descripción visual anterior y las reglas del sistema, 
-genera el JSON completo con TODAS las piezas de la lista.
+  Imagen: 35×20 ③ con 2 líneas encima del largo
+  Resultado: qty=3, largo=350, ancho=200, L1="D", L2="D", A1="", A2=""
+  [Excel: P_EDGE_MAT_UP=D, P_EGDE_MAT_LO=D]
+
+══════════════════════════════════════════════
+RESPUESTA — SOLO JSON
+══════════════════════════════════════════════
+Sin texto adicional ni bloques markdown. Exactamente:
+{"piezas":[{...}]}`;
+
+  const pregunta_visual = `Analiza esta lista de corte con MUCHO CUIDADO.
+
+FASE 1 — DESCRIPCIÓN VISUAL (antes de interpretar):
+Por favor responde estas preguntas específicas:
+
+1. ¿Qué material o nombre aparece en el encabezado?
+2. ¿Las medidas parecen estar en CM (números con decimales <300) o MM (enteros >300)?
+3. ¿Las marcas de canto están ENCIMA o DEBAJO de los números? (detecta esto en la PRIMERA pieza)
+4. Para las primeras 5 piezas, describe EXACTAMENTE:
+   - Las medidas y cantidad
+   - Qué marcas ves sobre el número del LARGO (líneas rectas, gusanitos, X, letras D/G)
+   - Qué marcas ves sobre el número del ANCHO
+   - Si hay ranura (R, RAN, RA) o perforación (puntos)
+   - Cualquier texto adicional
+5. ¿La lista tiene 1 columna, 2 columnas o 3 columnas de medidas?
+
+Sé muy específico. No interpretes todavía — solo describe lo que ves visualmente.`;
+
+  const instruccion_json = `Perfecto. Ahora, basándote en tu descripción visual anterior y las reglas del sistema, genera el JSON completo con TODAS las piezas de la lista (incluyendo todas las columnas si hay más de una).
+
+Recuerda:
+- Convertir CM→MM si corresponde (×10) 
+- Si hay ranura escrita solo como "RAN." sin números → obs="Indicar especificaciones de ranura"
+- NUNCA inventar cantos — si no hay marca visible → campo vacío ""
+- Leer de izquierda a derecha, de arriba hacia abajo
+
 SOLO EL JSON, sin texto adicional.`;
 
   try {
-    // FASE 1: El modelo describe visualmente la imagen
+    // FASE 1: El modelo describe visualmente
     const r1 = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type':'application/json', 'x-api-key':KEY, 'anthropic-version':'2023-06-01' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6', max_tokens: 1024,
-        system: sistemaPrompt,
+        model: 'claude-sonnet-4-6', max_tokens: 1500,
+        system: sistema,
         messages: [{
           role: 'user',
           content: [
             { type: 'image', source: { type: 'base64', media_type: media_type||'image/jpeg', data: imagen_b64 }},
-            { type: 'text', text: prompt_describe }
+            { type: 'text', text: pregunta_visual }
           ]
         }]
       })
     });
     if (!r1.ok) { const e=await r1.text(); return res.status(502).json({ error:'Error API fase 1', detalle:e.slice(0,200) }); }
-    const data1 = await r1.json();
-    const descripcion = (data1.content||[]).map(c=>c.text||'').join('');
+    const d1 = await r1.json();
+    const descripcion = (d1.content||[]).map(c=>c.text||'').join('');
 
-    // FASE 2: Con la descripción visual, genera el JSON
+    // FASE 2: Genera el JSON con contexto de la descripción
     const r2 = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type':'application/json', 'x-api-key':KEY, 'anthropic-version':'2023-06-01' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6', max_tokens: 4096,
-        system: sistemaPrompt,
+        system: sistema,
         messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'image', source: { type: 'base64', media_type: media_type||'image/jpeg', data: imagen_b64 }},
-              { type: 'text', text: prompt_describe }
-            ]
-          },
-          { role: 'assistant', content: descripcion },
-          { role: 'user', content: prompt_interpret }
+          { role:'user', content:[
+            { type:'image', source:{ type:'base64', media_type:media_type||'image/jpeg', data:imagen_b64 }},
+            { type:'text', text:pregunta_visual }
+          ]},
+          { role:'assistant', content: descripcion },
+          { role:'user', content: instruccion_json }
         ]
       })
     });
     if (!r2.ok) { const e=await r2.text(); return res.status(502).json({ error:'Error API fase 2', detalle:e.slice(0,200) }); }
-    const data2 = await r2.json();
-    const texto = (data2.content||[]).map(c=>c.text||'').join('');
+    const d2 = await r2.json();
+    const texto = (d2.content||[]).map(c=>c.text||'').join('');
     const clean = texto.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
     const match = clean.match(/\{[\s\S]*\}/);
     if (!match) return res.status(422).json({ error:'Sin JSON', descripcion, raw:texto.slice(0,300) });
     let parsed;
     try { parsed=JSON.parse(match[0]); }
-    catch(e) { return res.status(422).json({ error:'JSON inválido', raw:match[0].slice(0,300) }); }
+    catch(e) { return res.status(422).json({ error:'JSON inválido', descripcion, raw:match[0].slice(0,300) }); }
     if (!parsed.piezas||!Array.isArray(parsed.piezas))
-      return res.status(422).json({ error:'Sin piezas', parsed });
+      return res.status(422).json({ error:'Sin piezas', descripcion, parsed });
     parsed.piezas = parsed.piezas.map(p => ({
       material: p.material||'MELA PELIKANO BLANCO',
       qty: Math.max(1, parseInt(p.qty)||1),
