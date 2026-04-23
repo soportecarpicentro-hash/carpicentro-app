@@ -406,6 +406,15 @@ tr:hover td{background:#FFF5F5;}
         <!-- Resumen -->
         <div class="sg" id="sg"></div>
 
+        <!-- SELECTOR COLOR D/G GLOBAL -->
+        <div id="colorDGBanner" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;background:#EBF5FB;border:1.5px solid #1565C0;border-radius:10px;padding:10px 16px;margin-bottom:10px;">
+          <span style="font-size:13px;font-weight:700;color:#1565C0;">🎨 Color canto D/G</span>
+          <select id="colorDGGlobal" style="font-size:13px;padding:6px 12px;border:1.5px solid #1565C0;border-radius:8px;min-width:160px;">
+            <option value="">— Seleccionar color —</option>
+          </select>
+          <span style="font-size:11px;color:#666;font-style:italic;">Aplica a todas las piezas · Dm, Gm se asignan por fila</span>
+        </div>
+
         <!-- Tabla principal (scroll horizontal) -->
         <div class="tw" style="margin-bottom:8px;">
           <table id="tblMela">
@@ -1378,7 +1387,7 @@ var ESTL = {ingresado:'Ingresado',revisado:'Revisado',en_optiplaning:'En Optipla
 var ESTC = {ingresado:'b-ing',revisado:'b-rev',en_optiplaning:'b-opt',en_produccion:'b-pro',listo:'b-lst',entregado:'b-ent',no_procedio:'b-nop'};
 
 // ── ESTADO ───────────────────────────────────────────────
-var pcs=[],allP=[],pedAct=null,pzEdit=[],sesion=null,unidad='mm',matCb=null,matCbSel='';
+var pcs=[],allP=[],pedAct=null,pzEdit=[],sesion=null,unidad='mm',matCb=null,matCbSel='',colorDGGlobal='';
 
 // ── HELPERS ──────────────────────────────────────────────
 function el(id){ return document.getElementById(id); }
@@ -1724,11 +1733,13 @@ function leerTodasConIA(){
     resultados.forEach(function(r){ if(r&&r.piezas) todasPiezas=todasPiezas.concat(r.piezas); });
     if(!todasPiezas.length) throw new Error('No se detectaron piezas en ninguna imagen');
     var conDuda=todasPiezas.filter(function(p){return p.obs&&p.obs.indexOf('REVISAR:')>=0;});
+    // Preservar colorDGGlobal si está seleccionado
+    var colDUsado=colorDGGlobal||'';
     pcs=todasPiezas.map(function(p){
       return {material:p.material||'MELA PELIKANO BLANCO',qty:Math.max(1,parseInt(p.qty)||1),
         largo:parseInt(p.largo)||'',ancho:parseInt(p.ancho)||'',veta:p.veta||'1-Longitud',
         l1:p.l1||'',l2:p.l2||'',a1:p.a1||'',a2:p.a2||'',obs:p.obs||'',
-        col_d:'',col_dx:'',col_gx:'',
+        col_d:colDUsado,col_dx:'',col_gx:'',
         perf_cant:p.perf_cant||'',perf_lado:p.perf_lado||'',perf_det:p.perf_det||'',
         ran_libre:p.ran_libre||'',ran_espe:p.ran_espe||'',ran_prof:p.ran_prof||'',
         ran_lado:p.ran_lado||'',ran_det:p.ran_det||'',
@@ -1925,7 +1936,7 @@ function renderTabla(){
       +'<th style="width:44px;color:var(--yellow);">VETA</th>'
       +'<th style="width:60px;color:var(--yellow);">L1</th><th style="width:60px;color:var(--yellow);">L2</th>'
       +'<th style="width:60px;color:var(--yellow);">A1</th><th style="width:60px;color:var(--yellow);">A2</th>'
-      +'<th style="width:80px;color:#90CAF9;font-size:9px;">D/G<br>COLOR</th>'
+
       +'<th class="l" style="min-width:80px;color:var(--yellow);">OBS.</th>'
       +perfCols+ranCols+'<th style="width:20px;"></th>';
   }
@@ -1982,20 +1993,7 @@ function renderTabla(){
       cells+=cantoCelda('l1',p.l1)+cantoCelda('l2',p.l2)+cantoCelda('a1',p.a1)+cantoCelda('a2',p.a2);
     }
 
-    // Color D/G: columna propia pequeña, solo si hay D o G
-    var colDHtml='';
-    if(!noEc && cantosD){
-      var copts2=CANTO_COLORES.map(function(cc){return '<option value="'+cc+'"'+(p.col_d===cc?' selected':'')+'>'+cc+'</option>';}).join('');
-      colDHtml='<td style="padding:2px;vertical-align:middle;">'
-        +'<div style="font-size:9px;color:#1565C0;font-weight:700;text-align:center;white-space:nowrap;margin-bottom:2px;">D/G Color</div>'
-        +'<select class="tis" data-i="'+i+'" data-k="col_d" style="width:76px;font-size:10px;border-color:#1565C0;">'
-          +'<option value="">—</option>'+copts2
-        +'</select>'
-      +'</td>';
-    } else if(!noEc){
-      colDHtml='<td style="padding:2px;"></td>';
-    }
-    cells+=colDHtml;
+
 
     cells+='<td class="l" style="min-width:80px;"><input class="ti" type="text" value="'+(p.obs||'')+'" placeholder="—" style="width:100%;text-align:left;font-size:12px;" data-i="'+i+'" data-k="obs"></td>';
 
@@ -2023,6 +2021,15 @@ function renderTabla(){
   bindInputs(tb, pcs, true);
   updSG();
   renderFormicas();
+  // Mostrar/ocultar banner de color D/G global
+  var hayCantosD=pcs.some(function(p){return p.l1==='D'||p.l2==='D'||p.a1==='D'||p.a2==='D'||p.l1==='G'||p.l2==='G'||p.a1==='G'||p.a2==='G';});
+  var banner=el('colorDGBanner');
+  if(banner) banner.style.display=hayCantosD?'flex':'none';
+  var selDG=el('colorDGGlobal');
+  if(selDG){
+    if(selDG.options.length<2) selDG.innerHTML='<option value="">— Seleccionar color —</option>'+CANTO_COLORES.map(function(c){return '<option value="'+c+'">'+c+'</option>';}).join('');
+    selDG.value=colorDGGlobal;
+  }
 }
 
 
@@ -2100,6 +2107,8 @@ function confirmarPedido(){
   pcs.forEach(function(p,i){
     if(matSinEnchape(p.material)) return;
     var cantosD=[p.l1,p.l2,p.a1,p.a2].some(function(c){return c==='D'||c==='G';});
+    // col_d: usar el global si existe
+    if(!p.col_d && colorDGGlobal) p.col_d=colorDGGlobal;
     if(cantosD && !p.col_d){ sinColor.push('Fila '+(i+1)+': falta el color de canto D/G'); }
     var tieneDx=[p.l1,p.l2,p.a1,p.a2].some(function(c){return c==='Dx'||c==='Dm'||c==='Dz';});
     var tieneGx=[p.l1,p.l2,p.a1,p.a2].some(function(c){return c==='Gx'||c==='Gm'||c==='Gz';});
@@ -2183,7 +2192,7 @@ function resetCliente(){
   var g=el('imgGaleria'); if(g) g.innerHTML='';
   var w=el('btnLeerWrap'); if(w) w.style.display='none';
   ['cnom','ctel','cdoc'].forEach(function(id){ if(el(id)) el(id).value=''; });
-  if(el('fi')) el('fi').value='';
+  if(el('fi')) el('fi').value=''; colorDGGlobal=''; if(el('colorDGGlobal')) el('colorDGGlobal').value='';
   if(el('fiCam')) el('fiCam').value='';
   if(el('aist')) el('aist').innerHTML='';
   if(el('aist3')) el('aist3').innerHTML='';
@@ -2194,6 +2203,21 @@ function resetCliente(){
 
 // ── PANEL VENDEDORAS ──────────────────────────────────────
 el('btnRefresh').addEventListener('click',cargarPedidos);
+
+// ── COLOR D/G GLOBAL ──
+(function(){
+  var sel=el('colorDGGlobal');
+  if(!sel) return;
+  // Cargar opciones de CANTO_COLORES
+  sel.innerHTML='<option value="">— Sin color especificado —</option>'
+    +CANTO_COLORES.map(function(c){return '<option value="'+c+'">'+c+'</option>';}).join('');
+  sel.addEventListener('change',function(){
+    colorDGGlobal=this.value;
+    // Aplicar a todos los pcs
+    pcs.forEach(function(p){ p.col_d=colorDGGlobal; });
+    renderTabla();
+  });
+})();
 el('tabPedidos') && el('tabPedidos').addEventListener('click',function(){ switchVTab('pedidos'); });
 el('tabUsuarios') && el('tabUsuarios').addEventListener('click',function(){ switchVTab('usuarios'); });
 // Listeners overlay usuarios
