@@ -1,5 +1,5 @@
-// api/leer-lista.js — Claude Vision CARPICENTRO v9
-// Medidas en MM tal cual. Proximidad al número = L1/A1.
+// api/leer-lista.js — Claude Vision CARPICENTRO v10
+// Ejemplos verificados con correcciones de perforación y cantos
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -66,91 +66,108 @@ export default async function handler(req, res) {
 
   const F1 = `Analiza esta lista de corte de carpintería (CARPICENTRO, Lima).
 
-═══ PASO 1: DISTINGUE ESTOS 4 ELEMENTOS ═══
+═══ LOS 4 ELEMENTOS QUE DEBES IDENTIFICAR ═══
 
-1. LÍNEA RECTA (─ = ══): plana, sin ondas → indica canto DELGADO "D"
-   Puede ser simple (─) o doble (══). Ambas = "D".
+1. LÍNEA RECTA (─ = ══): raya plana horizontal, sin ondas → canto DELGADO "D"
+   Una línea recta = 1 canto. Dos líneas rectas = 2 cantos.
 
-2. LÍNEA ONDULADA (≈ ~~~): con curvas/olas → indica canto GRUESO "G"
+2. LÍNEA ONDULADA (≈ ~~~): raya con curvas/olas → canto GRUESO "G"
+   Una ondulada = 1 canto. Dos onduladas = 2 cantos.
 
-3. PUNTOS (• ° o,o oo): círculos pequeños debajo del número → indican PERFORACIÓN
-   ⚠️ Los puntos NO son cantos. Son perforaciones.
-   Cuenta cuántos puntos hay → eso es perf_cant
-   El número junto al que están → eso es perf_lado
+3. PUNTOS (° • oo): círculos pequeños junto a un número → PERFORACIÓN (NO es canto)
+   Cuenta los puntos → perf_cant. El número junto al que están → perf_lado.
 
-4. TEXTO ADICIONAL: "RAN", "R", "RA" = ranura. Texto descriptivo = observación.
+4. TEXTO: "RAN"/"R"/"RA" = ranura. Palabras descriptivas = observación.
 
-═══ PASO 2: REGLA DE CANTOS ═══
-Las líneas (rectas u onduladas) pueden estar arriba o abajo del número — NO importa la posición.
-Lo que importa: CUÁNTAS líneas hay y cuál está MÁS CERCA del número.
+═══ REGLA DE CANTOS ═══
+Las líneas están CERCA del número (arriba o abajo — la posición no importa).
+• 0 líneas → sin canto
+• 1 línea → L1 = ese tipo, L2 = vacío
+• 2 líneas → L1 = más cercana al número, L2 = más lejana al número
+Misma lógica para ANCHO → A1, A2
 
-• 0 líneas → sin canto: l1="", l2=""
-• 1 línea (recta) → l1="D", l2=""
-• 2 líneas (rectas) → l1="D", l2="D"
-• 1 gusanito → l1="G", l2=""
-• 2 gusanitos → l1="G", l2="G"
-• gusanito MÁS CERCANO + recta MÁS LEJANA → l1="G", l2="D"
-• recta MÁS CERCANA + gusanito MÁS LEJANO → l1="D", l2="G"
-Misma lógica para ANCHO → a1, a2
+IMPORTANTE: Cuenta las líneas con cuidado. Si ves 2 líneas rectas → L1="D" Y L2="D". No dejes L2 vacío si hay 2 líneas.
 
-═══ PASO 3: MEDIDAS ═══
-Las medidas se copian TAL CUAL en MM. NO convertir.
-1982 → largo=1982. 580 → ancho=580. 420 → largo=420.
+═══ MEDIDAS ═══
+Copiar TAL CUAL en MM. No convertir. 1982→1982, 414→414, 420→420.
 
 ═══ INSTRUCCIÓN ═══
-Para CADA pieza describe:
+Para CADA pieza:
 PIEZA N | Cant×Largo×Ancho
-  LARGO: [líneas que ves cerca del número - tipo y cantidad]
-  ANCHO: [líneas que ves cerca del número]
-  PUNTOS: [cuántos puntos y junto a qué número, o "ninguno"]
-  TEXTO: [observaciones, ranura, o "ninguno"]
+  LARGO: [N líneas, tipo, posición si aplica]
+  ANCHO: [N líneas, tipo]
+  PUNTOS: [N puntos junto a cuál número, o ninguno]
+  TEXTO: [obs o ninguno]
 
 Al inicio: MATERIAL y COLUMNAS.`;
 
-  const F2 = `Convierte tu descripción al JSON.
+  const F2 = `Convierte la descripción al JSON con estas reglas:
 
-MEDIDAS: copiar el número exacto en MM, sin convertir.
+MEDIDAS: número exacto en MM sin convertir.
 
-CANTOS según tu descripción:
-• 0 líneas → l1="", l2=""
+CANTOS:
+• 0 líneas cerca del número → l1="", l2=""
 • 1 recta → l1="D", l2=""
-• 2 rectas → l1="D", l2="D"
+• 2 rectas → l1="D", l2="D"    ← AMBAS si hay 2
 • 1 gusanito → l1="G", l2=""
 • 2 gusanitos → l1="G", l2="G"
 • gusanito(cercano)+recta(lejana) → l1="G", l2="D"
 • recta(cercana)+gusanito(lejano) → l1="D", l2="G"
 (misma lógica para ancho → a1, a2)
 
-PERFORACIÓN: si describiste puntos junto a un número:
-• perf_cant = cantidad de puntos
-• perf_lado = el número junto al que están (en MM)
-• perf_det = "NPx/LADO" (ej: "2P/1982")
-⚠️ Los puntos NO afectan los cantos. Son campos separados.
+PERFORACIÓN (puntos):
+• perf_cant = número de puntos
+• perf_lado = la medida junto a la que están (en MM)
+• perf_det = "NP/medida" (ej: "2P/1982")
+Los puntos NO afectan l1/l2/a1/a2.
 
-RANURA: "RAN","R","RA" sin números → obs="Indicar especificaciones de ranura"
+RANURA: sin números → obs="Indicar especificaciones de ranura"
 
-SECCIÓN NUEVA: si ves un encabezado diferente (ej: "MDF Blanco") en mitad de la lista,
-las piezas siguientes usan ese nuevo material.
+Si hay un encabezado nuevo en mitad de la lista (ej: "MDF Blanco") → cambiar material.
 
 ═══ EJEMPLOS VERIFICADOS (lista MELA PELIKANO BLANCO) ═══
 
-"2 de 1982×580" | 2 rectas bajo largo | 2 puntos bajo 1982 | 1 recta bajo ancho
-→ qty=2, largo=1982, ancho=580, l1="D", l2="D", a1="D", a2="", perf_cant="2", perf_lado="1982", perf_det="2P/1982"
+"2 de 1982×580" — 2 rectas+2puntos bajo 1982, 1 recta bajo 580
+→ qty=2, largo=1982, ancho=580, l1="D", l2="D", a1="D", a2="", perf_cant="2", perf_lado="1982", perf_det="2P/1982", obs=""
 
-"1 de 1200×580" | 1 recta bajo largo | 2 puntos bajo 1200 | 1 recta bajo ancho
-→ qty=1, largo=1200, ancho=580, l1="D", l2="", a1="D", a2="", perf_cant="2", perf_lado="1200", perf_det="2P/1200"
+"1 de 1200×580" — 1 recta+2puntos bajo 1200, 1 recta bajo 580
+→ qty=1, largo=1200, ancho=580, l1="D", l2="", a1="D", a2="", perf_cant="2", perf_lado="1200", perf_det="2P/1200", obs=""
 
-"1 de 1164×580" | 2 rectas bajo largo | 1 letra bajo 1164 (no punto) | 2 rectas bajo ancho
-→ qty=1, largo=1164, ancho=580, l1="D", l2="D", a1="D", a2="D", perf_cant="", perf_lado="", perf_det=""
+"1 de 1164×580" — 2 rectas bajo 1164, 2 rectas bajo 580
+→ qty=1, largo=1164, ancho=580, l1="D", l2="D", a1="D", a2="D", perf_cant="", obs=""
 
-"3 de 1164×575" | 2 rectas largo | 2 rectas ancho
-→ qty=3, largo=1164, ancho=575, l1="D", l2="D", a1="D", a2="D"
+"3 de 1164×575" — 2 rectas bajo 1164, 2 rectas bajo 575
+→ qty=3, largo=1164, ancho=575, l1="D", l2="D", a1="D", a2="D", perf_cant="", obs=""
 
-"2 de 1214×260" | 2 rectas largo | 0 líneas ancho
-→ qty=2, largo=1214, ancho=260, l1="D", l2="D", a1="", a2=""
+"1 de 1964×580" — 2 rectas bajo 1964, 1 recta bajo 580
+→ qty=1, largo=1964, ancho=580, l1="D", l2="D", a1="D", a2="", perf_cant="", obs=""
 
-"2 de 314×260" | 1 recta largo | 0 líneas ancho
-→ qty=2, largo=314, ancho=260, l1="D", l2="", a1="", a2=""
+"2 de 1996×596" — 2 rectas bajo 1996, 2 rectas bajo 596
+→ qty=2, largo=1996, ancho=596, l1="D", l2="D", a1="D", a2="D", perf_cant="", obs=""
+
+"2 de 1214×260" — 2 rectas bajo 1214, 0 líneas bajo 260
+→ qty=2, largo=1214, ancho=260, l1="D", l2="D", a1="", a2="", perf_cant="", obs=""
+
+"2 de 350×260" — 1 recta bajo 350, 1 recta bajo 260
+→ qty=2, largo=350, ancho=260, l1="D", l2="", a1="D", a2="", perf_cant="", obs=""
+
+"2 de 314×260" — 1 recta bajo 314, 0 líneas bajo 260
+→ qty=2, largo=314, ancho=260, l1="D", l2="", a1="", a2="", perf_cant="", obs=""
+
+"2 de 414×346" — 2 rectas bajo 414, 2 rectas bajo 346
+→ qty=2, largo=414, ancho=346, l1="D", l2="D", a1="D", a2="D", perf_cant="", obs=""
+
+"1 de 408×346" — 1 recta bajo 408, 1 recta bajo 346
+→ qty=1, largo=408, ancho=346, l1="D", l2="", a1="D", a2="", perf_cant="", obs=""
+
+"20 de 805×453" — 2 rectas bajo 805, 2 rectas bajo 453
+→ qty=20, largo=805, ancho=453, l1="D", l2="D", a1="D", a2="D", perf_cant="", obs=""
+
+"12 de 605×353" — 2 rectas bajo 605, 2 rectas bajo 353
+→ qty=12, largo=605, ancho=353, l1="D", l2="D", a1="D", a2="D", perf_cant="", obs=""
+
+"MDF Blanco — 2 de 1996×598" — (nuevo material)
+→ qty=2, largo=1996, ancho=598, material="MDF Blanco", l1="", l2="", a1="", a2="", obs=""
 
 RESPONDE SOLO CON EL JSON:
 {"piezas":[{"material":"MELA PELIKANO BLANCO","qty":2,"largo":1982,"ancho":580,"veta":"1-Longitud","l1":"D","l2":"D","a1":"D","a2":"","perf_cant":"2","perf_lado":"1982","perf_det":"2P/1982","ran_libre":"","ran_espe":"","ran_prof":"","ran_lado":"","ran_det":"","obs":""}]}`;
