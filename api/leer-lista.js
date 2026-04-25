@@ -1,5 +1,5 @@
-// api/leer-lista.js — Claude Vision CARPICENTRO v6
-// FIX: detección explícita de líneas rectas (D) que la IA ignoraba
+// api/leer-lista.js — Claude Vision CARPICENTRO v8
+// REGLA FINAL: proximidad al número define L1/L2, cantidad define cuántos lados
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -27,8 +27,8 @@ export default async function handler(req, res) {
       clearTimeout(tmo);
       const raw = await resp.text();
       let data;
-      try { data = JSON.parse(raw); } catch (_) { throw new Error('API texto no-JSON: ' + raw.slice(0, 100)); }
-      if (!resp.ok) throw new Error(`API ${resp.status}: ${data.error?.message || raw.slice(0, 100)}`);
+      try { data = JSON.parse(raw); } catch (_) { throw new Error('API no-JSON: ' + raw.slice(0, 100)); }
+      if (!resp.ok) throw new Error(`API ${resp.status}: ${data.error?.message || raw.slice(0,100)}`);
       return (data.content || []).map(c => c.text || '').join('');
     } catch (e) { clearTimeout(tmo); if (e.name === 'AbortError') throw new Error('Timeout >50s'); throw e; }
   }
@@ -40,8 +40,8 @@ export default async function handler(req, res) {
     if (a < 0 || z <= a) return null;
     const js = c.slice(a, z + 1);
     try { const p = JSON.parse(js); if (p?.piezas?.length) return p; } catch (_) {}
-    for (const rep of [js.slice(0, js.lastIndexOf('},') + 1) + ']}', js.slice(0, js.lastIndexOf('}') + 1) + ']}']) {
-      try { const p = JSON.parse(rep); if (p?.piezas?.length) return p; } catch (_) {}
+    for (const r of [js.slice(0, js.lastIndexOf('},') + 1) + ']}', js.slice(0, js.lastIndexOf('}') + 1) + ']}']) {
+      try { const p = JSON.parse(r); if (p?.piezas?.length) return p; } catch (_) {}
     }
     return null;
   }
@@ -64,76 +64,81 @@ export default async function handler(req, res) {
 
   const img = { type: 'image', source: { type: 'base64', media_type: mt, data: imagen_b64 } };
 
-  // ══════════════════════════════════════════════════════════════════════
-  // FASE 1 — Descripción visual MUY explícita sobre los dos tipos de líneas
-  // ══════════════════════════════════════════════════════════════════════
-  const F1 = `Analiza esta lista de corte de carpintería. Es CRÍTICO que distingas dos tipos de líneas:
+  const F1 = `Analiza esta lista de corte de carpintería. Para cada pieza hay líneas decorativas CERCA de los números que indican cantos (enchape).
 
-═══ LOS DOS TIPOS DE LÍNEA ═══
+HAY DOS TIPOS DE LÍNEA:
+• LÍNEA RECTA (─ o = o ──): plana, sin ondas → significa canto DELGADO = "D"
+• LÍNEA ONDULADA (≈ o ~~~): con curvas u olas → significa canto GRUESO = "G"
 
-LÍNEA CONTINUA RECTA (——): Una raya horizontal plana, sin curvas, como un guion largo.
-→ Esta significa CANTO DELGADO = "D"
-→ Puede parecer el subrayado de un texto o una raya simple debajo/encima del número
+REGLA PARA CONTAR CANTOS (no importa si la línea va arriba o abajo del número):
+• 0 líneas cerca del número → sin canto: ""
+• 1 línea recta → 1 solo lado D: L1="D", L2=""
+• 2 líneas rectas → ambos lados D: L1="D", L2="D"
+• 1 gusanito → 1 solo lado G: L1="G", L2=""
+• 2 gusanitos → ambos lados G: L1="G", L2="G"
+• 1 gusanito + 1 recta → L1="G", L2="D" (el más CERCANO al número = L1, el más LEJANO = L2)
+• 1 recta + 1 gusanito → L1="D", L2="G" (más cercano = L1)
 
-LÍNEA ONDULADA GUSANITO (≈≈≈): Una raya con ondas o curvas, como el símbolo de "aproximado" ≈
-→ Esta significa CANTO GRUESO = "G"
-→ Se parece a una ola del mar o a una serpiente
+APLICA LA MISMA LÓGICA AL ANCHO → A1, A2
 
-═══ REGLA FUNDAMENTAL ═══
-Si hay UNA línea sobre un número → ese lado lleva canto, el otro no
-Si hay DOS líneas sobre un número → ambos lados llevan canto
+Describe CADA pieza en este formato:
+PIEZA N | Cant×Largo×Ancho | Líneas_LARGO: [cuenta y tipo] | Líneas_ANCHO: [cuenta y tipo] | Obs: [texto o nada]
 
-═══ INSTRUCCIÓN ═══
-Para CADA pieza de la lista, responde en este formato EXACTO:
+Al inicio responde:
+MATERIAL: [encabezado]
+UNIDAD: CM o MM
+COLUMNAS: N`;
 
-PIEZA N: [cantidad] [LARGO]×[ANCHO]
-  Sobre/bajo LARGO: [describe exactamente lo que ves - ¿recta? ¿ondulada? ¿cuántas? ¿ninguna?]
-  Sobre/bajo ANCHO: [describe exactamente lo que ves]
-  Texto adicional: [observación, ranura, etc. o "ninguno"]
-
-ANTES de las piezas, responde:
-- Material del encabezado: 
-- Las marcas están: [ARRIBA o ABAJO de los números]
-- Unidad: [CM si números pequeños con decimales, o MM si son grandes >500]
-- Columnas: [cuántas]
-
-Lee TODAS las piezas de TODAS las columnas, de izquierda a derecha.`;
-
-  // ══════════════════════════════════════════════════════════════════════
-  // FASE 2 — Conversión a JSON con reglas precisas
-  // ══════════════════════════════════════════════════════════════════════
-  const F2 = `Ahora convierte tu descripción al JSON. Sigue estas reglas:
+  const F2 = `Convierte tu descripción al JSON siguiendo estas reglas:
 
 UNIDAD:
-- Números con decimal (57.4, 116.9) → CM → ×10 → MM
-- Números enteros entre 50 y 500 (420, 864, 330, 372) → CM → ×10 → MM  
-- Números enteros >500 (1960, 580, 1200) → ya MM, no convertir
+• Número entero < 500: CM → ×10 → MM (420→4200, 330→3300, 864→8640, 372→3720)
+• Número con decimal (57.4, 116.9): CM → ×10 → MM
+• Número ≥ 500: ya es MM, no convertir
 
-CANTOS — usa exactamente lo que describiste:
-Si describiste "línea recta" sobre un número → ese lado = "D"
-Si describiste "línea ondulada/gusanito" → ese lado = "G"
-Si describiste "ninguna" → ese lado = ""
+CANTOS — asignar según lo que describiste:
+• 0 líneas sobre LARGO → l1="", l2=""
+• 1 recta sobre LARGO → l1="D", l2=""
+• 2 rectas sobre LARGO → l1="D", l2="D"
+• 1 gusanito sobre LARGO → l1="G", l2=""
+• 2 gusanitos sobre LARGO → l1="G", l2="G"
+• gusanito + recta sobre LARGO → l1="G", l2="D"
+• recta + gusanito sobre LARGO → l1="D", l2="G"
+(misma lógica para ANCHO → a1, a2)
 
-El PATRÓN (arriba o abajo) de la primera pieza aplica a todas.
-Para el LARGO: marca arriba=L1, abajo=L2 (o invertido según patrón)
-Para el ANCHO: marca arriba=A1, abajo=A2 (o invertido según patrón)
+RANURA: "RAN", "R", "RA" sin números → obs="Indicar especificaciones de ranura"
+Si hay texto legible → copiarlo en obs
 
-1 marca sobre LARGO → L1=tipo, L2=""
-2 marcas sobre LARGO → L1=tipo1, L2=tipo2
-0 marcas sobre LARGO → L1="", L2=""
-(misma lógica para ANCHO → A1, A2)
+═══ EJEMPLOS VERIFICADOS DE ESTA MISMA LISTA ═══
 
-RANURA: "RAN", "R", "RA" + números → ran_libre/espe/prof/lado. Sin números → obs="Indicar especificaciones de ranura"
+② 420×330 | 1 gusanito + 1 recta sobre largo | 2 rectas sobre ancho | R. Costados
+→ l1="G", l2="D", a1="D", a2="D", obs="R. Costados"
 
-EJEMPLO VERIFICADO (Roble Gris, CM, marcas arriba):
-Pieza "② 420×330": sobre 420 hay gusanito+gusanito, sobre 330 hay recta+recta
-→ {"material":"ROBLE GRIS","qty":2,"largo":4200,"ancho":3300,"veta":"1-Longitud","l1":"G","l2":"G","a1":"D","a2":"D","perf_cant":"","perf_lado":"","perf_det":"","ran_libre":"","ran_espe":"","ran_prof":"","ran_lado":"","ran_det":"","obs":"R. Costados"}
+② 864×330 | 1 gusanito + 1 recta sobre largo | 2 rectas sobre ancho | R Techo Pso
+→ l1="G", l2="D", a1="D", a2="D", obs="R Techo Pso"
 
-Pieza "② 864×80": sobre 864 hay gusanito, sobre 80 no hay nada
-→ {"material":"ROBLE GRIS","qty":2,"largo":8640,"ancho":800,"veta":"1-Longitud","l1":"G","l2":"","a1":"","a2":"","perf_cant":"","perf_lado":"","perf_det":"","ran_libre":"","ran_espe":"","ran_prof":"","ran_lado":"","ran_det":"","obs":"Lazo"}
+② 864×80 | 2 rectas sobre largo | 2 rectas sobre ancho | Lazo
+→ l1="D", l2="D", a1="D", a2="D", obs="Lazo"
+
+② 372×422 | 2 gusanitos sobre largo | 2 gusanitos sobre ancho | Puertas
+→ l1="G", l2="G", a1="G", a2="G", obs="Puertas"
+
+② 900×330 | 1 gusanito + 1 recta sobre largo | 2 rectas sobre ancho | Costados
+→ l1="G", l2="D", a1="D", a2="D", obs="Costados"
+
+② 414×330 | 1 gusanito + 1 recta sobre largo | 2 rectas sobre ancho | Techo Pso
+→ l1="G", l2="D", a1="D", a2="D", obs="Techo Pso"
+
+① 414×312 | 1 gusanito + 1 recta sobre largo | 2 rectas sobre ancho | Division
+→ l1="G", l2="D", a1="D", a2="D", obs="Division"
+
+① 414×863 | 0 líneas sobre largo | 0 líneas sobre ancho | Respaldo
+→ l1="", l2="", a1="", a2="", obs="Respaldo"
+
+═══════════════════════════════════════════════
 
 RESPONDE SOLO CON EL JSON:
-{"piezas":[{...}]}`;
+{"piezas":[{"material":"ROBLE GRIS","qty":2,"largo":4200,"ancho":3300,"veta":"1-Longitud","l1":"G","l2":"D","a1":"D","a2":"D","perf_cant":"","perf_lado":"","perf_det":"","ran_libre":"","ran_espe":"","ran_prof":"","ran_lado":"","ran_det":"","obs":"R. Costados"}]}`;
 
   let lastError = '';
   for (let i = 1; i <= 3; i++) {
@@ -157,7 +162,7 @@ RESPONDE SOLO CON EL JSON:
       if (parsed?.piezas?.length) {
         return res.status(200).json({ piezas: parsed.piezas.map(norm), _intentos: i });
       }
-      lastError = `Intento ${i}: sin piezas. Inicio: "${texto.slice(0, 120)}"`;
+      lastError = `Intento ${i}: sin piezas. "${texto.slice(0, 120)}"`;
     } catch (e) {
       lastError = `Intento ${i}: ${e.message}`;
       if (i < 3) await new Promise(r => setTimeout(r, i * 3000));
