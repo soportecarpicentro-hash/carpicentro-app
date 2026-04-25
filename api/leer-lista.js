@@ -1,5 +1,5 @@
 // api/leer-lista.js — Claude Vision CARPICENTRO v9
-// MEDIDAS: siempre MM tal cual. CANTOS: más cercano al número = L1/A1
+// Medidas en MM tal cual. Proximidad al número = L1/A1.
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -66,37 +66,50 @@ export default async function handler(req, res) {
 
   const F1 = `Analiza esta lista de corte de carpintería (CARPICENTRO, Lima).
 
-═══ TIPOS DE LÍNEA ═══
-• LÍNEA RECTA (─ = ──): plana, sin ondas → canto DELGADO = "D"
-• LÍNEA ONDULADA (≈ ~~~): con curvas/olas → canto GRUESO = "G"
+═══ PASO 1: DISTINGUE ESTOS 4 ELEMENTOS ═══
 
-═══ REGLA DE CANTOS (LA MÁS IMPORTANTE) ═══
-Las líneas están CERCA del número (arriba o abajo, no importa la posición).
-Lo que importa es CUÁNTAS líneas hay y CUÁL está más CERCA del número:
+1. LÍNEA RECTA (─ = ══): plana, sin ondas → indica canto DELGADO "D"
+   Puede ser simple (─) o doble (══). Ambas = "D".
 
-• 0 líneas cerca del número → sin canto
-• 1 línea → L1 = tipo de esa línea, L2 = vacío
-• 2 líneas → la MÁS CERCANA al número = L1, la MÁS LEJANA = L2
-  Ejemplo: número 420 con gusanito pegado al número y recta más lejos → L1=G, L2=D
-  Ejemplo: número 420 con recta pegada al número y gusanito más lejos → L1=D, L2=G
+2. LÍNEA ONDULADA (≈ ~~~): con curvas/olas → indica canto GRUESO "G"
 
-MISMA LÓGICA para el ANCHO → A1 (más cercana), A2 (más lejana)
+3. PUNTOS (• ° o,o oo): círculos pequeños debajo del número → indican PERFORACIÓN
+   ⚠️ Los puntos NO son cantos. Son perforaciones.
+   Cuenta cuántos puntos hay → eso es perf_cant
+   El número junto al que están → eso es perf_lado
 
-═══ MEDIDAS ═══
-Las medidas están en MILÍMETROS tal como se escriben. NO convertir.
-Si el cliente escribe 420 → largo=420. Si escribe 1960 → largo=1960.
-Si escribe con decimal (420.5) → largo=420 (redondear).
+4. TEXTO ADICIONAL: "RAN", "R", "RA" = ranura. Texto descriptivo = observación.
 
+═══ PASO 2: REGLA DE CANTOS ═══
+Las líneas (rectas u onduladas) pueden estar arriba o abajo del número — NO importa la posición.
+Lo que importa: CUÁNTAS líneas hay y cuál está MÁS CERCA del número.
+
+• 0 líneas → sin canto: l1="", l2=""
+• 1 línea (recta) → l1="D", l2=""
+• 2 líneas (rectas) → l1="D", l2="D"
+• 1 gusanito → l1="G", l2=""
+• 2 gusanitos → l1="G", l2="G"
+• gusanito MÁS CERCANO + recta MÁS LEJANA → l1="G", l2="D"
+• recta MÁS CERCANA + gusanito MÁS LEJANO → l1="D", l2="G"
+Misma lógica para ANCHO → a1, a2
+
+═══ PASO 3: MEDIDAS ═══
+Las medidas se copian TAL CUAL en MM. NO convertir.
+1982 → largo=1982. 580 → ancho=580. 420 → largo=420.
+
+═══ INSTRUCCIÓN ═══
 Para CADA pieza describe:
-PIEZA N | Cant×Largo×Ancho | Líneas_LARGO: [cuántas y tipo, cuál más cerca] | Líneas_ANCHO: [ídem] | Obs: [texto]
+PIEZA N | Cant×Largo×Ancho
+  LARGO: [líneas que ves cerca del número - tipo y cantidad]
+  ANCHO: [líneas que ves cerca del número]
+  PUNTOS: [cuántos puntos y junto a qué número, o "ninguno"]
+  TEXTO: [observaciones, ranura, o "ninguno"]
 
-Al inicio:
-MATERIAL: [encabezado]
-COLUMNAS: [cuántas]`;
+Al inicio: MATERIAL y COLUMNAS.`;
 
-  const F2 = `Convierte tu descripción al JSON:
+  const F2 = `Convierte tu descripción al JSON.
 
-MEDIDAS: usar el número exacto que el cliente escribió, en MM tal cual. Sin convertir.
+MEDIDAS: copiar el número exacto en MM, sin convertir.
 
 CANTOS según tu descripción:
 • 0 líneas → l1="", l2=""
@@ -104,30 +117,43 @@ CANTOS según tu descripción:
 • 2 rectas → l1="D", l2="D"
 • 1 gusanito → l1="G", l2=""
 • 2 gusanitos → l1="G", l2="G"
-• gusanito(cercano) + recta(lejana) → l1="G", l2="D"
-• recta(cercana) + gusanito(lejano) → l1="D", l2="G"
-(misma lógica para ANCHO → a1, a2)
+• gusanito(cercano)+recta(lejana) → l1="G", l2="D"
+• recta(cercana)+gusanito(lejano) → l1="D", l2="G"
+(misma lógica para ancho → a1, a2)
 
-RANURA: "RAN", "R", "RA" sin números → obs="Indicar especificaciones de ranura"
+PERFORACIÓN: si describiste puntos junto a un número:
+• perf_cant = cantidad de puntos
+• perf_lado = el número junto al que están (en MM)
+• perf_det = "NPx/LADO" (ej: "2P/1982")
+⚠️ Los puntos NO afectan los cantos. Son campos separados.
 
-═══ EJEMPLOS VERIFICADOS ═══
-② 420×330 | gusanito(cercano)+recta(lejana) largo | 2 rectas ancho | R. Costados
-→ qty=2, largo=420, ancho=330, l1="G", l2="D", a1="D", a2="D", obs="R. Costados"
+RANURA: "RAN","R","RA" sin números → obs="Indicar especificaciones de ranura"
 
-② 864×80 | 2 rectas largo | 2 rectas ancho | Lazo
-→ qty=2, largo=864, ancho=80, l1="D", l2="D", a1="D", a2="D", obs="Lazo"
+SECCIÓN NUEVA: si ves un encabezado diferente (ej: "MDF Blanco") en mitad de la lista,
+las piezas siguientes usan ese nuevo material.
 
-② 372×422 | 2 gusanitos largo | 2 gusanitos ancho | Puertas
-→ qty=2, largo=372, ancho=422, l1="G", l2="G", a1="G", a2="G", obs="Puertas"
+═══ EJEMPLOS VERIFICADOS (lista MELA PELIKANO BLANCO) ═══
 
-② 900×330 | gusanito(cercano)+recta(lejana) largo | 2 rectas ancho | Costados
-→ qty=2, largo=900, ancho=330, l1="G", l2="D", a1="D", a2="D", obs="Costados"
+"2 de 1982×580" | 2 rectas bajo largo | 2 puntos bajo 1982 | 1 recta bajo ancho
+→ qty=2, largo=1982, ancho=580, l1="D", l2="D", a1="D", a2="", perf_cant="2", perf_lado="1982", perf_det="2P/1982"
 
-① 414×863 | 0 líneas largo | 0 líneas ancho | Respaldo
-→ qty=1, largo=414, ancho=863, l1="", l2="", a1="", a2="", obs="Respaldo"
+"1 de 1200×580" | 1 recta bajo largo | 2 puntos bajo 1200 | 1 recta bajo ancho
+→ qty=1, largo=1200, ancho=580, l1="D", l2="", a1="D", a2="", perf_cant="2", perf_lado="1200", perf_det="2P/1200"
+
+"1 de 1164×580" | 2 rectas bajo largo | 1 letra bajo 1164 (no punto) | 2 rectas bajo ancho
+→ qty=1, largo=1164, ancho=580, l1="D", l2="D", a1="D", a2="D", perf_cant="", perf_lado="", perf_det=""
+
+"3 de 1164×575" | 2 rectas largo | 2 rectas ancho
+→ qty=3, largo=1164, ancho=575, l1="D", l2="D", a1="D", a2="D"
+
+"2 de 1214×260" | 2 rectas largo | 0 líneas ancho
+→ qty=2, largo=1214, ancho=260, l1="D", l2="D", a1="", a2=""
+
+"2 de 314×260" | 1 recta largo | 0 líneas ancho
+→ qty=2, largo=314, ancho=260, l1="D", l2="", a1="", a2=""
 
 RESPONDE SOLO CON EL JSON:
-{"piezas":[{"material":"ROBLE GRIS","qty":2,"largo":420,"ancho":330,"veta":"1-Longitud","l1":"G","l2":"D","a1":"D","a2":"D","perf_cant":"","perf_lado":"","perf_det":"","ran_libre":"","ran_espe":"","ran_prof":"","ran_lado":"","ran_det":"","obs":"R. Costados"}]}`;
+{"piezas":[{"material":"MELA PELIKANO BLANCO","qty":2,"largo":1982,"ancho":580,"veta":"1-Longitud","l1":"D","l2":"D","a1":"D","a2":"","perf_cant":"2","perf_lado":"1982","perf_det":"2P/1982","ran_libre":"","ran_espe":"","ran_prof":"","ran_lado":"","ran_det":"","obs":""}]}`;
 
   let lastError = '';
   for (let i = 1; i <= 3; i++) {
