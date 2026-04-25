@@ -1,5 +1,5 @@
-// api/leer-lista.js — Claude Vision CARPICENTRO v8
-// REGLA FINAL: proximidad al número define L1/L2, cantidad define cuántos lados
+// api/leer-lista.js — Claude Vision CARPICENTRO v9
+// MEDIDAS: siempre MM tal cual. CANTOS: más cercano al número = L1/A1
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -64,81 +64,70 @@ export default async function handler(req, res) {
 
   const img = { type: 'image', source: { type: 'base64', media_type: mt, data: imagen_b64 } };
 
-  const F1 = `Analiza esta lista de corte de carpintería. Para cada pieza hay líneas decorativas CERCA de los números que indican cantos (enchape).
+  const F1 = `Analiza esta lista de corte de carpintería (CARPICENTRO, Lima).
 
-HAY DOS TIPOS DE LÍNEA:
-• LÍNEA RECTA (─ o = o ──): plana, sin ondas → significa canto DELGADO = "D"
-• LÍNEA ONDULADA (≈ o ~~~): con curvas u olas → significa canto GRUESO = "G"
+═══ TIPOS DE LÍNEA ═══
+• LÍNEA RECTA (─ = ──): plana, sin ondas → canto DELGADO = "D"
+• LÍNEA ONDULADA (≈ ~~~): con curvas/olas → canto GRUESO = "G"
 
-REGLA PARA CONTAR CANTOS (no importa si la línea va arriba o abajo del número):
-• 0 líneas cerca del número → sin canto: ""
-• 1 línea recta → 1 solo lado D: L1="D", L2=""
-• 2 líneas rectas → ambos lados D: L1="D", L2="D"
-• 1 gusanito → 1 solo lado G: L1="G", L2=""
-• 2 gusanitos → ambos lados G: L1="G", L2="G"
-• 1 gusanito + 1 recta → L1="G", L2="D" (el más CERCANO al número = L1, el más LEJANO = L2)
-• 1 recta + 1 gusanito → L1="D", L2="G" (más cercano = L1)
+═══ REGLA DE CANTOS (LA MÁS IMPORTANTE) ═══
+Las líneas están CERCA del número (arriba o abajo, no importa la posición).
+Lo que importa es CUÁNTAS líneas hay y CUÁL está más CERCA del número:
 
-APLICA LA MISMA LÓGICA AL ANCHO → A1, A2
+• 0 líneas cerca del número → sin canto
+• 1 línea → L1 = tipo de esa línea, L2 = vacío
+• 2 líneas → la MÁS CERCANA al número = L1, la MÁS LEJANA = L2
+  Ejemplo: número 420 con gusanito pegado al número y recta más lejos → L1=G, L2=D
+  Ejemplo: número 420 con recta pegada al número y gusanito más lejos → L1=D, L2=G
 
-Describe CADA pieza en este formato:
-PIEZA N | Cant×Largo×Ancho | Líneas_LARGO: [cuenta y tipo] | Líneas_ANCHO: [cuenta y tipo] | Obs: [texto o nada]
+MISMA LÓGICA para el ANCHO → A1 (más cercana), A2 (más lejana)
 
-Al inicio responde:
+═══ MEDIDAS ═══
+Las medidas están en MILÍMETROS tal como se escriben. NO convertir.
+Si el cliente escribe 420 → largo=420. Si escribe 1960 → largo=1960.
+Si escribe con decimal (420.5) → largo=420 (redondear).
+
+Para CADA pieza describe:
+PIEZA N | Cant×Largo×Ancho | Líneas_LARGO: [cuántas y tipo, cuál más cerca] | Líneas_ANCHO: [ídem] | Obs: [texto]
+
+Al inicio:
 MATERIAL: [encabezado]
-UNIDAD: CM o MM
-COLUMNAS: N`;
+COLUMNAS: [cuántas]`;
 
-  const F2 = `Convierte tu descripción al JSON siguiendo estas reglas:
+  const F2 = `Convierte tu descripción al JSON:
 
-UNIDAD:
-• Número entero < 500: CM → ×10 → MM (420→4200, 330→3300, 864→8640, 372→3720)
-• Número con decimal (57.4, 116.9): CM → ×10 → MM
-• Número ≥ 500: ya es MM, no convertir
+MEDIDAS: usar el número exacto que el cliente escribió, en MM tal cual. Sin convertir.
 
-CANTOS — asignar según lo que describiste:
-• 0 líneas sobre LARGO → l1="", l2=""
-• 1 recta sobre LARGO → l1="D", l2=""
-• 2 rectas sobre LARGO → l1="D", l2="D"
-• 1 gusanito sobre LARGO → l1="G", l2=""
-• 2 gusanitos sobre LARGO → l1="G", l2="G"
-• gusanito + recta sobre LARGO → l1="G", l2="D"
-• recta + gusanito sobre LARGO → l1="D", l2="G"
+CANTOS según tu descripción:
+• 0 líneas → l1="", l2=""
+• 1 recta → l1="D", l2=""
+• 2 rectas → l1="D", l2="D"
+• 1 gusanito → l1="G", l2=""
+• 2 gusanitos → l1="G", l2="G"
+• gusanito(cercano) + recta(lejana) → l1="G", l2="D"
+• recta(cercana) + gusanito(lejano) → l1="D", l2="G"
 (misma lógica para ANCHO → a1, a2)
 
 RANURA: "RAN", "R", "RA" sin números → obs="Indicar especificaciones de ranura"
-Si hay texto legible → copiarlo en obs
 
-═══ EJEMPLOS VERIFICADOS DE ESTA MISMA LISTA ═══
+═══ EJEMPLOS VERIFICADOS ═══
+② 420×330 | gusanito(cercano)+recta(lejana) largo | 2 rectas ancho | R. Costados
+→ qty=2, largo=420, ancho=330, l1="G", l2="D", a1="D", a2="D", obs="R. Costados"
 
-② 420×330 | 1 gusanito + 1 recta sobre largo | 2 rectas sobre ancho | R. Costados
-→ l1="G", l2="D", a1="D", a2="D", obs="R. Costados"
+② 864×80 | 2 rectas largo | 2 rectas ancho | Lazo
+→ qty=2, largo=864, ancho=80, l1="D", l2="D", a1="D", a2="D", obs="Lazo"
 
-② 864×330 | 1 gusanito + 1 recta sobre largo | 2 rectas sobre ancho | R Techo Pso
-→ l1="G", l2="D", a1="D", a2="D", obs="R Techo Pso"
+② 372×422 | 2 gusanitos largo | 2 gusanitos ancho | Puertas
+→ qty=2, largo=372, ancho=422, l1="G", l2="G", a1="G", a2="G", obs="Puertas"
 
-② 864×80 | 2 rectas sobre largo | 2 rectas sobre ancho | Lazo
-→ l1="D", l2="D", a1="D", a2="D", obs="Lazo"
+② 900×330 | gusanito(cercano)+recta(lejana) largo | 2 rectas ancho | Costados
+→ qty=2, largo=900, ancho=330, l1="G", l2="D", a1="D", a2="D", obs="Costados"
 
-② 372×422 | 2 gusanitos sobre largo | 2 gusanitos sobre ancho | Puertas
-→ l1="G", l2="G", a1="G", a2="G", obs="Puertas"
-
-② 900×330 | 1 gusanito + 1 recta sobre largo | 2 rectas sobre ancho | Costados
-→ l1="G", l2="D", a1="D", a2="D", obs="Costados"
-
-② 414×330 | 1 gusanito + 1 recta sobre largo | 2 rectas sobre ancho | Techo Pso
-→ l1="G", l2="D", a1="D", a2="D", obs="Techo Pso"
-
-① 414×312 | 1 gusanito + 1 recta sobre largo | 2 rectas sobre ancho | Division
-→ l1="G", l2="D", a1="D", a2="D", obs="Division"
-
-① 414×863 | 0 líneas sobre largo | 0 líneas sobre ancho | Respaldo
-→ l1="", l2="", a1="", a2="", obs="Respaldo"
-
-═══════════════════════════════════════════════
+① 414×863 | 0 líneas largo | 0 líneas ancho | Respaldo
+→ qty=1, largo=414, ancho=863, l1="", l2="", a1="", a2="", obs="Respaldo"
 
 RESPONDE SOLO CON EL JSON:
-{"piezas":[{"material":"ROBLE GRIS","qty":2,"largo":4200,"ancho":3300,"veta":"1-Longitud","l1":"G","l2":"D","a1":"D","a2":"D","perf_cant":"","perf_lado":"","perf_det":"","ran_libre":"","ran_espe":"","ran_prof":"","ran_lado":"","ran_det":"","obs":"R. Costados"}]}`;
+{"piezas":[{"material":"ROBLE GRIS","qty":2,"largo":420,"ancho":330,"veta":"1-Longitud","l1":"G","l2":"D","a1":"D","a2":"D","perf_cant":"","perf_lado":"","perf_det":"","ran_libre":"","ran_espe":"","ran_prof":"","ran_lado":"","ran_det":"","obs":"R. Costados"}]}`;
 
   let lastError = '';
   for (let i = 1; i <= 3; i++) {
