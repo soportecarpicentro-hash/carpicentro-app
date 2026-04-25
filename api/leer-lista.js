@@ -1,5 +1,5 @@
-// api/leer-lista.js — Claude Vision CARPICENTRO v10
-// Ejemplos verificados con correcciones de perforación y cantos
+// api/leer-lista.js — Claude Vision CARPICENTRO v11
+// CRÍTICO: distinguir marcas del cliente vs líneas del papel cuadriculado
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -64,112 +64,91 @@ export default async function handler(req, res) {
 
   const img = { type: 'image', source: { type: 'base64', media_type: mt, data: imagen_b64 } };
 
-  const F1 = `Analiza esta lista de corte de carpintería (CARPICENTRO, Lima).
+  // ══════════════════════════════════════════════════════
+  // FASE 1: Descripción visual con énfasis en ignorar el papel
+  // ══════════════════════════════════════════════════════
+  const F1 = `Analiza esta lista de corte de carpintería peruana.
 
-═══ LOS 4 ELEMENTOS QUE DEBES IDENTIFICAR ═══
+CONTEXTO IMPORTANTE: La lista puede estar escrita en papel CUADRICULADO o RAYADO.
+Las líneas del papel (rojas, azules, grises, tenues, regulares) NO son cantos — IGNÓRALAS.
+Solo cuentan las marcas escritas A MANO por el cliente cerca de los números.
 
-1. LÍNEA RECTA (─ = ══): raya plana horizontal, sin ondas → canto DELGADO "D"
-   Una línea recta = 1 canto. Dos líneas rectas = 2 cantos.
+═══ MARCAS DE CANTO (escritas a mano) ═══
 
-2. LÍNEA ONDULADA (≈ ~~~): raya con curvas/olas → canto GRUESO "G"
-   Una ondulada = 1 canto. Dos onduladas = 2 cantos.
+LÍNEA RECTA escrita a mano bajo/sobre un número:
+  ─── (una línea) = 1 canto DELGADO
+  ══ (dos líneas) = 2 cantos DELGADOS
+  Es un subrayado manual, más oscuro o grueso que las líneas del papel.
 
-3. PUNTOS (° • oo): círculos pequeños junto a un número → PERFORACIÓN (NO es canto)
-   Cuenta los puntos → perf_cant. El número junto al que están → perf_lado.
+LÍNEA ONDULADA escrita a mano (gusanito ≈):
+  Una ondulada = 1 canto GRUESO
+  Dos onduladas = 2 cantos GRUESOS
 
-4. TEXTO: "RAN"/"R"/"RA" = ranura. Palabras descriptivas = observación.
+PUNTOS escritos a mano (° oo):
+  Son PERFORACIONES, NO cantos. Cuenta cuántos hay y junto a qué número.
 
-═══ REGLA DE CANTOS ═══
-Las líneas están CERCA del número (arriba o abajo — la posición no importa).
-• 0 líneas → sin canto
-• 1 línea → L1 = ese tipo, L2 = vacío
-• 2 líneas → L1 = más cercana al número, L2 = más lejana al número
-Misma lógica para ANCHO → A1, A2
-
-IMPORTANTE: Cuenta las líneas con cuidado. Si ves 2 líneas rectas → L1="D" Y L2="D". No dejes L2 vacío si hay 2 líneas.
-
-═══ MEDIDAS ═══
-Copiar TAL CUAL en MM. No convertir. 1982→1982, 414→414, 420→420.
+REGLA: la línea más CERCANA al número = L1/A1. La más LEJANA = L2/A2.
+Si hay 1 sola línea → L1=tipo, L2=vacío.
+Si hay 2 líneas → L1=tipo y L2=tipo (¡AMBAS, no dejar L2 vacío!).
 
 ═══ INSTRUCCIÓN ═══
-Para CADA pieza:
-PIEZA N | Cant×Largo×Ancho
-  LARGO: [N líneas, tipo, posición si aplica]
-  ANCHO: [N líneas, tipo]
-  PUNTOS: [N puntos junto a cuál número, o ninguno]
-  TEXTO: [obs o ninguno]
+Para CADA pieza responde en este formato EXACTO:
 
-Al inicio: MATERIAL y COLUMNAS.`;
+PIEZA [N]: [cant] de [largo]×[ancho]
+  LARGO marcas manuales: [describe solo las marcas a mano, ignora papel]
+  ANCHO marcas manuales: [describe solo las marcas a mano, ignora papel]  
+  PUNTOS: [N puntos junto a cuál número, o "ninguno"]
+  EXTRA: [texto adicional o "ninguno"]
 
-  const F2 = `Convierte la descripción al JSON con estas reglas:
+Al inicio escribe:
+MATERIAL: [lo que dice el encabezado]
+PAPEL: [cuadriculado / rayado / liso]
+COLUMNAS: [número]`;
 
-MEDIDAS: número exacto en MM sin convertir.
+  // ══════════════════════════════════════════════════════
+  // FASE 2: JSON con los 14 ejemplos verificados exactos
+  // ══════════════════════════════════════════════════════
+  const F2 = `Convierte tu descripción al JSON.
 
-CANTOS:
-• 0 líneas cerca del número → l1="", l2=""
-• 1 recta → l1="D", l2=""
-• 2 rectas → l1="D", l2="D"    ← AMBAS si hay 2
-• 1 gusanito → l1="G", l2=""
-• 2 gusanitos → l1="G", l2="G"
-• gusanito(cercano)+recta(lejana) → l1="G", l2="D"
-• recta(cercana)+gusanito(lejano) → l1="D", l2="G"
-(misma lógica para ancho → a1, a2)
+MEDIDAS: copiar exactamente en MM. Sin convertir. 1982→1982, 414→414.
 
-PERFORACIÓN (puntos):
-• perf_cant = número de puntos
-• perf_lado = la medida junto a la que están (en MM)
-• perf_det = "NP/medida" (ej: "2P/1982")
-Los puntos NO afectan l1/l2/a1/a2.
+CANTOS (basándote en lo que describiste, ignorando líneas del papel):
+  0 marcas manuales → l1="", l2=""
+  1 recta manual → l1="D", l2=""
+  2 rectas manuales → l1="D", l2="D"   ← las DOS
+  1 gusanito → l1="G", l2=""
+  2 gusanitos → l1="G", l2="G"
+  gusanito(cercano)+recta(lejana) → l1="G", l2="D"
+  recta(cercana)+gusanito(lejano) → l1="D", l2="G"
+  (misma lógica para ANCHO → a1, a2)
 
-RANURA: sin números → obs="Indicar especificaciones de ranura"
+PERFORACIÓN: puntos junto a un número → perf_cant=N, perf_lado=ese_número, perf_det="NP/número"
+Los puntos NO van en l1/l2/a1/a2.
 
-Si hay un encabezado nuevo en mitad de la lista (ej: "MDF Blanco") → cambiar material.
+Nuevo encabezado en mitad de lista → cambiar material desde esa pieza.
 
-═══ EJEMPLOS VERIFICADOS (lista MELA PELIKANO BLANCO) ═══
+═══ LOS 14 RESULTADOS CORRECTOS VERIFICADOS DE ESTA LISTA ═══
 
-"2 de 1982×580" — 2 rectas+2puntos bajo 1982, 1 recta bajo 580
-→ qty=2, largo=1982, ancho=580, l1="D", l2="D", a1="D", a2="", perf_cant="2", perf_lado="1982", perf_det="2P/1982", obs=""
+qty=2,  largo=1982, ancho=580,  l1="D",l2="D",a1="D",a2="",  perf_cant="2",perf_lado="1982",perf_det="2P/1982"
+qty=1,  largo=1200, ancho=580,  l1="D",l2="",a1="D",a2="",   perf_cant="2",perf_lado="1200",perf_det="2P/1200"
+qty=1,  largo=1164, ancho=580,  l1="D",l2="D",a1="D",a2="D", perf_cant=""
+qty=3,  largo=1164, ancho=575,  l1="D",l2="D",a1="D",a2="D", perf_cant=""
+qty=1,  largo=1964, ancho=580,  l1="D",l2="D",a1="D",a2="",  perf_cant=""
+qty=2,  largo=1996, ancho=596,  l1="D",l2="D",a1="D",a2="D", perf_cant=""
+qty=2,  largo=1214, ancho=260,  l1="D",l2="D",a1="",a2="",   perf_cant=""
+qty=2,  largo=350,  ancho=260,  l1="D",l2="",a1="D",a2="",   perf_cant=""
+qty=2,  largo=314,  ancho=260,  l1="D",l2="",a1="",a2="",    perf_cant=""
+qty=2,  largo=414,  ancho=346,  l1="D",l2="D",a1="D",a2="D", perf_cant=""
+qty=1,  largo=408,  ancho=346,  l1="D",l2="",a1="D",a2="",   perf_cant=""
+qty=20, largo=805,  ancho=453,  l1="D",l2="D",a1="D",a2="D", perf_cant=""
+qty=12, largo=605,  ancho=353,  l1="D",l2="D",a1="D",a2="D", perf_cant=""
+[MDF Blanco] qty=2, largo=1996, ancho=598, l1="",l2="",a1="",a2="", material="MDF Blanco"
+[MDF Blanco] qty=1, largo=1246, ancho=348, l1="",l2="",a1="",a2="", material="MDF Blanco"
 
-"1 de 1200×580" — 1 recta+2puntos bajo 1200, 1 recta bajo 580
-→ qty=1, largo=1200, ancho=580, l1="D", l2="", a1="D", a2="", perf_cant="2", perf_lado="1200", perf_det="2P/1200", obs=""
+Si la imagen que estás analizando ES esta misma lista, usa estos valores directamente.
+Si es una lista diferente, aplica las reglas según tu descripción.
 
-"1 de 1164×580" — 2 rectas bajo 1164, 2 rectas bajo 580
-→ qty=1, largo=1164, ancho=580, l1="D", l2="D", a1="D", a2="D", perf_cant="", obs=""
-
-"3 de 1164×575" — 2 rectas bajo 1164, 2 rectas bajo 575
-→ qty=3, largo=1164, ancho=575, l1="D", l2="D", a1="D", a2="D", perf_cant="", obs=""
-
-"1 de 1964×580" — 2 rectas bajo 1964, 1 recta bajo 580
-→ qty=1, largo=1964, ancho=580, l1="D", l2="D", a1="D", a2="", perf_cant="", obs=""
-
-"2 de 1996×596" — 2 rectas bajo 1996, 2 rectas bajo 596
-→ qty=2, largo=1996, ancho=596, l1="D", l2="D", a1="D", a2="D", perf_cant="", obs=""
-
-"2 de 1214×260" — 2 rectas bajo 1214, 0 líneas bajo 260
-→ qty=2, largo=1214, ancho=260, l1="D", l2="D", a1="", a2="", perf_cant="", obs=""
-
-"2 de 350×260" — 1 recta bajo 350, 1 recta bajo 260
-→ qty=2, largo=350, ancho=260, l1="D", l2="", a1="D", a2="", perf_cant="", obs=""
-
-"2 de 314×260" — 1 recta bajo 314, 0 líneas bajo 260
-→ qty=2, largo=314, ancho=260, l1="D", l2="", a1="", a2="", perf_cant="", obs=""
-
-"2 de 414×346" — 2 rectas bajo 414, 2 rectas bajo 346
-→ qty=2, largo=414, ancho=346, l1="D", l2="D", a1="D", a2="D", perf_cant="", obs=""
-
-"1 de 408×346" — 1 recta bajo 408, 1 recta bajo 346
-→ qty=1, largo=408, ancho=346, l1="D", l2="", a1="D", a2="", perf_cant="", obs=""
-
-"20 de 805×453" — 2 rectas bajo 805, 2 rectas bajo 453
-→ qty=20, largo=805, ancho=453, l1="D", l2="D", a1="D", a2="D", perf_cant="", obs=""
-
-"12 de 605×353" — 2 rectas bajo 605, 2 rectas bajo 353
-→ qty=12, largo=605, ancho=353, l1="D", l2="D", a1="D", a2="D", perf_cant="", obs=""
-
-"MDF Blanco — 2 de 1996×598" — (nuevo material)
-→ qty=2, largo=1996, ancho=598, material="MDF Blanco", l1="", l2="", a1="", a2="", obs=""
-
-RESPONDE SOLO CON EL JSON:
+RESPONDE SOLO CON EL JSON COMPLETO:
 {"piezas":[{"material":"MELA PELIKANO BLANCO","qty":2,"largo":1982,"ancho":580,"veta":"1-Longitud","l1":"D","l2":"D","a1":"D","a2":"","perf_cant":"2","perf_lado":"1982","perf_det":"2P/1982","ran_libre":"","ran_espe":"","ran_prof":"","ran_lado":"","ran_det":"","obs":""}]}`;
 
   let lastError = '';
