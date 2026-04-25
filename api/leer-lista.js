@@ -1,5 +1,5 @@
-// api/leer-lista.js — Claude Vision CARPICENTRO v3
-// Robusto: maneja texto plano de API, reintentos, JSON repair, timeout
+// api/leer-lista.js — Claude Vision CARPICENTRO v6
+// FIX: detección explícita de líneas rectas (D) que la IA ignoraba
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -10,106 +10,42 @@ export default async function handler(req, res) {
 
   const { imagen_b64, media_type } = req.body || {};
   if (!imagen_b64) return res.status(400).json({ error: 'Se requiere imagen_b64' });
-
   const KEY = process.env.ANTHROPIC_API_KEY;
-  if (!KEY) return res.status(500).json({ error: 'ANTHROPIC_API_KEY no configurada en Vercel' });
-
+  if (!KEY) return res.status(500).json({ error: 'ANTHROPIC_API_KEY no configurada' });
   const mt = media_type || 'image/jpeg';
 
-  // ── Prompt compacto y efectivo ─────────────────────────────────────────
-  const PROMPT = `Eres el lector de listas de corte de CARPICENTRO (Lima, Perú).
-
-LEE la imagen y devuelve ÚNICAMENTE un JSON válido. Sin texto antes ni después. Sin markdown.
-
-REGLAS:
-1. UNIDAD: números con decimal ≤3 dígitos antes del punto (57.4, 116.9) = CM → multiplicar ×10 → MM. Enteros grandes (1960, 580) = ya son MM.
-2. CANTOS (L1/L2/A1/A2): marcas sobre el LARGO definen L1=superior, L2=inferior. Sobre el ANCHO definen A1=izquierda, A2=derecha.
-   Tipos: línea recta=D, gusanito/≈/X_encima=G, letra_D=D, letra_G=G, DM=DM, GM=GM
-   1 marca → un lado, otro vacío "". 2 marcas → ambos lados. Sin marca → "". NUNCA inventar.
-3. La PRIMERA pieza define si las marcas van arriba o abajo. Ese patrón aplica a TODAS.
-4. RANURA: "RAN", "R", "RA" seguido de números → ran_libre/ran_espe/ran_prof/ran_lado. Sin números → obs="Indicar especificaciones de ranura".
-5. PERFORACIÓN: puntos bajo un número → perf_cant=cantidad, perf_lado=esa_medida.
-6. CANTIDAD: número en círculo ①②③ o número al inicio de la línea.
-7. Lee TODAS las columnas, de izquierda a derecha, arriba a abajo.
-8. Medidas en CM: 196=1960mm, 57.4=574mm, 116.9=1169mm, 51.2=512mm, 84.2=842mm.
-
-FORMATO JSON:
-{"piezas":[{"material":"NOMBRE","qty":1,"largo":1960,"ancho":580,"veta":"1-Longitud","l1":"D","l2":"","a1":"D","a2":"","perf_cant":"","perf_lado":"","perf_det":"","ran_libre":"","ran_espe":"","ran_prof":"","ran_lado":"","ran_det":"","obs":""}]}
-
-DEVUELVE SOLO EL JSON.`;
-
-  // ── Llamar a Anthropic de forma segura ────────────────────────────────
-  async function callAnthropic(imageData, maxTok = 8192) {
+  async function callAnthropic(msgs, maxTok = 8192) {
     const ctrl = new AbortController();
     const tmo = setTimeout(() => ctrl.abort(), 50000);
-    let rawText = '';
     try {
       const resp = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': KEY,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: maxTok,
-          messages: [{
-            role: 'user',
-            content: [
-              { type: 'image', source: { type: 'base64', media_type: mt, data: imageData } },
-              { type: 'text', text: PROMPT }
-            ]
-          }]
-        }),
+        headers: { 'Content-Type': 'application/json', 'x-api-key': KEY, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: maxTok, messages: msgs }),
         signal: ctrl.signal,
       });
       clearTimeout(tmo);
-
-      // Leer siempre como texto primero — evita el crash si la API devuelve texto plano
-      rawText = await resp.text();
-
-      // Si no es JSON válido de Anthropic, lanzar error descriptivo
-      let apiData;
-      try { apiData = JSON.parse(rawText); }
-      catch (_) { throw new Error('API devolvió texto no-JSON: ' + rawText.slice(0, 100)); }
-
-      if (!resp.ok) {
-        throw new Error(`API error ${resp.status}: ${apiData.error?.message || rawText.slice(0, 100)}`);
-      }
-
-      return (apiData.content || []).map(c => c.text || '').join('');
-    } catch (e) {
-      clearTimeout(tmo);
-      if (e.name === 'AbortError') throw new Error('Timeout: la API tardó demasiado (>50s)');
-      throw e;
-    }
+      const raw = await resp.text();
+      let data;
+      try { data = JSON.parse(raw); } catch (_) { throw new Error('API texto no-JSON: ' + raw.slice(0, 100)); }
+      if (!resp.ok) throw new Error(`API ${resp.status}: ${data.error?.message || raw.slice(0, 100)}`);
+      return (data.content || []).map(c => c.text || '').join('');
+    } catch (e) { clearTimeout(tmo); if (e.name === 'AbortError') throw new Error('Timeout >50s'); throw e; }
   }
 
-  // ── Extraer JSON del texto de respuesta ───────────────────────────────
-  function extraerJSON(texto) {
-    if (!texto) return null;
-    // Limpiar bloques de código markdown
-    let clean = texto.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-    // Encontrar primer { y último }
-    const a = clean.indexOf('{');
-    const z = clean.lastIndexOf('}');
-    if (a < 0 || z < 0 || a >= z) return null;
-    const jsonStr = clean.slice(a, z + 1);
-    // Intentar parse directo
-    try { const p = JSON.parse(jsonStr); if (p?.piezas?.length) return p; } catch (_) {}
-    // Intentar reparar truncado: cortar tras el último objeto completo
-    const cortes = [
-      jsonStr.slice(0, jsonStr.lastIndexOf('},') + 1) + ']}',
-      jsonStr.slice(0, jsonStr.lastIndexOf('}') + 1) + ']}',
-    ];
-    for (const c of cortes) {
-      try { const p = JSON.parse(c); if (p?.piezas?.length) return p; } catch (_) {}
+  function extraerJSON(txt) {
+    if (!txt) return null;
+    const c = txt.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+    const a = c.indexOf('{'), z = c.lastIndexOf('}');
+    if (a < 0 || z <= a) return null;
+    const js = c.slice(a, z + 1);
+    try { const p = JSON.parse(js); if (p?.piezas?.length) return p; } catch (_) {}
+    for (const rep of [js.slice(0, js.lastIndexOf('},') + 1) + ']}', js.slice(0, js.lastIndexOf('}') + 1) + ']}']) {
+      try { const p = JSON.parse(rep); if (p?.piezas?.length) return p; } catch (_) {}
     }
     return null;
   }
 
-  // ── Normalizar cada pieza ─────────────────────────────────────────────
   function norm(p) {
     const s = v => String(v ?? '').trim();
     const n = v => Math.round(parseFloat(String(v ?? '').replace(',', '.')) || 0);
@@ -126,25 +62,106 @@ DEVUELVE SOLO EL JSON.`;
     };
   }
 
-  // ── Intentar lectura con reintentos ───────────────────────────────────
+  const img = { type: 'image', source: { type: 'base64', media_type: mt, data: imagen_b64 } };
+
+  // ══════════════════════════════════════════════════════════════════════
+  // FASE 1 — Descripción visual MUY explícita sobre los dos tipos de líneas
+  // ══════════════════════════════════════════════════════════════════════
+  const F1 = `Analiza esta lista de corte de carpintería. Es CRÍTICO que distingas dos tipos de líneas:
+
+═══ LOS DOS TIPOS DE LÍNEA ═══
+
+LÍNEA CONTINUA RECTA (——): Una raya horizontal plana, sin curvas, como un guion largo.
+→ Esta significa CANTO DELGADO = "D"
+→ Puede parecer el subrayado de un texto o una raya simple debajo/encima del número
+
+LÍNEA ONDULADA GUSANITO (≈≈≈): Una raya con ondas o curvas, como el símbolo de "aproximado" ≈
+→ Esta significa CANTO GRUESO = "G"
+→ Se parece a una ola del mar o a una serpiente
+
+═══ REGLA FUNDAMENTAL ═══
+Si hay UNA línea sobre un número → ese lado lleva canto, el otro no
+Si hay DOS líneas sobre un número → ambos lados llevan canto
+
+═══ INSTRUCCIÓN ═══
+Para CADA pieza de la lista, responde en este formato EXACTO:
+
+PIEZA N: [cantidad] [LARGO]×[ANCHO]
+  Sobre/bajo LARGO: [describe exactamente lo que ves - ¿recta? ¿ondulada? ¿cuántas? ¿ninguna?]
+  Sobre/bajo ANCHO: [describe exactamente lo que ves]
+  Texto adicional: [observación, ranura, etc. o "ninguno"]
+
+ANTES de las piezas, responde:
+- Material del encabezado: 
+- Las marcas están: [ARRIBA o ABAJO de los números]
+- Unidad: [CM si números pequeños con decimales, o MM si son grandes >500]
+- Columnas: [cuántas]
+
+Lee TODAS las piezas de TODAS las columnas, de izquierda a derecha.`;
+
+  // ══════════════════════════════════════════════════════════════════════
+  // FASE 2 — Conversión a JSON con reglas precisas
+  // ══════════════════════════════════════════════════════════════════════
+  const F2 = `Ahora convierte tu descripción al JSON. Sigue estas reglas:
+
+UNIDAD:
+- Números con decimal (57.4, 116.9) → CM → ×10 → MM
+- Números enteros entre 50 y 500 (420, 864, 330, 372) → CM → ×10 → MM  
+- Números enteros >500 (1960, 580, 1200) → ya MM, no convertir
+
+CANTOS — usa exactamente lo que describiste:
+Si describiste "línea recta" sobre un número → ese lado = "D"
+Si describiste "línea ondulada/gusanito" → ese lado = "G"
+Si describiste "ninguna" → ese lado = ""
+
+El PATRÓN (arriba o abajo) de la primera pieza aplica a todas.
+Para el LARGO: marca arriba=L1, abajo=L2 (o invertido según patrón)
+Para el ANCHO: marca arriba=A1, abajo=A2 (o invertido según patrón)
+
+1 marca sobre LARGO → L1=tipo, L2=""
+2 marcas sobre LARGO → L1=tipo1, L2=tipo2
+0 marcas sobre LARGO → L1="", L2=""
+(misma lógica para ANCHO → A1, A2)
+
+RANURA: "RAN", "R", "RA" + números → ran_libre/espe/prof/lado. Sin números → obs="Indicar especificaciones de ranura"
+
+EJEMPLO VERIFICADO (Roble Gris, CM, marcas arriba):
+Pieza "② 420×330": sobre 420 hay gusanito+gusanito, sobre 330 hay recta+recta
+→ {"material":"ROBLE GRIS","qty":2,"largo":4200,"ancho":3300,"veta":"1-Longitud","l1":"G","l2":"G","a1":"D","a2":"D","perf_cant":"","perf_lado":"","perf_det":"","ran_libre":"","ran_espe":"","ran_prof":"","ran_lado":"","ran_det":"","obs":"R. Costados"}
+
+Pieza "② 864×80": sobre 864 hay gusanito, sobre 80 no hay nada
+→ {"material":"ROBLE GRIS","qty":2,"largo":8640,"ancho":800,"veta":"1-Longitud","l1":"G","l2":"","a1":"","a2":"","perf_cant":"","perf_lado":"","perf_det":"","ran_libre":"","ran_espe":"","ran_prof":"","ran_lado":"","ran_det":"","obs":"Lazo"}
+
+RESPONDE SOLO CON EL JSON:
+{"piezas":[{...}]}`;
+
   let lastError = '';
   for (let i = 1; i <= 3; i++) {
     try {
-      const texto = await callAnthropic(imagen_b64, i === 3 ? 4096 : 8192);
+      let texto;
+      if (i <= 2) {
+        const desc = await callAnthropic([
+          { role: 'user', content: [img, { type: 'text', text: F1 }] }
+        ], 2500);
+        texto = await callAnthropic([
+          { role: 'user', content: [img, { type: 'text', text: F1 }] },
+          { role: 'assistant', content: desc },
+          { role: 'user', content: F2 }
+        ], 8192);
+      } else {
+        texto = await callAnthropic([
+          { role: 'user', content: [img, { type: 'text', text: F1 + '\n\n' + F2 }] }
+        ], 4096);
+      }
       const parsed = extraerJSON(texto);
       if (parsed?.piezas?.length) {
-        return res.status(200).json({
-          piezas: parsed.piezas.map(norm),
-          _intentos: i,
-        });
+        return res.status(200).json({ piezas: parsed.piezas.map(norm), _intentos: i });
       }
-      lastError = `Intento ${i}: JSON sin piezas. Respuesta: ${texto.slice(0, 150)}`;
+      lastError = `Intento ${i}: sin piezas. Inicio: "${texto.slice(0, 120)}"`;
     } catch (e) {
       lastError = `Intento ${i}: ${e.message}`;
-      // Esperar antes de reintentar (backoff)
       if (i < 3) await new Promise(r => setTimeout(r, i * 3000));
     }
   }
-
-  return res.status(422).json({ error: 'No se pudo leer la lista tras 3 intentos. ' + lastError });
+  return res.status(422).json({ error: 'No se pudo leer. ' + lastError });
 }
