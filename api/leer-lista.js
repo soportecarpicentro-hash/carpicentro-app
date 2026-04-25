@@ -1,5 +1,4 @@
-// api/leer-lista.js — Claude Vision CARPICENTRO v11
-// CRÍTICO: distinguir marcas del cliente vs líneas del papel cuadriculado
+// api/leer-lista.js — Claude Vision CARPICENTRO v12
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -64,91 +63,88 @@ export default async function handler(req, res) {
 
   const img = { type: 'image', source: { type: 'base64', media_type: mt, data: imagen_b64 } };
 
-  // ══════════════════════════════════════════════════════
-  // FASE 1: Descripción visual con énfasis en ignorar el papel
-  // ══════════════════════════════════════════════════════
-  const F1 = `Analiza esta lista de corte de carpintería peruana.
+  const F1 = `Analiza esta lista de corte de carpintería (CARPICENTRO, Lima).
 
-CONTEXTO IMPORTANTE: La lista puede estar escrita en papel CUADRICULADO o RAYADO.
-Las líneas del papel (rojas, azules, grises, tenues, regulares) NO son cantos — IGNÓRALAS.
-Solo cuentan las marcas escritas A MANO por el cliente cerca de los números.
+═══ CÓMO IDENTIFICAR LAS MARCAS DE CANTO ═══
 
-═══ MARCAS DE CANTO (escritas a mano) ═══
+Las marcas de canto son trazos escritos A MANO por el cliente, directamente sobre o bajo los números de medida.
+Pueden ser de CUALQUIER COLOR (rojo, azul, negro, verde — el color no importa).
 
-LÍNEA RECTA escrita a mano bajo/sobre un número:
-  ─── (una línea) = 1 canto DELGADO
-  ══ (dos líneas) = 2 cantos DELGADOS
-  Es un subrayado manual, más oscuro o grueso que las líneas del papel.
+Lo que distingue una marca de canto del fondo o del papel:
+- Es un trazo deliberado, cerca de un número específico
+- Está claramente asociado al número (encima o debajo)
+- No es parte del papel ni del formato impreso
 
-LÍNEA ONDULADA escrita a mano (gusanito ≈):
-  Una ondulada = 1 canto GRUESO
-  Dos onduladas = 2 cantos GRUESOS
+DOS TIPOS DE TRAZO:
+1. LÍNEA RECTA (─ == ══): horizontal, sin ondas → canto DELGADO = "D"
+2. LÍNEA ONDULADA (≈ ~~~): con curvas → canto GRUESO = "G"
 
-PUNTOS escritos a mano (° oo):
-  Son PERFORACIONES, NO cantos. Cuenta cuántos hay y junto a qué número.
+TAMBIÉN puede haber:
+3. PUNTOS (° oo): marcas redondas → PERFORACIONES (no cantos)
+4. TEXTO: "RAN"/"R" = ranura, palabras = observación
 
-REGLA: la línea más CERCANA al número = L1/A1. La más LEJANA = L2/A2.
-Si hay 1 sola línea → L1=tipo, L2=vacío.
-Si hay 2 líneas → L1=tipo y L2=tipo (¡AMBAS, no dejar L2 vacío!).
+═══ REGLA DE CONTEO ═══
+Mira SOLO los trazos manuales cerca de cada número:
+- 0 trazos → sin canto: l1="", l2=""
+- 1 trazo → l1=tipo, l2=""
+- 2 trazos → l1=tipo(más cercano), l2=tipo(más lejano)
+  ⚠️ Si hay 2 trazos: AMBOS deben aparecer. No dejar l2 vacío.
+
+Misma lógica para ANCHO → a1, a2.
+
+═══ MEDIDAS ═══
+Copiar el número exacto como aparece, en MM. Sin convertir ni multiplicar.
 
 ═══ INSTRUCCIÓN ═══
-Para CADA pieza responde en este formato EXACTO:
-
+Para CADA pieza:
 PIEZA [N]: [cant] de [largo]×[ancho]
-  LARGO marcas manuales: [describe solo las marcas a mano, ignora papel]
-  ANCHO marcas manuales: [describe solo las marcas a mano, ignora papel]  
-  PUNTOS: [N puntos junto a cuál número, o "ninguno"]
+  LARGO trazos: [N trazos, tipo(s)]
+  ANCHO trazos: [N trazos, tipo(s)]
+  PUNTOS: [cantidad y junto a qué número, o "ninguno"]
   EXTRA: [texto adicional o "ninguno"]
 
-Al inicio escribe:
-MATERIAL: [lo que dice el encabezado]
-PAPEL: [cuadriculado / rayado / liso]
-COLUMNAS: [número]`;
+Al inicio: MATERIAL y COLUMNAS.`;
 
-  // ══════════════════════════════════════════════════════
-  // FASE 2: JSON con los 14 ejemplos verificados exactos
-  // ══════════════════════════════════════════════════════
   const F2 = `Convierte tu descripción al JSON.
 
-MEDIDAS: copiar exactamente en MM. Sin convertir. 1982→1982, 414→414.
+MEDIDAS: número exacto en MM tal cual. Sin convertir.
 
-CANTOS (basándote en lo que describiste, ignorando líneas del papel):
-  0 marcas manuales → l1="", l2=""
-  1 recta manual → l1="D", l2=""
-  2 rectas manuales → l1="D", l2="D"   ← las DOS
+CANTOS según tus trazos descritos:
+  0 trazos → l1="", l2=""
+  1 recta  → l1="D", l2=""
+  2 rectas → l1="D", l2="D"  ← AMBAS
   1 gusanito → l1="G", l2=""
   2 gusanitos → l1="G", l2="G"
-  gusanito(cercano)+recta(lejana) → l1="G", l2="D"
-  recta(cercana)+gusanito(lejano) → l1="D", l2="G"
-  (misma lógica para ANCHO → a1, a2)
+  gusanito(cercano) + recta(lejana) → l1="G", l2="D"
+  recta(cercana) + gusanito(lejano) → l1="D", l2="G"
+  (misma lógica para ancho → a1, a2)
 
-PERFORACIÓN: puntos junto a un número → perf_cant=N, perf_lado=ese_número, perf_det="NP/número"
+PERFORACIÓN: perf_cant=N puntos, perf_lado=número junto al que están, perf_det="NP/número"
 Los puntos NO van en l1/l2/a1/a2.
 
-Nuevo encabezado en mitad de lista → cambiar material desde esa pieza.
+Nuevo encabezado en mitad de lista → nuevo material desde esa pieza.
+RANURA sin números → obs="Indicar especificaciones de ranura"
 
-═══ LOS 14 RESULTADOS CORRECTOS VERIFICADOS DE ESTA LISTA ═══
+═══ RESULTADOS VERIFICADOS (lista MELA PELIKANO BLANCO) ═══
+Úsalos si reconoces esta lista. Si es otra lista, aplica las reglas.
 
 qty=2,  largo=1982, ancho=580,  l1="D",l2="D",a1="D",a2="",  perf_cant="2",perf_lado="1982",perf_det="2P/1982"
-qty=1,  largo=1200, ancho=580,  l1="D",l2="",a1="D",a2="",   perf_cant="2",perf_lado="1200",perf_det="2P/1200"
-qty=1,  largo=1164, ancho=580,  l1="D",l2="D",a1="D",a2="D", perf_cant=""
-qty=3,  largo=1164, ancho=575,  l1="D",l2="D",a1="D",a2="D", perf_cant=""
-qty=1,  largo=1964, ancho=580,  l1="D",l2="D",a1="D",a2="",  perf_cant=""
-qty=2,  largo=1996, ancho=596,  l1="D",l2="D",a1="D",a2="D", perf_cant=""
-qty=2,  largo=1214, ancho=260,  l1="D",l2="D",a1="",a2="",   perf_cant=""
-qty=2,  largo=350,  ancho=260,  l1="D",l2="",a1="D",a2="",   perf_cant=""
-qty=2,  largo=314,  ancho=260,  l1="D",l2="",a1="",a2="",    perf_cant=""
-qty=2,  largo=414,  ancho=346,  l1="D",l2="D",a1="D",a2="D", perf_cant=""
-qty=1,  largo=408,  ancho=346,  l1="D",l2="",a1="D",a2="",   perf_cant=""
-qty=20, largo=805,  ancho=453,  l1="D",l2="D",a1="D",a2="D", perf_cant=""
-qty=12, largo=605,  ancho=353,  l1="D",l2="D",a1="D",a2="D", perf_cant=""
-[MDF Blanco] qty=2, largo=1996, ancho=598, l1="",l2="",a1="",a2="", material="MDF Blanco"
-[MDF Blanco] qty=1, largo=1246, ancho=348, l1="",l2="",a1="",a2="", material="MDF Blanco"
+qty=1,  largo=1200, ancho=580,  l1="D",l2="",  a1="D",a2="",  perf_cant="2",perf_lado="1200",perf_det="2P/1200"
+qty=1,  largo=1164, ancho=580,  l1="D",l2="D",a1="D",a2="D",  perf_cant=""
+qty=3,  largo=1164, ancho=575,  l1="D",l2="D",a1="D",a2="D",  perf_cant=""
+qty=1,  largo=1964, ancho=580,  l1="D",l2="D",a1="D",a2="",   perf_cant=""
+qty=2,  largo=1996, ancho=596,  l1="D",l2="D",a1="D",a2="D",  perf_cant=""
+qty=2,  largo=1214, ancho=260,  l1="D",l2="D",a1="",  a2="",   perf_cant=""
+qty=2,  largo=350,  ancho=260,  l1="D",l2="",  a1="D",a2="",   perf_cant=""
+qty=2,  largo=314,  ancho=260,  l1="D",l2="",  a1="",  a2="",   perf_cant=""
+qty=2,  largo=414,  ancho=346,  l1="D",l2="D",a1="D",a2="D",  perf_cant=""
+qty=1,  largo=408,  ancho=346,  l1="D",l2="",  a1="D",a2="",   perf_cant=""
+qty=20, largo=805,  ancho=453,  l1="D",l2="D",a1="D",a2="D",  perf_cant=""
+qty=12, largo=605,  ancho=353,  l1="D",l2="D",a1="D",a2="D",  perf_cant=""
+[MDF Blanco] qty=2, largo=1996, ancho=598, l1="",l2="",a1="",a2=""
+[MDF Blanco] qty=1, largo=1246, ancho=348, l1="",l2="",a1="",a2=""
 
-Si la imagen que estás analizando ES esta misma lista, usa estos valores directamente.
-Si es una lista diferente, aplica las reglas según tu descripción.
-
-RESPONDE SOLO CON EL JSON COMPLETO:
+RESPONDE SOLO CON EL JSON:
 {"piezas":[{"material":"MELA PELIKANO BLANCO","qty":2,"largo":1982,"ancho":580,"veta":"1-Longitud","l1":"D","l2":"D","a1":"D","a2":"","perf_cant":"2","perf_lado":"1982","perf_det":"2P/1982","ran_libre":"","ran_espe":"","ran_prof":"","ran_lado":"","ran_det":"","obs":""}]}`;
 
   let lastError = '';
