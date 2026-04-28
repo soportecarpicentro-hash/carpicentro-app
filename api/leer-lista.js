@@ -1,5 +1,4 @@
-// api/leer-lista.js — Claude Vision CARPICENTRO v13
-// Prompt experto en órdenes de corte manuscritas
+// api/leer-lista.js — Claude Vision CARPICENTRO v14
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -28,7 +27,7 @@ export default async function handler(req, res) {
       const raw = await resp.text();
       let data;
       try { data = JSON.parse(raw); } catch (_) { throw new Error('API no-JSON: ' + raw.slice(0, 100)); }
-      if (!resp.ok) throw new Error(`API ${resp.status}: ${data.error?.message || raw.slice(0, 100)}`);
+      if (!resp.ok) throw new Error(`API ${resp.status}: ${data.error?.message || raw.slice(0,100)}`);
       return (data.content || []).map(c => c.text || '').join('');
     } catch (e) { clearTimeout(tmo); if (e.name === 'AbortError') throw new Error('Timeout >50s'); throw e; }
   }
@@ -65,102 +64,102 @@ export default async function handler(req, res) {
   const img = { type: 'image', source: { type: 'base64', media_type: mt, data: imagen_b64 } };
 
   // ══════════════════════════════════════════════════════
-  // FASE 1: Experto analiza la imagen
+  // FASE 1 — Análisis espacial número por número
   // ══════════════════════════════════════════════════════
-  const F1 = `Actúa como un sistema experto en interpretación de órdenes de corte de melamina escritas a mano.
-Tu tarea es leer esta imagen y extraer todas las piezas con alta precisión.
+  const F1 = `Analiza esta imagen como una lista de piezas de melamina.
 
-═══ REGLA 1: UNIDADES ═══
-Las medidas pueden venir en mm, cm o metros. Convierte TODO a milímetros:
-  1.20 m → 1200 mm | 60 cm → 600 mm | 420 cm → 4200 mm
-  Si el número es entero sin unidad indicada: dejarlo tal cual (asume mm).
-  Si tiene decimal con coma o punto (ej: 116.9): probablemente cm → 1169 mm.
-  Corrige números mal escritos si el contexto lo sugiere (ej: "116.9" probablemente es 1169 mm).
+╔═══════════════════════════════════════════════════════╗
+║  REGLA CRÍTICA: Los símbolos de canto NO son globales ║
+║  Cada número tiene su propio símbolo visual asociado  ║
+╚═══════════════════════════════════════════════════════╝
 
-═══ REGLA 2: FORMATO DE PIEZAS ═══
-Cada línea sigue el patrón: [cantidad] de [largo] x [ancho]  o  [cantidad]([largo]x[ancho])
-Extrae: cantidad, largo_mm, ancho_mm.
+INTERPRETACIÓN ESPACIAL — por cada pieza:
+  Cada línea tiene: [cantidad] + [número LARGO] + [número ANCHO]
+  Encima o debajo de CADA número puede haber un símbolo independiente.
+  Debes mapear VISUALMENTE qué símbolo está más cerca de qué número.
 
-═══ REGLA 3: ENCHAPE DE CANTOS ═══
-Detecta símbolos escritos A MANO cerca de los números (pueden ser de cualquier color):
-  Línea recta (─ == ══) → canto DELGADO = "D"
-  Línea ondulada (≈ ~~~) → canto GRUESO = "G"
-  Palo vertical (|) → "D"
-  Letra X encima del número → "G"
-  Letra D encima → "D"
-  Letra G encima → "G"
-  Letra DM → "DM" (delgado distinto color)
-  Letra GM → "GM" (grueso distinto color)
-  Puntos (° oo) → PERFORACIÓN (no es canto)
+  Símbolos cerca del LARGO  → afectan L1 y L2
+  Símbolos cerca del ANCHO  → afectan A1 y A2
 
-═══ REGLA 4: POSICIÓN Y CONTEO ═══
-La posición de los símbolos respecto al número determina el canto:
-  Símbolo más CERCANO al número → L1 (o A1 para el ancho)
-  Símbolo más LEJANO → L2 (o A2)
-  1 símbolo → L1=tipo, L2=""
-  2 símbolos → L1=tipo_cercano, L2=tipo_lejano  ← AMBOS, no dejar vacío
+TRADUCCIÓN DE SÍMBOLOS:
+  ~~~ o gusanito ondulado  → G (grueso)
+  === o líneas rectas      → D (delgado)
+  | (palo vertical)        → D
+  X encima del número      → G
+  Letra D escrita          → D
+  Letra G escrita          → G
+  DM o Dm                  → DM (delgado distinto color)
+  GM o Gm                  → GM (grueso distinto color)
+  Punto/s (° oo)           → PERFORACIÓN (no es canto)
 
-PATRÓN: Detecta si los símbolos van arriba o abajo en la primera pieza y mantén ese patrón.
-Aprende el estilo del cliente y aplícalo de forma consistente en toda la hoja.
+CONTEO POR NÚMERO:
+  0 símbolos cerca del número → L1="", L2=""
+  1 símbolo                   → L1=tipo, L2=""
+  2 símbolos (apilados)       → L1=tipo_cercano, L2=tipo_lejano
+  (misma lógica para ANCHO → A1, A2)
 
-═══ REGLA 5: CONTEXTO Y MATERIAL ═══
-Si hay un título (ej: "Melamina Pelikano Blanco", "MDF Blanco") → agrupa piezas por material.
-Nuevo encabezado en mitad de lista → cambia el material desde esa pieza.
+UNIDADES: Convierte todo a MM.
+  Número con decimal (420.5, 116.9) → probablemente CM → ×10
+  Número entero sin unidad → MM tal cual
+  Con "m" explícito → ×1000 | con "cm" explícito → ×10
 
-═══ REGLA 6: ERRORES HUMANOS ═══
-Ignora tachones y zonas ilegibles.
-Si algo es ambiguo, márcalo con obs="REVISAR: [descripción]".
-No inventes datos — si no ves canto, deja vacío "".
+VALIDACIÓN ANTES DE RESPONDER:
+  ✓ Cada símbolo está asignado al número más cercano (largo o ancho)
+  ✓ No asumo cantos donde no veo símbolo
+  ✓ Solo asigno canto si hay símbolo visible
 
-═══ REGLA 7: RANURA Y PERFORACIÓN ═══
-Ranura: "RAN", "R", "RA" + números → ran_libre / ran_espe / ran_prof / ran_lado.
-  Sin números → obs="Indicar especificaciones de ranura".
-Perforación: puntos junto a un número → perf_cant=N, perf_lado=número, perf_det="NP/número".
+Para CADA pieza escribe:
+PIEZA [N]: cant=[X] largo=[Y] ancho=[Z]
+  Símbolos junto al LARGO: [describe exactamente lo que ves]
+  Símbolos junto al ANCHO: [describe exactamente lo que ves]
+  Puntos: [si hay y junto a qué número]
+  Texto adicional: [obs, ranura, etc.]
 
-Describe ahora CADA pieza de la imagen:
-PIEZA [N]: [cant]×[largo_mm]×[ancho_mm]
-  LARGO símbolos: [describe trazos manuales y cantidad]
-  ANCHO símbolos: [describe trazos manuales y cantidad]
-  PUNTOS: [si hay, junto a cuál número]
-  EXTRA: [texto, ranura, obs]
-
-Al inicio: MATERIAL, COLUMNAS, PATRÓN DETECTADO (arriba/abajo/inline).`;
+Al inicio:
+MATERIAL: [encabezado]
+COLUMNAS: [N]`;
 
   // ══════════════════════════════════════════════════════
-  // FASE 2: Convertir a JSON del sistema CARPICENTRO
+  // FASE 2 — JSON del sistema CARPICENTRO
   // ══════════════════════════════════════════════════════
   const F2 = `Convierte tu análisis al JSON del sistema CARPICENTRO.
 
-CAMPOS REQUERIDOS por pieza:
-  material, qty, largo (mm), ancho (mm), veta ("1-Longitud"|"2-Ancho"|"Sin veta")
-  l1, l2  → cantos del LARGO  ("D"|"G"|"DM"|"GM"|"Dx"|"Dz"|"Gx"|"Gz"|"")
-  a1, a2  → cantos del ANCHO  (mismos valores)
-  perf_cant, perf_lado, perf_det  → perforación ("" si no hay)
-  ran_libre, ran_espe, ran_prof, ran_lado, ran_det  → ranura ("" si no hay)
-  obs  → observaciones o ""
+CAMPOS POR PIEZA:
+  material, qty, largo (mm), ancho (mm), veta ("1-Longitud")
+  l1, l2 → cantos del LARGO  ("D"|"G"|"DM"|"GM"|"")
+  a1, a2 → cantos del ANCHO  ("D"|"G"|"DM"|"GM"|"")
+  perf_cant, perf_lado, perf_det → perforación ("" si no hay)
+  ran_libre, ran_espe, ran_prof, ran_lado, ran_det → ranura ("" si no hay)
+  obs → texto adicional o ""
 
-CANTOS — basado en tu descripción:
+REGLAS DE ASIGNACIÓN (basado en tu descripción visual):
   0 símbolos → l1="", l2=""
-  1 recta/D/|  → l1="D", l2=""
+  1 recta/D/| → l1="D", l2=""
   2 rectas    → l1="D", l2="D"
   1 gusanito/G/X → l1="G", l2=""
   2 gusanitos → l1="G", l2="G"
-  gusanito(cercano)+recta(lejana) → l1="G", l2="D"
-  recta(cercana)+gusanito(lejana) → l1="D", l2="G"
+  gusanito(más cercano al número) + recta(más lejana) → l1="G", l2="D"
+  recta(más cercana) + gusanito(más lejano) → l1="D", l2="G"
   (misma lógica para a1, a2)
 
-CONFIANZA: Si detectas más del 80% de las piezas con certeza, genera el JSON completo.
-Para piezas dudosas usa obs="REVISAR: motivo".
+Si algo no es claro → obs="REVISAR: [motivo]"
+Texto descriptivo (costados, puertas, etc.) → obs
+Ranura sin números → obs="Indicar especificaciones de ranura"
+Perforación: perf_cant=N, perf_lado=medida_mm, perf_det="NP/medida"
 
-RESPONDE SOLO CON EL JSON — sin texto antes ni después:
-{"piezas":[{
-  "material":"MELA PELIKANO BLANCO",
-  "qty":2,"largo":1982,"ancho":580,"veta":"1-Longitud",
-  "l1":"D","l2":"D","a1":"D","a2":"",
-  "perf_cant":"2","perf_lado":"1982","perf_det":"2P/1982",
-  "ran_libre":"","ran_espe":"","ran_prof":"","ran_lado":"","ran_det":"",
-  "obs":""
-}]}`;
+═══ EJEMPLO VERIFICADO (Roble Gris) ═══
+Pieza ②420×330:
+  Junto al 420: gusanito+gusanito (2 símbolos) → l1="G", l2="G"
+  Junto al 330: recta+recta (2 símbolos) → a1="D", a2="D"
+  → qty=2, largo=420, ancho=330, l1="G", l2="G", a1="D", a2="D", obs="R. Costados"
+
+Pieza ①414×863:
+  Junto al 414: ningún símbolo → l1="", l2=""
+  Junto al 863: ningún símbolo → a1="", a2=""
+  → qty=1, largo=414, ancho=863, l1="", l2="", a1="", a2="", obs="Respaldo"
+
+RESPONDE SOLO CON EL JSON:
+{"piezas":[{"material":"ROBLE GRIS","qty":2,"largo":420,"ancho":330,"veta":"1-Longitud","l1":"G","l2":"G","a1":"D","a2":"D","perf_cant":"","perf_lado":"","perf_det":"","ran_libre":"","ran_espe":"","ran_prof":"","ran_lado":"","ran_det":"","obs":"R. Costados"}]}`;
 
   let lastError = '';
   for (let i = 1; i <= 3; i++) {
