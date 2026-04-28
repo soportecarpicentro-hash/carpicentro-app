@@ -1,4 +1,6 @@
-// api/leer-lista.js — Claude Vision CARPICENTRO v14
+// api/leer-lista.js — CARPICENTRO v15
+// Fase 1: operario experto genera texto plano
+// Fase 2: convertir ese texto al JSON del sistema
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -27,7 +29,7 @@ export default async function handler(req, res) {
       const raw = await resp.text();
       let data;
       try { data = JSON.parse(raw); } catch (_) { throw new Error('API no-JSON: ' + raw.slice(0, 100)); }
-      if (!resp.ok) throw new Error(`API ${resp.status}: ${data.error?.message || raw.slice(0,100)}`);
+      if (!resp.ok) throw new Error(`API ${resp.status}: ${data.error?.message || raw.slice(0, 100)}`);
       return (data.content || []).map(c => c.text || '').join('');
     } catch (e) { clearTimeout(tmo); if (e.name === 'AbortError') throw new Error('Timeout >50s'); throw e; }
   }
@@ -39,21 +41,67 @@ export default async function handler(req, res) {
     if (a < 0 || z <= a) return null;
     const js = c.slice(a, z + 1);
     try { const p = JSON.parse(js); if (p?.piezas?.length) return p; } catch (_) {}
-    for (const r of [js.slice(0, js.lastIndexOf('},') + 1) + ']}', js.slice(0, js.lastIndexOf('}') + 1) + ']}']) {
+    for (const r of [
+      js.slice(0, js.lastIndexOf('},') + 1) + ']}',
+      js.slice(0, js.lastIndexOf('}') + 1) + ']}',
+    ]) {
       try { const p = JSON.parse(r); if (p?.piezas?.length) return p; } catch (_) {}
     }
     return null;
   }
 
+  // Parsear texto plano del operario a objetos
+  function parsearTextoOperario(txt) {
+    const piezas = [];
+    const bloques = txt.split(/(?=Material:|material:)/i).filter(b => b.trim());
+
+    // Si no hay bloques por Material, intentar parsear líneas directamente
+    const lineas = txt.split('\n').map(l => l.trim()).filter(Boolean);
+    let material = 'MELA PELIKANO BLANCO';
+    let actual = null;
+
+    const flush = () => { if (actual && actual.largo && actual.ancho) { piezas.push({ ...actual }); } actual = null; };
+    const val = (v) => {
+      v = String(v || '').trim().replace(/^[-–—]+$/, '').trim();
+      return ['', '-', '–', '—'].includes(v) ? '' : v;
+    };
+    const num = (v) => Math.round(parseFloat(String(v || '').replace(',', '.')) || 0);
+
+    for (const linea of lineas) {
+      const lc = linea.toLowerCase();
+      if (/^material[:\s]/i.test(linea)) {
+        flush();
+        material = linea.replace(/^material[:\s]*/i, '').trim() || material;
+        continue;
+      }
+      if (/^cant[:\s]/i.test(linea)) {
+        flush();
+        actual = { material, qty: parseInt(linea.replace(/^cant[:\s]*/i, '')) || 1, largo: 0, ancho: 0, veta: '1-Longitud', l1: '', l2: '', a1: '', a2: '', perf_cant: '', perf_lado: '', perf_det: '', ran_libre: '', ran_espe: '', ran_prof: '', ran_lado: '', ran_det: '', obs: '' };
+        continue;
+      }
+      if (!actual) continue;
+      if (/^largo[^:]*:/i.test(linea)) { actual.largo = num(linea.replace(/^largo[^:]*:/i, '')); continue; }
+      if (/^ancho[^:]*:/i.test(linea)) { actual.ancho = num(linea.replace(/^ancho[^:]*:/i, '')); continue; }
+      if (/^l1[:\s]/i.test(linea)) { actual.l1 = val(linea.replace(/^l1[:\s]*/i, '')); continue; }
+      if (/^l2[:\s]/i.test(linea)) { actual.l2 = val(linea.replace(/^l2[:\s]*/i, '')); continue; }
+      if (/^a1[:\s]/i.test(linea)) { actual.a1 = val(linea.replace(/^a1[:\s]*/i, '')); continue; }
+      if (/^a2[:\s]/i.test(linea)) { actual.a2 = val(linea.replace(/^a2[:\s]*/i, '')); continue; }
+      if (/^obs[:\s]/i.test(linea)) { actual.obs = linea.replace(/^obs[:\s]*/i, '').trim(); continue; }
+    }
+    flush();
+    return piezas.length ? { piezas } : null;
+  }
+
   function norm(p) {
     const s = v => String(v ?? '').trim();
     const n = v => Math.round(parseFloat(String(v ?? '').replace(',', '.')) || 0);
+    const canto = v => { v = s(v); return ['D','G','DM','GM','Dx','Dz','Gx','Gz'].includes(v) ? v : ''; };
     return {
       material: s(p.material) || 'MELA PELIKANO BLANCO',
       qty: Math.max(1, parseInt(p.qty) || 1),
       largo: n(p.largo), ancho: n(p.ancho),
       veta: s(p.veta) || '1-Longitud',
-      l1: s(p.l1), l2: s(p.l2), a1: s(p.a1), a2: s(p.a2),
+      l1: canto(p.l1), l2: canto(p.l2), a1: canto(p.a1), a2: canto(p.a2),
       perf_cant: s(p.perf_cant), perf_lado: s(p.perf_lado), perf_det: s(p.perf_det),
       ran_libre: s(p.ran_libre), ran_espe: s(p.ran_espe), ran_prof: s(p.ran_prof),
       ran_lado: s(p.ran_lado), ran_det: s(p.ran_det),
@@ -64,126 +112,176 @@ export default async function handler(req, res) {
   const img = { type: 'image', source: { type: 'base64', media_type: mt, data: imagen_b64 } };
 
   // ══════════════════════════════════════════════════════
-  // FASE 1 — Análisis espacial número por número
+  // FASE 1 — Operario experto lee y escribe en texto plano
   // ══════════════════════════════════════════════════════
-  const F1 = `Analiza esta imagen como una lista de piezas de melamina.
+  const F1 = `Actúa como un operario experto en lectura de órdenes de corte de melamina.
+Debes interpretar EXACTAMENTE como lo haría un humano del taller.
 
-╔═══════════════════════════════════════════════════════╗
-║  REGLA CRÍTICA: Los símbolos de canto NO son globales ║
-║  Cada número tiene su propio símbolo visual asociado  ║
-╚═══════════════════════════════════════════════════════╝
+-----------------------------------
+REGLA PRINCIPAL
+-----------------------------------
+Los símbolos de canto se interpretan por su posición respecto a cada número (largo o ancho), NO por fila completa.
 
-INTERPRETACIÓN ESPACIAL — por cada pieza:
-  Cada línea tiene: [cantidad] + [número LARGO] + [número ANCHO]
-  Encima o debajo de CADA número puede haber un símbolo independiente.
-  Debes mapear VISUALMENTE qué símbolo está más cerca de qué número.
+-----------------------------------
+SÍMBOLOS
+-----------------------------------
+- ~  o línea ondulada  → G (grueso)
+- —  o línea recta     → D (delgado)
+- |  (palo)            → D
+- X  encima del número → G
+- Letra D              → D
+- Letra G              → G
+- DM o Dm              → DM
+- GM o Gm              → GM
+- Puntos (°°)          → PERFORACIÓN, no canto
 
-  Símbolos cerca del LARGO  → afectan L1 y L2
-  Símbolos cerca del ANCHO  → afectan A1 y A2
+-----------------------------------
+COMBINACIONES (orden: símbolo más cercano al número primero)
+-----------------------------------
+- 1 solo ~       → G, -
+- 1 solo —       → D, -
+- ~ + ~          → G, G
+- — + —          → D, D
+- — + ~          → D, G   (recta más cercana, gusanito más lejano)
+- ~ + —          → G, D   (gusanito más cercano, recta más lejana)
 
-TRADUCCIÓN DE SÍMBOLOS:
-  ~~~ o gusanito ondulado  → G (grueso)
-  === o líneas rectas      → D (delgado)
-  | (palo vertical)        → D
-  X encima del número      → G
-  Letra D escrita          → D
-  Letra G escrita          → G
-  DM o Dm                  → DM (delgado distinto color)
-  GM o Gm                  → GM (grueso distinto color)
-  Punto/s (° oo)           → PERFORACIÓN (no es canto)
+IMPORTANTE:
+- El símbolo MÁS CERCANO al número define L1 (o A1)
+- El símbolo MÁS LEJANO define L2 (o A2)
+- Si solo hay 1 símbolo → solo L1 (o A1), el otro queda "-"
 
-CONTEO POR NÚMERO:
-  0 símbolos cerca del número → L1="", L2=""
-  1 símbolo                   → L1=tipo, L2=""
-  2 símbolos (apilados)       → L1=tipo_cercano, L2=tipo_lejano
-  (misma lógica para ANCHO → A1, A2)
+-----------------------------------
+ASIGNACIÓN
+-----------------------------------
+- Símbolos cerca del número LARGO → L1, L2
+- Símbolos cerca del número ANCHO → A1, A2
 
-UNIDADES: Convierte todo a MM.
-  Número con decimal (420.5, 116.9) → probablemente CM → ×10
-  Número entero sin unidad → MM tal cual
-  Con "m" explícito → ×1000 | con "cm" explícito → ×10
+-----------------------------------
+SIN SÍMBOLOS
+-----------------------------------
+Si no hay símbolo visible → L1=- L2=- (o A1=- A2=-)
 
-VALIDACIÓN ANTES DE RESPONDER:
-  ✓ Cada símbolo está asignado al número más cercano (largo o ancho)
-  ✓ No asumo cantos donde no veo símbolo
-  ✓ Solo asigno canto si hay símbolo visible
+-----------------------------------
+UNIDADES
+-----------------------------------
+Convertir todo a MM:
+- Número entero sin unidad → MM tal cual
+- Número con decimal (60.3, 116.9) → probablemente CM → ×10
+- Con "cm" explícito → ×10
+- Con "m" explícito → ×1000
 
-Para CADA pieza escribe:
-PIEZA [N]: cant=[X] largo=[Y] ancho=[Z]
-  Símbolos junto al LARGO: [describe exactamente lo que ves]
-  Símbolos junto al ANCHO: [describe exactamente lo que ves]
-  Puntos: [si hay y junto a qué número]
-  Texto adicional: [obs, ranura, etc.]
+-----------------------------------
+OBSERVACIONES
+-----------------------------------
+Texto a la derecha de la pieza → Obs
+Ranura ("RAN", "R", "RA") sin números → Obs: Indicar especificaciones de ranura
+Perforación (puntos °°) → registrar separado como perf
 
-Al inicio:
-MATERIAL: [encabezado]
-COLUMNAS: [N]`;
+-----------------------------------
+PROHIBIDO
+-----------------------------------
+- No duplicar símbolos automáticamente
+- No asumir cantos globales
+- No copiar de otras filas
+- No inventar símbolos
+
+-----------------------------------
+VALIDACIÓN FINAL (hacer antes de responder)
+-----------------------------------
+1. ¿Si hay 1 símbolo dejé el segundo como "-"?
+2. ¿Si hay 2 símbolos respeté el orden vertical (más cercano=L1)?
+3. ¿Separé largo y ancho correctamente?
+4. ¿Evité duplicar automáticamente?
+Si algo falla, corrige antes de responder.
+
+-----------------------------------
+SALIDA EXACTA (una pieza por bloque)
+-----------------------------------
+Material: <nombre>
+Cant:<n>
+largo(veta):<valor mm>
+ancho:<valor mm>
+L1:<G|D|DM|GM|->
+L2:<G|D|DM|GM|->
+A1:<G|D|DM|GM|->
+A2:<G|D|DM|GM|->
+Obs:<texto o vacío>
+
+Repite el bloque para CADA pieza. Si el material cambia, escribe la nueva línea Material.`;
 
   // ══════════════════════════════════════════════════════
-  // FASE 2 — JSON del sistema CARPICENTRO
+  // FASE 2 — Convertir texto plano a JSON
   // ══════════════════════════════════════════════════════
-  const F2 = `Convierte tu análisis al JSON del sistema CARPICENTRO.
+  const F2 = `El texto anterior es la lectura de un operario de taller.
+Conviértelo al JSON del sistema CARPICENTRO.
 
-CAMPOS POR PIEZA:
-  material, qty, largo (mm), ancho (mm), veta ("1-Longitud")
-  l1, l2 → cantos del LARGO  ("D"|"G"|"DM"|"GM"|"")
-  a1, a2 → cantos del ANCHO  ("D"|"G"|"DM"|"GM"|"")
-  perf_cant, perf_lado, perf_det → perforación ("" si no hay)
-  ran_libre, ran_espe, ran_prof, ran_lado, ran_det → ranura ("" si no hay)
-  obs → texto adicional o ""
+FORMATO EXACTO — responde SOLO con el JSON:
+{"piezas":[{
+  "material":"string",
+  "qty":número,
+  "largo":número_mm,
+  "ancho":número_mm,
+  "veta":"1-Longitud",
+  "l1":"D|G|DM|GM|",
+  "l2":"D|G|DM|GM|",
+  "a1":"D|G|DM|GM|",
+  "a2":"D|G|DM|GM|",
+  "perf_cant":"",
+  "perf_lado":"",
+  "perf_det":"",
+  "ran_libre":"",
+  "ran_espe":"",
+  "ran_prof":"",
+  "ran_lado":"",
+  "ran_det":"",
+  "obs":""
+}]}
 
-REGLAS DE ASIGNACIÓN (basado en tu descripción visual):
-  0 símbolos → l1="", l2=""
-  1 recta/D/| → l1="D", l2=""
-  2 rectas    → l1="D", l2="D"
-  1 gusanito/G/X → l1="G", l2=""
-  2 gusanitos → l1="G", l2="G"
-  gusanito(más cercano al número) + recta(más lejana) → l1="G", l2="D"
-  recta(más cercana) + gusanito(más lejano) → l1="D", l2="G"
-  (misma lógica para a1, a2)
+REGLAS DE CONVERSIÓN:
+- "-" en L1/L2/A1/A2 → "" en JSON (campo vacío)
+- Obs vacío → ""
+- Si hay perforación mencionada → llenar perf_cant, perf_lado, perf_det
+- Si hay ranura con números → llenar ran_*
+- Mantener el material correcto por pieza
 
-Si algo no es claro → obs="REVISAR: [motivo]"
-Texto descriptivo (costados, puertas, etc.) → obs
-Ranura sin números → obs="Indicar especificaciones de ranura"
-Perforación: perf_cant=N, perf_lado=medida_mm, perf_det="NP/medida"
-
-═══ EJEMPLO VERIFICADO (Roble Gris) ═══
-Pieza ②420×330:
-  Junto al 420: gusanito+gusanito (2 símbolos) → l1="G", l2="G"
-  Junto al 330: recta+recta (2 símbolos) → a1="D", a2="D"
-  → qty=2, largo=420, ancho=330, l1="G", l2="G", a1="D", a2="D", obs="R. Costados"
-
-Pieza ①414×863:
-  Junto al 414: ningún símbolo → l1="", l2=""
-  Junto al 863: ningún símbolo → a1="", a2=""
-  → qty=1, largo=414, ancho=863, l1="", l2="", a1="", a2="", obs="Respaldo"
-
-RESPONDE SOLO CON EL JSON:
-{"piezas":[{"material":"ROBLE GRIS","qty":2,"largo":420,"ancho":330,"veta":"1-Longitud","l1":"G","l2":"G","a1":"D","a2":"D","perf_cant":"","perf_lado":"","perf_det":"","ran_libre":"","ran_espe":"","ran_prof":"","ran_lado":"","ran_det":"","obs":"R. Costados"}]}`;
+RESPONDE SOLO CON EL JSON.`;
 
   let lastError = '';
   for (let i = 1; i <= 3; i++) {
     try {
-      let texto;
+      let resultado;
+
       if (i <= 2) {
-        const desc = await callAnthropic([
+        // Fase 1: operario genera texto plano
+        const textoOperario = await callAnthropic([
           { role: 'user', content: [img, { type: 'text', text: F1 }] }
         ], 3000);
-        texto = await callAnthropic([
+
+        // Intentar parsear el texto directamente primero
+        const parseado = parsearTextoOperario(textoOperario);
+        if (parseado?.piezas?.length) {
+          return res.status(200).json({ piezas: parseado.piezas.map(norm), _intentos: i, _via: 'parser' });
+        }
+
+        // Si no, pedir a la IA que convierta a JSON
+        const textoJSON = await callAnthropic([
           { role: 'user', content: [img, { type: 'text', text: F1 }] },
-          { role: 'assistant', content: desc },
+          { role: 'assistant', content: textoOperario },
           { role: 'user', content: F2 }
         ], 8192);
+        resultado = textoJSON;
       } else {
-        texto = await callAnthropic([
+        // Intento 3: directo
+        resultado = await callAnthropic([
           { role: 'user', content: [img, { type: 'text', text: F1 + '\n\n' + F2 }] }
         ], 4096);
       }
-      const parsed = extraerJSON(texto);
+
+      const parsed = extraerJSON(resultado);
       if (parsed?.piezas?.length) {
         return res.status(200).json({ piezas: parsed.piezas.map(norm), _intentos: i });
       }
-      lastError = `Intento ${i}: sin piezas. "${texto.slice(0, 120)}"`;
+      lastError = `Intento ${i}: sin piezas. "${resultado?.slice(0, 120)}"`;
     } catch (e) {
       lastError = `Intento ${i}: ${e.message}`;
       if (i < 3) await new Promise(r => setTimeout(r, i * 3000));
