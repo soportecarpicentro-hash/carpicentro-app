@@ -1,4 +1,5 @@
-// api/leer-lista.js — Claude Vision CARPICENTRO v12
+// api/leer-lista.js — Claude Vision CARPICENTRO v13
+// Prompt experto en órdenes de corte manuscritas
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -27,7 +28,7 @@ export default async function handler(req, res) {
       const raw = await resp.text();
       let data;
       try { data = JSON.parse(raw); } catch (_) { throw new Error('API no-JSON: ' + raw.slice(0, 100)); }
-      if (!resp.ok) throw new Error(`API ${resp.status}: ${data.error?.message || raw.slice(0,100)}`);
+      if (!resp.ok) throw new Error(`API ${resp.status}: ${data.error?.message || raw.slice(0, 100)}`);
       return (data.content || []).map(c => c.text || '').join('');
     } catch (e) { clearTimeout(tmo); if (e.name === 'AbortError') throw new Error('Timeout >50s'); throw e; }
   }
@@ -63,89 +64,103 @@ export default async function handler(req, res) {
 
   const img = { type: 'image', source: { type: 'base64', media_type: mt, data: imagen_b64 } };
 
-  const F1 = `Analiza esta lista de corte de carpintería (CARPICENTRO, Lima).
+  // ══════════════════════════════════════════════════════
+  // FASE 1: Experto analiza la imagen
+  // ══════════════════════════════════════════════════════
+  const F1 = `Actúa como un sistema experto en interpretación de órdenes de corte de melamina escritas a mano.
+Tu tarea es leer esta imagen y extraer todas las piezas con alta precisión.
 
-═══ CÓMO IDENTIFICAR LAS MARCAS DE CANTO ═══
+═══ REGLA 1: UNIDADES ═══
+Las medidas pueden venir en mm, cm o metros. Convierte TODO a milímetros:
+  1.20 m → 1200 mm | 60 cm → 600 mm | 420 cm → 4200 mm
+  Si el número es entero sin unidad indicada: dejarlo tal cual (asume mm).
+  Si tiene decimal con coma o punto (ej: 116.9): probablemente cm → 1169 mm.
+  Corrige números mal escritos si el contexto lo sugiere (ej: "116.9" probablemente es 1169 mm).
 
-Las marcas de canto son trazos escritos A MANO por el cliente, directamente sobre o bajo los números de medida.
-Pueden ser de CUALQUIER COLOR (rojo, azul, negro, verde — el color no importa).
+═══ REGLA 2: FORMATO DE PIEZAS ═══
+Cada línea sigue el patrón: [cantidad] de [largo] x [ancho]  o  [cantidad]([largo]x[ancho])
+Extrae: cantidad, largo_mm, ancho_mm.
 
-Lo que distingue una marca de canto del fondo o del papel:
-- Es un trazo deliberado, cerca de un número específico
-- Está claramente asociado al número (encima o debajo)
-- No es parte del papel ni del formato impreso
+═══ REGLA 3: ENCHAPE DE CANTOS ═══
+Detecta símbolos escritos A MANO cerca de los números (pueden ser de cualquier color):
+  Línea recta (─ == ══) → canto DELGADO = "D"
+  Línea ondulada (≈ ~~~) → canto GRUESO = "G"
+  Palo vertical (|) → "D"
+  Letra X encima del número → "G"
+  Letra D encima → "D"
+  Letra G encima → "G"
+  Letra DM → "DM" (delgado distinto color)
+  Letra GM → "GM" (grueso distinto color)
+  Puntos (° oo) → PERFORACIÓN (no es canto)
 
-DOS TIPOS DE TRAZO:
-1. LÍNEA RECTA (─ == ══): horizontal, sin ondas → canto DELGADO = "D"
-2. LÍNEA ONDULADA (≈ ~~~): con curvas → canto GRUESO = "G"
+═══ REGLA 4: POSICIÓN Y CONTEO ═══
+La posición de los símbolos respecto al número determina el canto:
+  Símbolo más CERCANO al número → L1 (o A1 para el ancho)
+  Símbolo más LEJANO → L2 (o A2)
+  1 símbolo → L1=tipo, L2=""
+  2 símbolos → L1=tipo_cercano, L2=tipo_lejano  ← AMBOS, no dejar vacío
 
-TAMBIÉN puede haber:
-3. PUNTOS (° oo): marcas redondas → PERFORACIONES (no cantos)
-4. TEXTO: "RAN"/"R" = ranura, palabras = observación
+PATRÓN: Detecta si los símbolos van arriba o abajo en la primera pieza y mantén ese patrón.
+Aprende el estilo del cliente y aplícalo de forma consistente en toda la hoja.
 
-═══ REGLA DE CONTEO ═══
-Mira SOLO los trazos manuales cerca de cada número:
-- 0 trazos → sin canto: l1="", l2=""
-- 1 trazo → l1=tipo, l2=""
-- 2 trazos → l1=tipo(más cercano), l2=tipo(más lejano)
-  ⚠️ Si hay 2 trazos: AMBOS deben aparecer. No dejar l2 vacío.
+═══ REGLA 5: CONTEXTO Y MATERIAL ═══
+Si hay un título (ej: "Melamina Pelikano Blanco", "MDF Blanco") → agrupa piezas por material.
+Nuevo encabezado en mitad de lista → cambia el material desde esa pieza.
 
-Misma lógica para ANCHO → a1, a2.
+═══ REGLA 6: ERRORES HUMANOS ═══
+Ignora tachones y zonas ilegibles.
+Si algo es ambiguo, márcalo con obs="REVISAR: [descripción]".
+No inventes datos — si no ves canto, deja vacío "".
 
-═══ MEDIDAS ═══
-Copiar el número exacto como aparece, en MM. Sin convertir ni multiplicar.
+═══ REGLA 7: RANURA Y PERFORACIÓN ═══
+Ranura: "RAN", "R", "RA" + números → ran_libre / ran_espe / ran_prof / ran_lado.
+  Sin números → obs="Indicar especificaciones de ranura".
+Perforación: puntos junto a un número → perf_cant=N, perf_lado=número, perf_det="NP/número".
 
-═══ INSTRUCCIÓN ═══
-Para CADA pieza:
-PIEZA [N]: [cant] de [largo]×[ancho]
-  LARGO trazos: [N trazos, tipo(s)]
-  ANCHO trazos: [N trazos, tipo(s)]
-  PUNTOS: [cantidad y junto a qué número, o "ninguno"]
-  EXTRA: [texto adicional o "ninguno"]
+Describe ahora CADA pieza de la imagen:
+PIEZA [N]: [cant]×[largo_mm]×[ancho_mm]
+  LARGO símbolos: [describe trazos manuales y cantidad]
+  ANCHO símbolos: [describe trazos manuales y cantidad]
+  PUNTOS: [si hay, junto a cuál número]
+  EXTRA: [texto, ranura, obs]
 
-Al inicio: MATERIAL y COLUMNAS.`;
+Al inicio: MATERIAL, COLUMNAS, PATRÓN DETECTADO (arriba/abajo/inline).`;
 
-  const F2 = `Convierte tu descripción al JSON.
+  // ══════════════════════════════════════════════════════
+  // FASE 2: Convertir a JSON del sistema CARPICENTRO
+  // ══════════════════════════════════════════════════════
+  const F2 = `Convierte tu análisis al JSON del sistema CARPICENTRO.
 
-MEDIDAS: número exacto en MM tal cual. Sin convertir.
+CAMPOS REQUERIDOS por pieza:
+  material, qty, largo (mm), ancho (mm), veta ("1-Longitud"|"2-Ancho"|"Sin veta")
+  l1, l2  → cantos del LARGO  ("D"|"G"|"DM"|"GM"|"Dx"|"Dz"|"Gx"|"Gz"|"")
+  a1, a2  → cantos del ANCHO  (mismos valores)
+  perf_cant, perf_lado, perf_det  → perforación ("" si no hay)
+  ran_libre, ran_espe, ran_prof, ran_lado, ran_det  → ranura ("" si no hay)
+  obs  → observaciones o ""
 
-CANTOS según tus trazos descritos:
-  0 trazos → l1="", l2=""
-  1 recta  → l1="D", l2=""
-  2 rectas → l1="D", l2="D"  ← AMBAS
-  1 gusanito → l1="G", l2=""
+CANTOS — basado en tu descripción:
+  0 símbolos → l1="", l2=""
+  1 recta/D/|  → l1="D", l2=""
+  2 rectas    → l1="D", l2="D"
+  1 gusanito/G/X → l1="G", l2=""
   2 gusanitos → l1="G", l2="G"
-  gusanito(cercano) + recta(lejana) → l1="G", l2="D"
-  recta(cercana) + gusanito(lejano) → l1="D", l2="G"
-  (misma lógica para ancho → a1, a2)
+  gusanito(cercano)+recta(lejana) → l1="G", l2="D"
+  recta(cercana)+gusanito(lejana) → l1="D", l2="G"
+  (misma lógica para a1, a2)
 
-PERFORACIÓN: perf_cant=N puntos, perf_lado=número junto al que están, perf_det="NP/número"
-Los puntos NO van en l1/l2/a1/a2.
+CONFIANZA: Si detectas más del 80% de las piezas con certeza, genera el JSON completo.
+Para piezas dudosas usa obs="REVISAR: motivo".
 
-Nuevo encabezado en mitad de lista → nuevo material desde esa pieza.
-RANURA sin números → obs="Indicar especificaciones de ranura"
-
-═══ RESULTADOS VERIFICADOS (lista MELA PELIKANO BLANCO) ═══
-Úsalos si reconoces esta lista. Si es otra lista, aplica las reglas.
-
-qty=2,  largo=1982, ancho=580,  l1="D",l2="D",a1="D",a2="",  perf_cant="2",perf_lado="1982",perf_det="2P/1982"
-qty=1,  largo=1200, ancho=580,  l1="D",l2="",  a1="D",a2="",  perf_cant="2",perf_lado="1200",perf_det="2P/1200"
-qty=1,  largo=1164, ancho=580,  l1="D",l2="D",a1="D",a2="D",  perf_cant=""
-qty=3,  largo=1164, ancho=575,  l1="D",l2="D",a1="D",a2="D",  perf_cant=""
-qty=1,  largo=1964, ancho=580,  l1="D",l2="D",a1="D",a2="",   perf_cant=""
-qty=2,  largo=1996, ancho=596,  l1="D",l2="D",a1="D",a2="D",  perf_cant=""
-qty=2,  largo=1214, ancho=260,  l1="D",l2="D",a1="",  a2="",   perf_cant=""
-qty=2,  largo=350,  ancho=260,  l1="D",l2="",  a1="D",a2="",   perf_cant=""
-qty=2,  largo=314,  ancho=260,  l1="D",l2="",  a1="",  a2="",   perf_cant=""
-qty=2,  largo=414,  ancho=346,  l1="D",l2="D",a1="D",a2="D",  perf_cant=""
-qty=1,  largo=408,  ancho=346,  l1="D",l2="",  a1="D",a2="",   perf_cant=""
-qty=20, largo=805,  ancho=453,  l1="D",l2="D",a1="D",a2="D",  perf_cant=""
-qty=12, largo=605,  ancho=353,  l1="D",l2="D",a1="D",a2="D",  perf_cant=""
-[MDF Blanco] qty=2, largo=1996, ancho=598, l1="",l2="",a1="",a2=""
-[MDF Blanco] qty=1, largo=1246, ancho=348, l1="",l2="",a1="",a2=""
-
-RESPONDE SOLO CON EL JSON:
-{"piezas":[{"material":"MELA PELIKANO BLANCO","qty":2,"largo":1982,"ancho":580,"veta":"1-Longitud","l1":"D","l2":"D","a1":"D","a2":"","perf_cant":"2","perf_lado":"1982","perf_det":"2P/1982","ran_libre":"","ran_espe":"","ran_prof":"","ran_lado":"","ran_det":"","obs":""}]}`;
+RESPONDE SOLO CON EL JSON — sin texto antes ni después:
+{"piezas":[{
+  "material":"MELA PELIKANO BLANCO",
+  "qty":2,"largo":1982,"ancho":580,"veta":"1-Longitud",
+  "l1":"D","l2":"D","a1":"D","a2":"",
+  "perf_cant":"2","perf_lado":"1982","perf_det":"2P/1982",
+  "ran_libre":"","ran_espe":"","ran_prof":"","ran_lado":"","ran_det":"",
+  "obs":""
+}]}`;
 
   let lastError = '';
   for (let i = 1; i <= 3; i++) {
@@ -154,7 +169,7 @@ RESPONDE SOLO CON EL JSON:
       if (i <= 2) {
         const desc = await callAnthropic([
           { role: 'user', content: [img, { type: 'text', text: F1 }] }
-        ], 2500);
+        ], 3000);
         texto = await callAnthropic([
           { role: 'user', content: [img, { type: 'text', text: F1 }] },
           { role: 'assistant', content: desc },
