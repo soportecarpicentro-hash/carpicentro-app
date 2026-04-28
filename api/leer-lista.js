@@ -1,6 +1,5 @@
-// api/leer-lista.js — CARPICENTRO v15
-// Fase 1: operario experto genera texto plano
-// Fase 2: convertir ese texto al JSON del sistema
+// api/leer-lista.js — CARPICENTRO v17
+// Prompt de razonamiento universal — funciona con cualquier lista
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -50,242 +49,190 @@ export default async function handler(req, res) {
     return null;
   }
 
-  // Parsear texto plano del operario a objetos
-  function parsearTextoOperario(txt) {
+  function parsearTexto(txt) {
     const piezas = [];
-    const bloques = txt.split(/(?=Material:|material:)/i).filter(b => b.trim());
-
-    // Si no hay bloques por Material, intentar parsear líneas directamente
     const lineas = txt.split('\n').map(l => l.trim()).filter(Boolean);
     let material = 'MELA PELIKANO BLANCO';
-    let actual = null;
-
-    const flush = () => { if (actual && actual.largo && actual.ancho) { piezas.push({ ...actual }); } actual = null; };
-    const val = (v) => {
-      v = String(v || '').trim().replace(/^[-–—]+$/, '').trim();
-      return ['', '-', '–', '—'].includes(v) ? '' : v;
-    };
-    const num = (v) => Math.round(parseFloat(String(v || '').replace(',', '.')) || 0);
-
-    for (const linea of lineas) {
-      const lc = linea.toLowerCase();
-      if (/^material[:\s]/i.test(linea)) {
-        flush();
-        material = linea.replace(/^material[:\s]*/i, '').trim() || material;
-        continue;
-      }
-      if (/^cant[:\s]/i.test(linea)) {
-        flush();
-        actual = { material, qty: parseInt(linea.replace(/^cant[:\s]*/i, '')) || 1, largo: 0, ancho: 0, veta: '1-Longitud', l1: '', l2: '', a1: '', a2: '', perf_cant: '', perf_lado: '', perf_det: '', ran_libre: '', ran_espe: '', ran_prof: '', ran_lado: '', ran_det: '', obs: '' };
-        continue;
-      }
-      if (!actual) continue;
-      if (/^largo[^:]*:/i.test(linea)) { actual.largo = num(linea.replace(/^largo[^:]*:/i, '')); continue; }
-      if (/^ancho[^:]*:/i.test(linea)) { actual.ancho = num(linea.replace(/^ancho[^:]*:/i, '')); continue; }
-      if (/^l1[:\s]/i.test(linea)) { actual.l1 = val(linea.replace(/^l1[:\s]*/i, '')); continue; }
-      if (/^l2[:\s]/i.test(linea)) { actual.l2 = val(linea.replace(/^l2[:\s]*/i, '')); continue; }
-      if (/^a1[:\s]/i.test(linea)) { actual.a1 = val(linea.replace(/^a1[:\s]*/i, '')); continue; }
-      if (/^a2[:\s]/i.test(linea)) { actual.a2 = val(linea.replace(/^a2[:\s]*/i, '')); continue; }
-      if (/^obs[:\s]/i.test(linea)) { actual.obs = linea.replace(/^obs[:\s]*/i, '').trim(); continue; }
+    let cur = null;
+    const flush = () => { if (cur?.largo && cur?.ancho) piezas.push({...cur}); cur = null; };
+    const limpia = v => { v = String(v||'').trim(); return ['','-','–','—'].includes(v)?'':v; };
+    const num = v => Math.round(parseFloat(String(v||'').replace(',','.'))||0);
+    for (const l of lineas) {
+      if (/^material[:\s]/i.test(l)) { flush(); material=l.replace(/^material[:\s]*/i,'').trim()||material; continue; }
+      if (/^cant[:\s]/i.test(l)) { flush(); cur={material,qty:parseInt(l.replace(/^cant[:\s]*/i,''))||1,largo:0,ancho:0,veta:'1-Longitud',l1:'',l2:'',a1:'',a2:'',perf_cant:'',perf_lado:'',perf_det:'',ran_libre:'',ran_espe:'',ran_prof:'',ran_lado:'',ran_det:'',obs:''}; continue; }
+      if (!cur) continue;
+      if (/^largo[^:]*:/i.test(l)) { cur.largo=num(l.replace(/^largo[^:]*:/i,'')); continue; }
+      if (/^ancho[^:]*:/i.test(l)) { cur.ancho=num(l.replace(/^ancho[^:]*:/i,'')); continue; }
+      if (/^l1[:\s]/i.test(l)) { cur.l1=limpia(l.replace(/^l1[:\s]*/i,'')); continue; }
+      if (/^l2[:\s]/i.test(l)) { cur.l2=limpia(l.replace(/^l2[:\s]*/i,'')); continue; }
+      if (/^a1[:\s]/i.test(l)) { cur.a1=limpia(l.replace(/^a1[:\s]*/i,'')); continue; }
+      if (/^a2[:\s]/i.test(l)) { cur.a2=limpia(l.replace(/^a2[:\s]*/i,'')); continue; }
+      if (/^obs[:\s]/i.test(l)) { cur.obs=l.replace(/^obs[:\s]*/i,'').trim(); continue; }
     }
     flush();
-    return piezas.length ? { piezas } : null;
+    return piezas.length ? {piezas} : null;
   }
 
   function norm(p) {
-    const s = v => String(v ?? '').trim();
-    const n = v => Math.round(parseFloat(String(v ?? '').replace(',', '.')) || 0);
-    const canto = v => { v = s(v); return ['D','G','DM','GM','Dx','Dz','Gx','Gz'].includes(v) ? v : ''; };
+    const s = v => String(v??'').trim();
+    const n = v => Math.round(parseFloat(String(v??'').replace(',','.'))||0);
+    const c = v => { const x=s(v).toUpperCase(); return ['D','G','DM','GM'].includes(x)?x:''; };
     return {
-      material: s(p.material) || 'MELA PELIKANO BLANCO',
-      qty: Math.max(1, parseInt(p.qty) || 1),
+      material: s(p.material)||'MELA PELIKANO BLANCO',
+      qty: Math.max(1,parseInt(p.qty)||1),
       largo: n(p.largo), ancho: n(p.ancho),
-      veta: s(p.veta) || '1-Longitud',
-      l1: canto(p.l1), l2: canto(p.l2), a1: canto(p.a1), a2: canto(p.a2),
-      perf_cant: s(p.perf_cant), perf_lado: s(p.perf_lado), perf_det: s(p.perf_det),
-      ran_libre: s(p.ran_libre), ran_espe: s(p.ran_espe), ran_prof: s(p.ran_prof),
-      ran_lado: s(p.ran_lado), ran_det: s(p.ran_det),
-      obs: s(p.obs),
+      veta: s(p.veta)||'1-Longitud',
+      l1:c(p.l1), l2:c(p.l2), a1:c(p.a1), a2:c(p.a2),
+      perf_cant:s(p.perf_cant), perf_lado:s(p.perf_lado), perf_det:s(p.perf_det),
+      ran_libre:s(p.ran_libre), ran_espe:s(p.ran_espe), ran_prof:s(p.ran_prof),
+      ran_lado:s(p.ran_lado), ran_det:s(p.ran_det),
+      obs:s(p.obs),
     };
   }
 
-  const img = { type: 'image', source: { type: 'base64', media_type: mt, data: imagen_b64 } };
+  const img = { type:'image', source:{type:'base64',media_type:mt,data:imagen_b64} };
 
   // ══════════════════════════════════════════════════════
-  // FASE 1 — Operario experto lee y escribe en texto plano
+  // FASE 1 — Leer como operario experto
   // ══════════════════════════════════════════════════════
-  const F1 = `Actúa como un operario experto en lectura de órdenes de corte de melamina.
-Debes interpretar EXACTAMENTE como lo haría un humano del taller.
+  const F1 = `Eres un operario experto en lectura de órdenes de corte de melamina.
+Interpretas EXACTAMENTE como un humano del taller.
 
------------------------------------
-REGLA PRINCIPAL
------------------------------------
-Los símbolos de canto se interpretan por su posición respecto a cada número (largo o ancho), NO por fila completa.
+━━━ PASO 1: ESCANEA TODA LA IMAGEN ANTES DE INTERPRETAR ━━━
+Antes de procesar pieza por pieza:
+- ¿Cuántas columnas de piezas hay?
+- ¿El cliente usa símbolos arriba o abajo de los números?
+- ¿Qué tipo de símbolos usa principalmente (rectas, gusanitos, letras, X)?
+- ¿Los números parecen MM (grandes: 1200, 580) o CM (pequeños: 42.0, 58)?
 
------------------------------------
-SÍMBOLOS
------------------------------------
-- ~  o línea ondulada  → G (grueso)
-- —  o línea recta     → D (delgado)
-- |  (palo)            → D
-- X  encima del número → G
-- Letra D              → D
-- Letra G              → G
-- DM o Dm              → DM
-- GM o Gm              → GM
-- Puntos (°°)          → PERFORACIÓN, no canto
+━━━ PASO 2: IDENTIFICAR SÍMBOLOS ━━━
+Los clientes marcan los cantos con trazos escritos a mano CERCA de cada número.
+El color no importa. Lo que importa: el trazo está deliberadamente sobre/bajo ese número.
 
------------------------------------
-COMBINACIONES (orden: símbolo más cercano al número primero)
------------------------------------
-- 1 solo ~       → G, -
-- 1 solo —       → D, -
-- ~ + ~          → G, G
-- — + —          → D, D
-- — + ~          → D, G   (recta más cercana, gusanito más lejano)
-- ~ + —          → G, D   (gusanito más cercano, recta más lejana)
+Tipos de trazo:
+  Línea ondulada / gusanito (≈ ~~~)  → G
+  Línea recta / plana (— == ══)      → D
+  Palo vertical  |                    → D
+  X encima del número                 → G
+  Letra D escrita                     → D
+  Letra G escrita                     → G
+  DM / Dm                             → DM
+  GM / Gm                             → GM
+  Puntos (° oo)                       → PERFORACIÓN (no es canto, anotar en perf)
 
-IMPORTANTE:
-- El símbolo MÁS CERCANO al número define L1 (o A1)
-- El símbolo MÁS LEJANO define L2 (o A2)
-- Si solo hay 1 símbolo → solo L1 (o A1), el otro queda "-"
+━━━ PASO 3: ASIGNAR POR NÚMERO ━━━
+Para cada pieza, analiza el número del LARGO y el número del ANCHO POR SEPARADO.
 
------------------------------------
-ASIGNACIÓN
------------------------------------
-- Símbolos cerca del número LARGO → L1, L2
-- Símbolos cerca del número ANCHO → A1, A2
+Para el número LARGO:
+  Cuenta cuántos trazos hay pegados a ese número.
+  El trazo más CERCANO al número → L1
+  El trazo más LEJANO → L2
+  Si hay 1 solo trazo → L1=tipo, L2=-
+  Si no hay ninguno → L1=- L2=-
 
------------------------------------
-SIN SÍMBOLOS
------------------------------------
-Si no hay símbolo visible → L1=- L2=- (o A1=- A2=-)
+Para el número ANCHO (misma lógica):
+  El trazo más CERCANO al número → A1
+  El trazo más LEJANO → A2
+  Si hay 1 solo trazo → A1=tipo, A2=-
+  Si no hay ninguno → A1=- A2=-
 
------------------------------------
-UNIDADES
------------------------------------
-Convertir todo a MM:
-- Número entero sin unidad → MM tal cual
-- Número con decimal (60.3, 116.9) → probablemente CM → ×10
-- Con "cm" explícito → ×10
-- Con "m" explícito → ×1000
+━━━ TABLA DE COMBINACIONES ━━━
+1 gusanito cerca del número    → L1=G  L2=-
+1 recta cerca del número       → L1=D  L2=-
+gusanito(cerca) + recta(lejos) → L1=G  L2=D
+recta(cerca) + gusanito(lejos) → L1=D  L2=G
+2 gusanitos                    → L1=G  L2=G
+2 rectas                       → L1=D  L2=D
+sin trazos                     → L1=-  L2=-
 
------------------------------------
-OBSERVACIONES
------------------------------------
+━━━ PASO 4: UNIDADES ━━━
+Convierte todo a MM:
+  Número entero grande (≥200) sin unidad → MM tal cual
+  Número pequeño con decimal (42.0, 58.5, 116.9) → probablemente CM → ×10
+  Con "cm" explícito → ×10 | Con "m" explícito → ×1000
+
+━━━ PASO 5: OBSERVACIONES Y EXTRAS ━━━
 Texto a la derecha de la pieza → Obs
-Ranura ("RAN", "R", "RA") sin números → Obs: Indicar especificaciones de ranura
-Perforación (puntos °°) → registrar separado como perf
+Ranura "RAN/R/RA" + números → ran_libre, ran_espe, ran_prof, ran_lado
+Ranura sin números → Obs: Indicar especificaciones de ranura
+Perforación (puntos °°) → perf_cant=N, perf_lado=número_junto_mm
 
------------------------------------
-PROHIBIDO
------------------------------------
-- No duplicar símbolos automáticamente
-- No asumir cantos globales
-- No copiar de otras filas
-- No inventar símbolos
+━━━ REGLAS ESTRICTAS ━━━
+✗ No duplicar cantos automáticamente
+✗ No copiar de otras filas
+✗ No inventar trazos
+✗ No asumir que todos los lados tienen canto
+✓ Si no ves trazo → campo vacío
 
------------------------------------
-VALIDACIÓN FINAL (hacer antes de responder)
------------------------------------
-1. ¿Si hay 1 símbolo dejé el segundo como "-"?
-2. ¿Si hay 2 símbolos respeté el orden vertical (más cercano=L1)?
-3. ¿Separé largo y ancho correctamente?
-4. ¿Evité duplicar automáticamente?
-Si algo falla, corrige antes de responder.
+━━━ VALIDACIÓN ANTES DE RESPONDER ━━━
+Para cada pieza verifica:
+1. ¿Analicé el LARGO y el ANCHO por separado?
+2. ¿Si vi 1 trazo dejé el segundo campo en "-"?
+3. ¿No copié cantos de la fila anterior?
+4. ¿Las medidas están en MM?
 
------------------------------------
-SALIDA EXACTA (una pieza por bloque)
------------------------------------
+━━━ FORMATO DE SALIDA ━━━
 Material: <nombre>
 Cant:<n>
-largo(veta):<valor mm>
-ancho:<valor mm>
+largo(veta):<mm>
+ancho:<mm>
 L1:<G|D|DM|GM|->
 L2:<G|D|DM|GM|->
 A1:<G|D|DM|GM|->
 A2:<G|D|DM|GM|->
-Obs:<texto o vacío>
+Obs:<texto>
 
-Repite el bloque para CADA pieza. Si el material cambia, escribe la nueva línea Material.`;
+Repite el bloque para CADA pieza. Lee TODAS las columnas de la imagen.`;
 
-  // ══════════════════════════════════════════════════════
-  // FASE 2 — Convertir texto plano a JSON
-  // ══════════════════════════════════════════════════════
-  const F2 = `El texto anterior es la lectura de un operario de taller.
-Conviértelo al JSON del sistema CARPICENTRO.
+  const F2 = `Convierte la lectura anterior al JSON del sistema CARPICENTRO.
+"-" en cantos → "" (campo vacío en JSON).
+Obs vacío → "".
 
-FORMATO EXACTO — responde SOLO con el JSON:
+RESPONDE SOLO CON EL JSON (sin texto antes ni después):
 {"piezas":[{
-  "material":"string",
-  "qty":número,
-  "largo":número_mm,
-  "ancho":número_mm,
-  "veta":"1-Longitud",
-  "l1":"D|G|DM|GM|",
-  "l2":"D|G|DM|GM|",
-  "a1":"D|G|DM|GM|",
-  "a2":"D|G|DM|GM|",
-  "perf_cant":"",
-  "perf_lado":"",
-  "perf_det":"",
-  "ran_libre":"",
-  "ran_espe":"",
-  "ran_prof":"",
-  "ran_lado":"",
-  "ran_det":"",
+  "material":"string","qty":1,"largo":0,"ancho":0,"veta":"1-Longitud",
+  "l1":"","l2":"","a1":"","a2":"",
+  "perf_cant":"","perf_lado":"","perf_det":"",
+  "ran_libre":"","ran_espe":"","ran_prof":"","ran_lado":"","ran_det":"",
   "obs":""
-}]}
-
-REGLAS DE CONVERSIÓN:
-- "-" en L1/L2/A1/A2 → "" en JSON (campo vacío)
-- Obs vacío → ""
-- Si hay perforación mencionada → llenar perf_cant, perf_lado, perf_det
-- Si hay ranura con números → llenar ran_*
-- Mantener el material correcto por pieza
-
-RESPONDE SOLO CON EL JSON.`;
+}]}`;
 
   let lastError = '';
   for (let i = 1; i <= 3; i++) {
     try {
       let resultado;
-
       if (i <= 2) {
-        // Fase 1: operario genera texto plano
         const textoOperario = await callAnthropic([
-          { role: 'user', content: [img, { type: 'text', text: F1 }] }
-        ], 3000);
+          { role:'user', content:[img,{type:'text',text:F1}] }
+        ], 4000);
 
-        // Intentar parsear el texto directamente primero
-        const parseado = parsearTextoOperario(textoOperario);
+        // Intentar parsear texto directo
+        const parseado = parsearTexto(textoOperario);
         if (parseado?.piezas?.length) {
-          return res.status(200).json({ piezas: parseado.piezas.map(norm), _intentos: i, _via: 'parser' });
+          return res.status(200).json({ piezas:parseado.piezas.map(norm), _intentos:i, _via:'parser' });
         }
 
-        // Si no, pedir a la IA que convierta a JSON
-        const textoJSON = await callAnthropic([
-          { role: 'user', content: [img, { type: 'text', text: F1 }] },
-          { role: 'assistant', content: textoOperario },
-          { role: 'user', content: F2 }
-        ], 8192);
-        resultado = textoJSON;
-      } else {
-        // Intento 3: directo
+        // Convertir via IA
         resultado = await callAnthropic([
-          { role: 'user', content: [img, { type: 'text', text: F1 + '\n\n' + F2 }] }
+          { role:'user', content:[img,{type:'text',text:F1}] },
+          { role:'assistant', content:textoOperario },
+          { role:'user', content:F2 }
+        ], 8192);
+      } else {
+        resultado = await callAnthropic([
+          { role:'user', content:[img,{type:'text',text:F1+'\n\n'+F2}] }
         ], 4096);
       }
 
       const parsed = extraerJSON(resultado);
       if (parsed?.piezas?.length) {
-        return res.status(200).json({ piezas: parsed.piezas.map(norm), _intentos: i });
+        return res.status(200).json({ piezas:parsed.piezas.map(norm), _intentos:i });
       }
-      lastError = `Intento ${i}: sin piezas. "${resultado?.slice(0, 120)}"`;
+      lastError = `Intento ${i}: sin piezas. "${resultado?.slice(0,120)}"`;
     } catch (e) {
       lastError = `Intento ${i}: ${e.message}`;
       if (i < 3) await new Promise(r => setTimeout(r, i * 3000));
     }
   }
-  return res.status(422).json({ error: 'No se pudo leer. ' + lastError });
+  return res.status(422).json({ error:'No se pudo leer. '+lastError });
 }
