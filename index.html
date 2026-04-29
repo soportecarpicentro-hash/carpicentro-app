@@ -1606,7 +1606,8 @@ function irStepBtn(n){
 // ══════════════════════════════════════════════════════
 // PANEL DE CONFIRMACIÓN DE CANTOS (tras lectura IA)
 // ══════════════════════════════════════════════════════
-var CANTO_CICLO = ['','D','G'];
+var CANTO_CICLO = ['','D','G','DM','GM'];
+
 function cbNext(val){
   var i = CANTO_CICLO.indexOf(val);
   return CANTO_CICLO[(i+1) % CANTO_CICLO.length];
@@ -1847,8 +1848,15 @@ function leerTodasConIA(){
     resultados.forEach(function(r){ if(r&&r.piezas) todasPiezas=todasPiezas.concat(r.piezas); });
     if(!todasPiezas.length) throw new Error('No se detectaron piezas en ninguna imagen');
     var conDuda=todasPiezas.filter(function(p){return p.obs&&p.obs.indexOf('REVISAR:')>=0;});
-    // Preservar colorDGGlobal si está seleccionado
+    // Auto-detectar color del material si colorDGGlobal no está definido
     var colDUsado=colorDGGlobal||'';
+    if(!colDUsado && todasPiezas.length){
+      var mat0 = (todasPiezas[0].material||'').toUpperCase();
+      var colorAuto = CANTO_COLORES.find(function(c){
+        return mat0.indexOf(c.toUpperCase())>=0 || c.toUpperCase().split(' ').some(function(w){ return w.length>3 && mat0.indexOf(w)>=0; });
+      });
+      if(colorAuto){ colDUsado=colorAuto; colorDGGlobal=colorAuto; var sDG=el('colorDGGlobal'); if(sDG) sDG.value=colorAuto; }
+    }
     pcs=todasPiezas.map(function(p){
       return {material:p.material||'MELA PELIKANO BLANCO',qty:Math.max(1,parseInt(p.qty)||1),
         largo:parseInt(p.largo)||'',ancho:parseInt(p.ancho)||'',veta:p.veta||'1-Longitud',
@@ -1993,8 +2001,25 @@ function bindMatBtns(tb, arr){
   tb.querySelectorAll('.mat-btn[data-prefix]').forEach(function(btn){
     btn.addEventListener('click',function(){
       var i=parseInt(this.dataset.i), prefix=this.dataset.prefix;
-      matFiltroTipo=null; // reset filtro — tablero muestra todos los grupos
-      abrirMat(function(mat){ arr[i].material=mat; if(prefix==='c') renderTabla(); else renderEditT(); }, arr[i].material);
+      matFiltroTipo=null;
+      abrirMat(function(mat){
+        arr[i].material=mat;
+        // Auto-asignar color D/G global al color del material si no está definido
+        if(!colorDGGlobal && mat && MAT_COL[mat]){
+          // Buscar el nombre del color en CANTO_COLORES más cercano al material
+          var matNorm = mat.toUpperCase();
+          var colorMatch = CANTO_COLORES.find(function(c){
+            return matNorm.indexOf(c.toUpperCase()) >= 0 || c.toUpperCase().split(' ').some(function(w){ return w.length>3 && matNorm.indexOf(w)>=0; });
+          });
+          if(colorMatch){
+            colorDGGlobal = colorMatch;
+            pcs.forEach(function(p){ if(!p.col_d) p.col_d = colorMatch; });
+            var selDG = el('colorDGGlobal');
+            if(selDG) selDG.value = colorMatch;
+          }
+        }
+        if(prefix==='c') renderTabla(); else renderEditT();
+      }, arr[i].material);
     });
   });
 }
