@@ -608,7 +608,10 @@ tr:hover td{background:#FFF5F5;}
             <thead><tr>
               <th>#</th><th class="l">Material</th><th>Cant.</th>
               <th>Largo</th><th>Ancho</th><th>Veta</th>
-              <th>L1</th><th>L2</th><th>A1</th><th>A2</th><th class="l">Obs.</th>
+              <th>L1</th><th>L2</th><th>A1</th><th>A2</th>
+              <th style="color:#CE93D8;">Perf.</th>
+              <th style="color:#80DEEA;">Ranura</th>
+              <th class="l">Obs.</th>
             </tr></thead>
             <tbody id="dtb"></tbody>
           </table>
@@ -1743,6 +1746,36 @@ function usarComoBase(ped){
   }).catch(function(e){ alert('Error al cargar piezas: '+e.message); });
 }
 
+
+// ── DETECCIÓN AUTOMÁTICA DE COLOR DEL MATERIAL ─────────────────────
+function detectarColorMaterial(mat){
+  if(!mat) return '';
+  var m = mat.toUpperCase();
+  // 1. Buscar coincidencia exacta en CANTO_COLORES
+  for(var i=0; i<CANTO_COLORES.length; i++){
+    var c = CANTO_COLORES[i].toUpperCase();
+    if(m.indexOf(c)>=0) return CANTO_COLORES[i];
+  }
+  // 2. Buscar por palabras del color (>3 letras) en el nombre del material
+  for(var i=0; i<CANTO_COLORES.length; i++){
+    var palabras = CANTO_COLORES[i].toUpperCase().split(/[\s\/]+/);
+    for(var j=0; j<palabras.length; j++){
+      if(palabras[j].length>3 && m.indexOf(palabras[j])>=0) return CANTO_COLORES[i];
+    }
+  }
+  return '';
+}
+
+function autoColorDesdemat(mat){
+  var colorMatch = detectarColorMaterial(mat);
+  if(colorMatch){
+    colorDGGlobal = colorMatch;
+    pcs.forEach(function(p){ if(!p.col_d) p.col_d = colorMatch; });
+    var selDG = el('colorDGGlobal');
+    if(selDG) selDG.value = colorMatch;
+  }
+}
+
 // Exponer globalmente para que funcionen los onclick del HTML
 window.irStepBtn = irStepBtn;
 function irPaso(n){
@@ -1893,7 +1926,12 @@ function leerTodasConIA(){
     if(!todasPiezas.length) throw new Error('No se detectaron piezas en ninguna imagen');
     var conDuda=todasPiezas.filter(function(p){return p.obs&&p.obs.indexOf('REVISAR:')>=0;});
     // Preservar colorDGGlobal si está seleccionado
+    // Auto-detectar color del material si no hay uno definido
     var colDUsado=colorDGGlobal||'';
+    if(!colDUsado && todasPiezas.length){
+      var colorAuto=detectarColorMaterial(todasPiezas[0].material||'');
+      if(colorAuto){ colDUsado=colorAuto; colorDGGlobal=colorAuto; var sDG=el('colorDGGlobal'); if(sDG) sDG.value=colorAuto; }
+    }
     pcs=todasPiezas.map(function(p){
       return {material:p.material||'MELA PELIKANO BLANCO',qty:Math.max(1,parseInt(p.qty)||1),
         largo:parseInt(p.largo)||'',ancho:parseInt(p.ancho)||'',veta:p.veta||'1-Longitud',
@@ -2655,6 +2693,13 @@ function abrirDet(id){
         +'<td style="font-size:11px;">'+(p.veta==='1-Longitud'?'L':p.veta==='2-Ancho'?'A':'—')+'</td>'
         +(noEc?'<td colspan="4" style="text-align:center;font-size:10px;color:#999;background:#f5f5f5;">Sin enchape</td>'
           :'<td>'+(p.l1||'—')+'</td><td>'+(p.l2||'—')+'</td><td>'+(p.a1||'—')+'</td><td>'+(p.a2||'—')+'</td>')
+        // Perforación
+        +(p.perf_det?'<td style="font-size:11px;color:#9C27B0;font-weight:700;background:#F3E5F5;text-align:center;">'+p.perf_det+'</td>'
+          :'<td style="color:#ccc;text-align:center;">—</td>')
+        // Ranura
+        +(p.ran_det||p.ran_libre?'<td style="font-size:11px;color:#00838F;font-weight:700;background:#E0F7FA;text-align:center;">'+(p.ran_det||('R/'+p.ran_libre+'/'+p.ran_espe+'/'+p.ran_prof))+'</td>'
+          :(p.obs&&p.obs.toLowerCase().indexOf('ranura')>=0?'<td style="font-size:10px;color:#F57F17;background:#FFF9C4;text-align:center;">Ver obs.</td>'
+          :'<td style="color:#ccc;text-align:center;">—</td>'))
         +'<td class="l" style="font-size:12px;color:var(--tx2);">'+(p.obs||'')+'</td></tr>';
     }).join('');
     // Panel de fórmicas
