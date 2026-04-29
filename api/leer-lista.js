@@ -1,5 +1,5 @@
-// api/leer-lista.js — CARPICENTRO v17
-// Prompt de razonamiento universal — funciona con cualquier lista
+// api/leer-lista.js — CARPICENTRO v18
+// Detecta: símbolos cerca del número (arriba/abajo), letras D/G en tabla, subrayado rojo
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -55,123 +55,114 @@ export default async function handler(req, res) {
     let material = 'MELA PELIKANO BLANCO';
     let cur = null;
     const flush = () => { if (cur?.largo && cur?.ancho) piezas.push({...cur}); cur = null; };
-    const limpia = v => { v = String(v||'').trim(); return ['','-','–','—'].includes(v)?'':v; };
+    const limpia = v => { v = String(v||'').trim(); return ['','-','–','—'].includes(v) ? '' : v; };
     const num = v => Math.round(parseFloat(String(v||'').replace(',','.'))||0);
     for (const l of lineas) {
-      if (/^material[:\s]/i.test(l)) { flush(); material=l.replace(/^material[:\s]*/i,'').trim()||material; continue; }
-      if (/^cant[:\s]/i.test(l)) { flush(); cur={material,qty:parseInt(l.replace(/^cant[:\s]*/i,''))||1,largo:0,ancho:0,veta:'1-Longitud',l1:'',l2:'',a1:'',a2:'',perf_cant:'',perf_lado:'',perf_det:'',ran_libre:'',ran_espe:'',ran_prof:'',ran_lado:'',ran_det:'',obs:''}; continue; }
+      if (/^material[:\s]/i.test(l)) { flush(); material = l.replace(/^material[:\s]*/i,'').trim()||material; continue; }
+      if (/^cant[:\s]/i.test(l)) { flush(); cur = {material,qty:parseInt(l.replace(/^cant[:\s]*/i,''))||1,largo:0,ancho:0,veta:'1-Longitud',l1:'',l2:'',a1:'',a2:'',perf_cant:'',perf_lado:'',perf_det:'',ran_libre:'',ran_espe:'',ran_prof:'',ran_lado:'',ran_det:'',obs:''}; continue; }
       if (!cur) continue;
-      if (/^largo[^:]*:/i.test(l)) { cur.largo=num(l.replace(/^largo[^:]*:/i,'')); continue; }
-      if (/^ancho[^:]*:/i.test(l)) { cur.ancho=num(l.replace(/^ancho[^:]*:/i,'')); continue; }
-      if (/^l1[:\s]/i.test(l)) { cur.l1=limpia(l.replace(/^l1[:\s]*/i,'')); continue; }
-      if (/^l2[:\s]/i.test(l)) { cur.l2=limpia(l.replace(/^l2[:\s]*/i,'')); continue; }
-      if (/^a1[:\s]/i.test(l)) { cur.a1=limpia(l.replace(/^a1[:\s]*/i,'')); continue; }
-      if (/^a2[:\s]/i.test(l)) { cur.a2=limpia(l.replace(/^a2[:\s]*/i,'')); continue; }
-      if (/^obs[:\s]/i.test(l)) { cur.obs=l.replace(/^obs[:\s]*/i,'').trim(); continue; }
+      if (/^largo[^:]*:/i.test(l)) { cur.largo = num(l.replace(/^largo[^:]*:/i,'')); continue; }
+      if (/^ancho[^:]*:/i.test(l)) { cur.ancho = num(l.replace(/^ancho[^:]*:/i,'')); continue; }
+      if (/^l1[:\s]/i.test(l)) { cur.l1 = limpia(l.replace(/^l1[:\s]*/i,'')); continue; }
+      if (/^l2[:\s]/i.test(l)) { cur.l2 = limpia(l.replace(/^l2[:\s]*/i,'')); continue; }
+      if (/^a1[:\s]/i.test(l)) { cur.a1 = limpia(l.replace(/^a1[:\s]*/i,'')); continue; }
+      if (/^a2[:\s]/i.test(l)) { cur.a2 = limpia(l.replace(/^a2[:\s]*/i,'')); continue; }
+      if (/^obs[:\s]/i.test(l)) { cur.obs = l.replace(/^obs[:\s]*/i,'').trim(); continue; }
     }
     flush();
     return piezas.length ? {piezas} : null;
   }
 
   function norm(p) {
-    const s = v => String(v??'').trim();
-    const n = v => Math.round(parseFloat(String(v??'').replace(',','.'))||0);
-    const c = v => { const x=s(v).toUpperCase(); return ['D','G','DM','GM'].includes(x)?x:''; };
+    const s = v => String(v ?? '').trim();
+    const n = v => Math.round(parseFloat(String(v ?? '').replace(',', '.')) || 0);
+    const c = v => { const x = s(v).toUpperCase(); return ['D','G','DM','GM'].includes(x) ? x : ''; };
     return {
-      material: s(p.material)||'MELA PELIKANO BLANCO',
-      qty: Math.max(1,parseInt(p.qty)||1),
+      material: s(p.material) || 'MELA PELIKANO BLANCO',
+      qty: Math.max(1, parseInt(p.qty) || 1),
       largo: n(p.largo), ancho: n(p.ancho),
-      veta: s(p.veta)||'1-Longitud',
-      l1:c(p.l1), l2:c(p.l2), a1:c(p.a1), a2:c(p.a2),
-      perf_cant:s(p.perf_cant), perf_lado:s(p.perf_lado), perf_det:s(p.perf_det),
-      ran_libre:s(p.ran_libre), ran_espe:s(p.ran_espe), ran_prof:s(p.ran_prof),
-      ran_lado:s(p.ran_lado), ran_det:s(p.ran_det),
-      obs:s(p.obs),
+      veta: s(p.veta) || '1-Longitud',
+      l1: c(p.l1), l2: c(p.l2), a1: c(p.a1), a2: c(p.a2),
+      perf_cant: s(p.perf_cant), perf_lado: s(p.perf_lado), perf_det: s(p.perf_det),
+      ran_libre: s(p.ran_libre), ran_espe: s(p.ran_espe), ran_prof: s(p.ran_prof),
+      ran_lado: s(p.ran_lado), ran_det: s(p.ran_det),
+      obs: s(p.obs),
     };
   }
 
-  const img = { type:'image', source:{type:'base64',media_type:mt,data:imagen_b64} };
+  const img = { type: 'image', source: { type: 'base64', media_type: mt, data: imagen_b64 } };
 
-  // ══════════════════════════════════════════════════════
-  // FASE 1 — Leer como operario experto
-  // ══════════════════════════════════════════════════════
   const F1 = `Eres un operario experto en lectura de órdenes de corte de melamina.
-Interpretas EXACTAMENTE como un humano del taller.
+Interpreta EXACTAMENTE como lo haría un humano del taller.
 
-━━━ PASO 1: ESCANEA TODA LA IMAGEN ANTES DE INTERPRETAR ━━━
-Antes de procesar pieza por pieza:
-- ¿Cuántas columnas de piezas hay?
-- ¿El cliente usa símbolos arriba o abajo de los números?
-- ¿Qué tipo de símbolos usa principalmente (rectas, gusanitos, letras, X)?
-- ¿Los números parecen MM (grandes: 1200, 580) o CM (pequeños: 42.0, 58)?
+━━━ PASO 1: IDENTIFICA EL FORMATO DE LA HOJA ━━━
+Antes de leer, determina qué formato usa esta lista:
 
-━━━ PASO 2: IDENTIFICAR SÍMBOLOS ━━━
-Los clientes marcan los cantos con trazos escritos a mano CERCA de cada número.
-El color no importa. Lo que importa: el trazo está deliberadamente sobre/bajo ese número.
+FORMATO A — SÍMBOLOS CERCA DEL NÚMERO (más común):
+  El cliente dibuja líneas o gusanitos directamente sobre/bajo el número.
+  Ejemplo: número 420 con ≈≈ encima y == debajo.
 
-Tipos de trazo:
-  Línea ondulada / gusanito (≈ ~~~)  → G
-  Línea recta / plana (— == ══)      → D
-  Palo vertical  |                    → D
-  X encima del número                 → G
-  Letra D escrita                     → D
-  Letra G escrita                     → G
-  DM / Dm                             → DM
-  GM / Gm                             → GM
-  Puntos (° oo)                       → PERFORACIÓN (no es canto, anotar en perf)
+FORMATO B — TABLA CON COLUMNAS DE CANTO:
+  La hoja tiene columnas explícitas: L1 | L2 | A1 | A2
+  El cliente escribe la letra D, G, o deja vacío en cada columna.
+  Ejemplo: cantidad | largo | ancho | L1=D | L2=G | A1=D | A2=
+  Si ves columnas L1/L2/A1/A2 con letras escritas → LEER ESAS COLUMNAS DIRECTAMENTE.
 
-━━━ PASO 3: ASIGNAR POR NÚMERO ━━━
-Para cada pieza, analiza el número del LARGO y el número del ANCHO POR SEPARADO.
+FORMATO C — SUBRAYADO BAJO LA MEDIDA:
+  El cliente subraya (una o dos veces) el número con lápiz o bolígrafo.
+  El subrayado puede ser de cualquier color.
+  1 subrayado simple = 1 canto D
+  2 subrayados = 2 cantos D,D
+  Subrayado ondulado = G
 
-Para el número LARGO:
-  Cuenta cuántos trazos hay pegados a ese número.
-  El trazo más CERCANO al número → L1
-  El trazo más LEJANO → L2
-  Si hay 1 solo trazo → L1=tipo, L2=-
-  Si no hay ninguno → L1=- L2=-
+━━━ PASO 2: SÍMBOLOS Y SU SIGNIFICADO ━━━
+  ~ ≈ ~~~ (ondulado/gusanito)   → G (grueso)
+  — = ══ (recta/plana)          → D (delgado)
+  | (palo vertical)              → D
+  X encima del número            → G
+  Letra D escrita                → D
+  Letra G escrita                → G
+  DM / Dm                        → DM
+  GM / Gm                        → GM
+  Puntos °° junto al número      → PERFORACIÓN (no canto)
 
-Para el número ANCHO (misma lógica):
-  El trazo más CERCANO al número → A1
-  El trazo más LEJANO → A2
-  Si hay 1 solo trazo → A1=tipo, A2=-
-  Si no hay ninguno → A1=- A2=-
+━━━ PASO 3: ASIGNACIÓN (MÁXIMA PRIORIDAD) ━━━
+Para cada número (LARGO y ANCHO POR SEPARADO):
 
-━━━ TABLA DE COMBINACIONES ━━━
-1 gusanito cerca del número    → L1=G  L2=-
-1 recta cerca del número       → L1=D  L2=-
-gusanito(cerca) + recta(lejos) → L1=G  L2=D
-recta(cerca) + gusanito(lejos) → L1=D  L2=G
-2 gusanitos                    → L1=G  L2=G
-2 rectas                       → L1=D  L2=D
-sin trazos                     → L1=-  L2=-
+  El símbolo/trazo MÁS CERCANO al número → L1 (o A1)
+  El símbolo/trazo MÁS LEJANO → L2 (o A2)
+
+  0 trazos → L1=- L2=-
+  1 trazo  → L1=tipo, L2=-
+  2 trazos → L1=tipo_cercano, L2=tipo_lejano
+
+  ⚠️ Si hay 2 trazos: AMBOS deben aparecer. No dejar L2 vacío si hay 2 trazos.
+  ⚠️ Los trazos del LARGO no se copian al ANCHO ni viceversa.
+  ⚠️ No copiar cantos de otras filas.
 
 ━━━ PASO 4: UNIDADES ━━━
-Convierte todo a MM:
-  Número entero grande (≥200) sin unidad → MM tal cual
-  Número pequeño con decimal (42.0, 58.5, 116.9) → probablemente CM → ×10
-  Con "cm" explícito → ×10 | Con "m" explícito → ×1000
+  Número entero (420, 864, 1982) → MM tal cual
+  Número con decimal (42.0, 58.5, 116.9) → CM → ×10 → MM
+  Con "cm" explícito → ×10 | Con "m" → ×1000
 
-━━━ PASO 5: OBSERVACIONES Y EXTRAS ━━━
-Texto a la derecha de la pieza → Obs
-Ranura "RAN/R/RA" + números → ran_libre, ran_espe, ran_prof, ran_lado
-Ranura sin números → Obs: Indicar especificaciones de ranura
-Perforación (puntos °°) → perf_cant=N, perf_lado=número_junto_mm
+━━━ PASO 5: EXTRAS ━━━
+  Ranura "RAN/R/RA" + números → ran_libre, ran_espe, ran_prof, ran_lado
+  Ranura sin números → obs="Indicar especificaciones de ranura"
+  Perforación (puntos) → perf_cant=N, perf_lado=medida_mm
 
 ━━━ REGLAS ESTRICTAS ━━━
-✗ No duplicar cantos automáticamente
-✗ No copiar de otras filas
-✗ No inventar trazos
-✗ No asumir que todos los lados tienen canto
-✓ Si no ves trazo → campo vacío
+  ✗ No duplicar cantos automáticamente
+  ✗ No copiar de otras filas
+  ✗ No inventar trazos
+  ✗ Si no hay trazo → campo vacío "-"
 
 ━━━ VALIDACIÓN ANTES DE RESPONDER ━━━
-Para cada pieza verifica:
-1. ¿Analicé el LARGO y el ANCHO por separado?
-2. ¿Si vi 1 trazo dejé el segundo campo en "-"?
-3. ¿No copié cantos de la fila anterior?
-4. ¿Las medidas están en MM?
+  1. ¿Analicé LARGO y ANCHO por separado?
+  2. ¿Si hay 1 trazo, L2 queda "-"?
+  3. ¿Si hay 2 trazos, ambos aparecen?
+  4. ¿No copié de otras filas?
 
-━━━ FORMATO DE SALIDA ━━━
+━━━ SALIDA ━━━
 Material: <nombre>
 Cant:<n>
 largo(veta):<mm>
@@ -180,15 +171,12 @@ L1:<G|D|DM|GM|->
 L2:<G|D|DM|GM|->
 A1:<G|D|DM|GM|->
 A2:<G|D|DM|GM|->
-Obs:<texto>
+Obs:<texto o vacío>`;
 
-Repite el bloque para CADA pieza. Lee TODAS las columnas de la imagen.`;
+  const F2 = `Convierte la lectura al JSON del sistema CARPICENTRO.
+"-" en cantos → "" (vacío). Obs vacío → "".
 
-  const F2 = `Convierte la lectura anterior al JSON del sistema CARPICENTRO.
-"-" en cantos → "" (campo vacío en JSON).
-Obs vacío → "".
-
-RESPONDE SOLO CON EL JSON (sin texto antes ni después):
+RESPONDE SOLO CON EL JSON:
 {"piezas":[{
   "material":"string","qty":1,"largo":0,"ancho":0,"veta":"1-Longitud",
   "l1":"","l2":"","a1":"","a2":"",
@@ -203,36 +191,34 @@ RESPONDE SOLO CON EL JSON (sin texto antes ni después):
       let resultado;
       if (i <= 2) {
         const textoOperario = await callAnthropic([
-          { role:'user', content:[img,{type:'text',text:F1}] }
+          { role: 'user', content: [img, { type: 'text', text: F1 }] }
         ], 4000);
 
-        // Intentar parsear texto directo
         const parseado = parsearTexto(textoOperario);
         if (parseado?.piezas?.length) {
-          return res.status(200).json({ piezas:parseado.piezas.map(norm), _intentos:i, _via:'parser' });
+          return res.status(200).json({ piezas: parseado.piezas.map(norm), _intentos: i, _via: 'parser' });
         }
 
-        // Convertir via IA
         resultado = await callAnthropic([
-          { role:'user', content:[img,{type:'text',text:F1}] },
-          { role:'assistant', content:textoOperario },
-          { role:'user', content:F2 }
+          { role: 'user', content: [img, { type: 'text', text: F1 }] },
+          { role: 'assistant', content: textoOperario },
+          { role: 'user', content: F2 }
         ], 8192);
       } else {
         resultado = await callAnthropic([
-          { role:'user', content:[img,{type:'text',text:F1+'\n\n'+F2}] }
+          { role: 'user', content: [img, { type: 'text', text: F1 + '\n\n' + F2 }] }
         ], 4096);
       }
 
       const parsed = extraerJSON(resultado);
       if (parsed?.piezas?.length) {
-        return res.status(200).json({ piezas:parsed.piezas.map(norm), _intentos:i });
+        return res.status(200).json({ piezas: parsed.piezas.map(norm), _intentos: i });
       }
-      lastError = `Intento ${i}: sin piezas. "${resultado?.slice(0,120)}"`;
+      lastError = `Intento ${i}: sin piezas. "${resultado?.slice(0, 120)}"`;
     } catch (e) {
       lastError = `Intento ${i}: ${e.message}`;
       if (i < 3) await new Promise(r => setTimeout(r, i * 3000));
     }
   }
-  return res.status(422).json({ error:'No se pudo leer. '+lastError });
+  return res.status(422).json({ error: 'No se pudo leer. ' + lastError });
 }
