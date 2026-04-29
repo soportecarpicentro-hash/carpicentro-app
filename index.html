@@ -247,6 +247,35 @@ tr:hover td{background:#FFF5F5;}
 .cb-grp{display:flex;gap:4px;}
 .cb-lbl{font-size:9px;color:var(--tx3);margin-bottom:2px;font-weight:700;text-align:center;}
 .cb-wrap{display:flex;flex-direction:column;align-items:center;}
+
+/* ── VISTA DE EDICIÓN REDISEÑADA ── */
+.ecard{background:var(--bg);border:1.5px solid var(--bd);border-radius:12px;padding:14px 16px;margin-bottom:10px;position:relative;}
+.ecard:hover{border-color:#FFD600;box-shadow:0 2px 8px rgba(255,214,0,.12);}
+.ecard-num{position:absolute;top:10px;left:14px;font-size:11px;font-weight:800;color:var(--tx3);width:18px;text-align:center;}
+.ecard-body{margin-left:26px;}
+.ecard-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px;}
+.ecard-row:last-child{margin-bottom:0;}
+.ecard-fld{display:flex;flex-direction:column;gap:4px;}
+.ecard-lbl{font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;}
+.ecard-inp{border:1.5px solid var(--bd2);border-radius:8px;padding:8px 10px;font-size:14px;font-weight:600;font-family:inherit;background:var(--bg);color:var(--tx);outline:none;transition:border-color .12s;}
+.ecard-inp:focus{border-color:#FFD600;}
+.ecard-inp.w-qty{width:56px;text-align:center;}
+.ecard-inp.w-med{width:80px;text-align:center;}
+.ecard-inp.w-obs{flex:1;min-width:140px;}
+.ecard-inp.w-ran{width:56px;text-align:center;}
+.ecard-canto{display:flex;flex-direction:column;gap:4px;}
+.ecard-canto-lbl{font-size:10px;font-weight:700;color:#1565C0;text-transform:uppercase;letter-spacing:.4px;}
+.ecard-canto-sel{border:1.5px solid #BBDEFB;border-radius:8px;padding:7px 6px;font-size:13px;font-weight:700;font-family:inherit;background:#E3F2FD;color:#0D47A1;outline:none;cursor:pointer;width:56px;text-align:center;}
+.ecard-canto-sel:focus{border-color:#1565C0;}
+.ecard-canto-sel.canto-G{background:#FFEBEE;color:#B71C1C;border-color:#FFCDD2;}
+.ecard-canto-sel.canto-vacio{background:var(--bg2);color:var(--tx3);border-color:var(--bd);}
+.ecard-perf{background:#F3E5F5;border-radius:8px;padding:8px 10px;}
+.ecard-ran{background:#E0F7FA;border-radius:8px;padding:8px 10px;}
+.ecard-sect{font-size:10px;font-weight:800;color:var(--tx3);margin-bottom:6px;text-transform:uppercase;}
+.ecard-del{position:absolute;top:10px;right:10px;background:transparent;border:none;color:#ccc;cursor:pointer;padding:4px;border-radius:6px;font-size:16px;line-height:1;}
+.ecard-del:hover{background:#FFF0F0;color:#c62828;}
+.enw-btn{width:100%;padding:12px;border:1.5px dashed var(--bd2);border-radius:10px;background:transparent;color:var(--tx3);font-size:13px;cursor:pointer;margin-top:4px;transition:all .12s;}
+.enw-btn:hover{border-color:#FFD600;color:#b8860b;background:#FFFDE7;}
 </style>
 </head>
 <body>
@@ -650,20 +679,8 @@ tr:hover td{background:#FFF5F5;}
       <div class="ovltit">✏️ Editar piezas</div>
       <button type="button" id="btnCerrarEdit" class="ovlx">✕</button>
     </div>
-    <div class="tw" style="margin-bottom:12px;">
-      <table>
-        <thead><tr>
-          <th>#</th><th class="l">Material</th><th>Cant.</th>
-          <th>Largo</th><th>Ancho</th>
-          <th>L1</th><th>L2</th><th>A1</th><th>A2</th>
-          <th class="l">Obs.</th><th></th>
-        </tr></thead>
-        <tbody id="etb"></tbody>
-      </table>
-    </div>
-    <div class="arb" style="border-radius:var(--rads);margin-bottom:14px;">
-      <button type="button" id="btnAddEditRow" class="btn bs" style="font-size:13px;padding:7px 12px;">+ Fila</button>
-    </div>
+    <div id="etb" style="margin-bottom:12px;"></div>
+    <button type="button" id="btnAddEditRow" class="enw-btn">+ Agregar pieza</button>
     <div class="btn-row" style="margin-top:4px;">
       <button type="button" id="btnCancelarEdit" class="btn bs">Cancelar</button>
       <button type="button" id="btnGuardarEdit" class="btn bp">💾 Guardar</button>
@@ -1628,7 +1645,7 @@ function irStepBtn(n){
 // ══════════════════════════════════════════════════════
 // PANEL DE CONFIRMACIÓN DE CANTOS (tras lectura IA)
 // ══════════════════════════════════════════════════════
-var CANTO_CICLO = ['','D','G'];
+var CANTO_CICLO = ['','D','G','DM','GM'];
 
 function cbNext(val){
   var i = CANTO_CICLO.indexOf(val);
@@ -2084,6 +2101,7 @@ function bindMatBtns(tb, arr){
 function bindInputs(tb, arr, isMain){
   tb.querySelectorAll('[data-k]').forEach(function(inp){
     if(inp.classList.contains('mat-btn')) return;
+    if(inp.classList.contains('ecard-del')) return;
     var fn=function(){
       var i=parseInt(this.dataset.i),k=this.dataset.k;
       if(!isNaN(i)&&k){
@@ -2807,29 +2825,129 @@ function eliminarHistorial(){
 }
 
 // ── EDICIÓN OVERLAY ───────────────────────────────────────
+function eCantoClass(v){ return v==='G'||v==='GM'?'canto-G':(!v||v==='—'?'canto-vacio':''); }
 function renderEditT(){
   var tb=el('etb'); tb.innerHTML='';
   pzEdit.forEach(function(p,i){
-    var tr=document.createElement('tr');
-    tr.innerHTML='<td><span style="font-size:11px;color:var(--tx3);">'+(i+1)+'</span></td>'
-      +'<td class="l" style="min-width:150px;">'+mkMatBtn(i,p.material,'e')+'</td>'
-      +'<td><input class="ti" type="text" inputmode="numeric" value="'+(p.qty||'')+'" placeholder="0" style="width:40px;" data-i="'+i+'" data-k="qty"></td>'
-      +'<td><input class="ti" type="text" inputmode="decimal" value="'+(p.largo||'')+'" placeholder="0" style="width:54px;" data-i="'+i+'" data-k="largo"></td>'
-      +'<td><input class="ti" type="text" inputmode="decimal" value="'+(p.ancho||'')+'" placeholder="0" style="width:54px;" data-i="'+i+'" data-k="ancho"></td>'
-      +['l1','l2','a1','a2'].map(function(s){ return '<td><select class="tis" data-i="'+i+'" data-k="'+s+'">'+cantoOpts(p[s])+'</select></td>'; }).join('')
-      +'<td class="l"><input class="ti" type="text" value="'+(p.obs||'')+'" style="width:78px;text-align:left;" data-i="'+i+'" data-k="obs"></td>'
-      +'<td><button type="button" class="db" data-del="'+i+'"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg></button></td>';
-    tb.appendChild(tr);
+    var card=document.createElement('div');
+    card.className='ecard';
+    card.innerHTML=
+      '<div class="ecard-num">'+(i+1)+'</div>'
+      +'<div class="ecard-body">'
+        // Fila 1: Material + Cant + Largo + Ancho + Veta
+        +'<div class="ecard-row">'
+          +'<div class="ecard-fld" style="flex:1;min-width:160px;">'
+            +'<div class="ecard-lbl">Material</div>'
+            +mkMatBtn(i,p.material,'e')
+          +'</div>'
+          +'<div class="ecard-fld">'
+            +'<div class="ecard-lbl">Cant.</div>'
+            +'<input class="ecard-inp w-qty" type="text" inputmode="numeric" value="'+(p.qty||'')+'" placeholder="1" data-i="'+i+'" data-k="qty">'
+          +'</div>'
+          +'<div class="ecard-fld">'
+            +'<div class="ecard-lbl">Largo (mm)</div>'
+            +'<input class="ecard-inp w-med" type="text" inputmode="numeric" value="'+(p.largo||'')+'" placeholder="0" data-i="'+i+'" data-k="largo">'
+          +'</div>'
+          +'<div class="ecard-fld">'
+            +'<div class="ecard-lbl">Ancho (mm)</div>'
+            +'<input class="ecard-inp w-med" type="text" inputmode="numeric" value="'+(p.ancho||'')+'" placeholder="0" data-i="'+i+'" data-k="ancho">'
+          +'</div>'
+        +'</div>'
+        // Fila 2: Cantos L1 L2 A1 A2 + Obs
+        +'<div class="ecard-row">'
+          +['l1','l2','a1','a2'].map(function(k,ki){
+            var lbl=['L1','L2','A1','A2'][ki];
+            return '<div class="ecard-canto">'
+              +'<div class="ecard-canto-lbl">'+lbl+'</div>'
+              +'<select class="ecard-canto-sel '+eCantoClass(p[k])+'" data-i="'+i+'" data-k="'+k+'">'+cantoOpts(p[k])+'</select>'
+            +'</div>';
+          }).join('')
+          +'<div class="ecard-fld" style="flex:1;">'
+            +'<div class="ecard-lbl">Observaciones</div>'
+            +'<input class="ecard-inp w-obs" type="text" value="'+(p.obs||'')+'" placeholder="—" data-i="'+i+'" data-k="obs">'
+          +'</div>'
+        +'</div>'
+        // Fila 3: Perforación (si hay o siempre editable)
+        +'<div class="ecard-row">'
+          +'<div class="ecard-perf" style="flex:1;">'
+            +'<div class="ecard-sect" style="color:#9C27B0;">⬤ Perforación</div>'
+            +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+              +'<div class="ecard-fld">'
+                +'<div class="ecard-lbl">Cantidad</div>'
+                +'<input class="ecard-inp w-ran" type="text" inputmode="numeric" value="'+(p.perf_cant||'')+'" placeholder="—" data-i="'+i+'" data-k="perf_cant">'
+              +'</div>'
+              +'<div class="ecard-fld">'
+                +'<div class="ecard-lbl">Lado (mm)</div>'
+                +'<input class="ecard-inp w-med" type="text" inputmode="numeric" value="'+(p.perf_lado||'')+'" placeholder="—" data-i="'+i+'" data-k="perf_lado">'
+              +'</div>'
+            +'</div>'
+          +'</div>'
+          +'<div class="ecard-ran" style="flex:2;">'
+            +'<div class="ecard-sect" style="color:#00838F;">▬ Ranura</div>'
+            +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+              +'<div class="ecard-fld">'
+                +'<div class="ecard-lbl">Libre</div>'
+                +'<input class="ecard-inp w-ran" type="text" inputmode="numeric" value="'+(p.ran_libre||'')+'" placeholder="—" data-i="'+i+'" data-k="ran_libre">'
+              +'</div>'
+              +'<div class="ecard-fld">'
+                +'<div class="ecard-lbl">Espesor</div>'
+                +'<input class="ecard-inp w-ran" type="text" inputmode="numeric" value="'+(p.ran_espe||'')+'" placeholder="—" data-i="'+i+'" data-k="ran_espe">'
+              +'</div>'
+              +'<div class="ecard-fld">'
+                +'<div class="ecard-lbl">Prof.</div>'
+                +'<input class="ecard-inp w-ran" type="text" inputmode="numeric" value="'+(p.ran_prof||'')+'" placeholder="—" data-i="'+i+'" data-k="ran_prof">'
+              +'</div>'
+              +'<div class="ecard-fld">'
+                +'<div class="ecard-lbl">Lado (mm)</div>'
+                +'<input class="ecard-inp w-med" type="text" inputmode="numeric" value="'+(p.ran_lado||'')+'" placeholder="—" data-i="'+i+'" data-k="ran_lado">'
+              +'</div>'
+            +'</div>'
+          +'</div>'
+        +'</div>'
+      +'</div>'
+      +'<button type="button" class="ecard-del" data-del="'+i+'">✕</button>';
+
+    // Listeners de canto — cambiar clase según valor
+    card.querySelectorAll('.ecard-canto-sel').forEach(function(sel){
+      sel.addEventListener('change',function(){
+        this.className='ecard-canto-sel '+eCantoClass(this.value);
+      });
+    });
+    tb.appendChild(card);
   });
   bindMatBtns(tb, pzEdit);
   bindInputs(tb, pzEdit);
+  // Listener botones eliminar
+  tb.querySelectorAll('.ecard-del[data-del]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var idx=parseInt(this.dataset.del);
+      if(pzEdit.length<=1){ alert('Debe haber al menos 1 pieza.'); return; }
+      if(!confirm('¿Eliminar la pieza '+(idx+1)+'?')) return;
+      pzEdit.splice(idx,1); renderEditT();
+    });
+  });
 }
 function guardarEdicion(){
   var tot=pzEdit.reduce(function(s,p){ return s+(parseInt(p.qty)||0); },0);
   var mats=[...new Set(pzEdit.map(function(p){ return p.material; }))];
   var btn=el('btnGuardarEdit'); btn.textContent='Guardando...'; btn.disabled=true;
   sbDel('pedido_piezas','pedido_id=eq.'+pedAct.id)
-  .then(function(){ return sbPost('pedido_piezas',pzEdit.map(function(p,i){ return {pedido_id:pedAct.id,linea:i+1,material:p.material,qty:parseInt(p.qty)||1,largo:Math.round(parseFloat(p.largo)||0),ancho:Math.round(parseFloat(p.ancho)||0),veta:p.veta||'1-Longitud',l1:p.l1||'',l2:p.l2||'',a1:p.a1||'',a2:p.a2||'',obs:p.obs||''}; })); })
+  .then(function(){ return sbPost('pedido_piezas',pzEdit.map(function(p,i){
+      // Auto-calcular perf_det y ran_det si faltan
+      var perfDet=p.perf_det||(p.perf_cant&&p.perf_lado?(p.perf_cant+'P/'+p.perf_lado):'');
+      var ranDet=p.ran_det||(p.ran_libre&&p.ran_espe&&p.ran_prof?('R/'+p.ran_libre+'/'+p.ran_espe+'/'+p.ran_prof+(p.ran_lado?'/'+p.ran_lado:'')):'');
+      return {pedido_id:pedAct.id,linea:i+1,
+        material:p.material,qty:parseInt(p.qty)||1,
+        largo:Math.round(parseFloat(p.largo)||0),
+        ancho:Math.round(parseFloat(p.ancho)||0),
+        veta:p.veta||'1-Longitud',
+        l1:p.l1||'',l2:p.l2||'',a1:p.a1||'',a2:p.a2||'',
+        col_d:p.col_d||'',col_dx:p.col_dx||'',col_gx:p.col_gx||'',
+        obs:p.obs||'',
+        perf_cant:p.perf_cant||'',perf_lado:p.perf_lado||'',perf_det:perfDet,
+        ran_libre:p.ran_libre||'',ran_espe:p.ran_espe||'',ran_prof:p.ran_prof||'',
+        ran_lado:p.ran_lado||'',ran_det:ranDet};
+    })); })
   .then(function(){ return sbPatch('pedidos','id=eq.'+pedAct.id,{total_lineas:pzEdit.length,total_piezas:tot,materiales:mats,vendedora_nombre:sesion?sesion.nombre:''}); })
   .then(function(){ return addH(pedAct.id,'pieza_modificada','piezas',null,null,'Piezas editadas por '+(sesion?sesion.nombre:'vendedora')+' · '+pzEdit.length+' líneas'); })
   .then(function(){ el('eovl').classList.remove('open'); abrirDet(pedAct.id); })
