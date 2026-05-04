@@ -1,5 +1,6 @@
-// api/leer-lista.js — CARPICENTRO v18
-// Detecta: símbolos cerca del número (arriba/abajo), letras D/G en tabla, subrayado rojo
+// api/leer-lista.js — CARPICENTRO v19
+// Optimizado para leer MEDIDAS con máxima precisión
+// Los cantos son secundarios y se pueden corregir manualmente
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -43,9 +44,7 @@ export default async function handler(req, res) {
     for (const r of [
       js.slice(0, js.lastIndexOf('},') + 1) + ']}',
       js.slice(0, js.lastIndexOf('}') + 1) + ']}',
-    ]) {
-      try { const p = JSON.parse(r); if (p?.piezas?.length) return p; } catch (_) {}
-    }
+    ]) { try { const p = JSON.parse(r); if (p?.piezas?.length) return p; } catch (_) {} }
     return null;
   }
 
@@ -58,16 +57,16 @@ export default async function handler(req, res) {
     const limpia = v => { v = String(v||'').trim(); return ['','-','–','—'].includes(v) ? '' : v; };
     const num = v => Math.round(parseFloat(String(v||'').replace(',','.'))||0);
     for (const l of lineas) {
-      if (/^material[:\s]/i.test(l)) { flush(); material = l.replace(/^material[:\s]*/i,'').trim()||material; continue; }
-      if (/^cant[:\s]/i.test(l)) { flush(); cur = {material,qty:parseInt(l.replace(/^cant[:\s]*/i,''))||1,largo:0,ancho:0,veta:'1-Longitud',l1:'',l2:'',a1:'',a2:'',perf_cant:'',perf_lado:'',perf_det:'',ran_libre:'',ran_espe:'',ran_prof:'',ran_lado:'',ran_det:'',obs:''}; continue; }
+      if (/^material[:\s]/i.test(l)) { flush(); material=l.replace(/^material[:\s]*/i,'').trim()||material; continue; }
+      if (/^cant[:\s]/i.test(l)) { flush(); cur={material,qty:parseInt(l.replace(/^cant[:\s]*/i,''))||1,largo:0,ancho:0,veta:'1-Longitud',l1:'',l2:'',a1:'',a2:'',perf_cant:'',perf_lado:'',perf_det:'',ran_libre:'',ran_espe:'',ran_prof:'',ran_lado:'',ran_det:'',obs:''}; continue; }
       if (!cur) continue;
-      if (/^largo[^:]*:/i.test(l)) { cur.largo = num(l.replace(/^largo[^:]*:/i,'')); continue; }
-      if (/^ancho[^:]*:/i.test(l)) { cur.ancho = num(l.replace(/^ancho[^:]*:/i,'')); continue; }
-      if (/^l1[:\s]/i.test(l)) { cur.l1 = limpia(l.replace(/^l1[:\s]*/i,'')); continue; }
-      if (/^l2[:\s]/i.test(l)) { cur.l2 = limpia(l.replace(/^l2[:\s]*/i,'')); continue; }
-      if (/^a1[:\s]/i.test(l)) { cur.a1 = limpia(l.replace(/^a1[:\s]*/i,'')); continue; }
-      if (/^a2[:\s]/i.test(l)) { cur.a2 = limpia(l.replace(/^a2[:\s]*/i,'')); continue; }
-      if (/^obs[:\s]/i.test(l)) { cur.obs = l.replace(/^obs[:\s]*/i,'').trim(); continue; }
+      if (/^largo[^:]*:/i.test(l)) { cur.largo=num(l.replace(/^largo[^:]*:/i,'')); continue; }
+      if (/^ancho[^:]*:/i.test(l)) { cur.ancho=num(l.replace(/^ancho[^:]*:/i,'')); continue; }
+      if (/^l1[:\s]/i.test(l)) { cur.l1=limpia(l.replace(/^l1[:\s]*/i,'')); continue; }
+      if (/^l2[:\s]/i.test(l)) { cur.l2=limpia(l.replace(/^l2[:\s]*/i,'')); continue; }
+      if (/^a1[:\s]/i.test(l)) { cur.a1=limpia(l.replace(/^a1[:\s]*/i,'')); continue; }
+      if (/^a2[:\s]/i.test(l)) { cur.a2=limpia(l.replace(/^a2[:\s]*/i,'')); continue; }
+      if (/^obs[:\s]/i.test(l)) { cur.obs=l.replace(/^obs[:\s]*/i,'').trim(); continue; }
     }
     flush();
     return piezas.length ? {piezas} : null;
@@ -92,89 +91,98 @@ export default async function handler(req, res) {
 
   const img = { type: 'image', source: { type: 'base64', media_type: mt, data: imagen_b64 } };
 
-  const F1 = `Eres un operario experto en lectura de órdenes de corte de melamina.
-Interpreta EXACTAMENTE como lo haría un humano del taller.
+  // ══════════════════════════════════════════════════════════════════
+  // FASE 1 — PRIORIDAD: leer medidas con máxima precisión
+  // Los cantos son secundarios (se pueden corregir manualmente)
+  // ══════════════════════════════════════════════════════════════════
+  const F1 = `Eres un operario experto en listas de corte de melamina.
+TU PRIORIDAD ABSOLUTA: leer las MEDIDAS (cantidad, largo, ancho) con máxima precisión.
+Los cantos son secundarios — si tienes duda, deja el campo vacío.
 
-━━━ PASO 1: IDENTIFICA EL FORMATO DE LA HOJA ━━━
-Antes de leer, determina qué formato usa esta lista:
+━━━ PASO 1: IDENTIFICA EL FORMATO ━━━
 
-FORMATO A — SÍMBOLOS CERCA DEL NÚMERO (más común):
-  El cliente dibuja líneas o gusanitos directamente sobre/bajo el número.
-  Ejemplo: número 420 con ≈≈ encima y == debajo.
+La lista puede tener varios formatos. Detecta cuál es antes de leer:
 
-FORMATO B — TABLA CON COLUMNAS DE CANTO:
-  La hoja tiene columnas explícitas: L1 | L2 | A1 | A2
-  El cliente escribe la letra D, G, o deja vacío en cada columna.
-  Ejemplo: cantidad | largo | ancho | L1=D | L2=G | A1=D | A2=
-  Si ves columnas L1/L2/A1/A2 con letras escritas → LEER ESAS COLUMNAS DIRECTAMENTE.
+FORMATO A — Símbolos gráficos sobre el número:
+  Patrón: (cant) LARGO×ANCHO con líneas/gusanitos dibujados encima de cada número
+  Unidades: decimales con punto (57.4, 116.9) → son CM → convertir ×10 a MM
 
-FORMATO C — SUBRAYADO BAJO LA MEDIDA:
-  El cliente subraya (una o dos veces) el número con lápiz o bolígrafo.
-  El subrayado puede ser de cualquier color.
-  1 subrayado simple = 1 canto D
-  2 subrayados = 2 cantos D,D
-  Subrayado ondulado = G
+FORMATO B — Tabla con columnas L1 L2 A1 A2:
+  Patrón: tabla impresa o dibujada con columnas explícitas de canto
+  Lee las letras D/G directamente de cada columna
 
-━━━ PASO 2: SÍMBOLOS Y SU SIGNIFICADO ━━━
-  ~ ≈ ~~~ (ondulado/gusanito)   → G (grueso)
-  — = ══ (recta/plana)          → D (delgado)
-  | (palo vertical)              → D
-  X encima del número            → G
-  Letra D escrita                → D
-  Letra G escrita                → G
-  DM / Dm                        → DM
-  GM / Gm                        → GM
-  Puntos °° junto al número      → PERFORACIÓN (no canto)
+FORMATO C — Letras D/G/GGGG al costado:
+  Patrón: cant → LARGOxANCHO   DDDD o GGGG o DD- etc.
+  Las letras juntas representan los 4 cantos en orden L1 L2 A1 A2
+  Ejemplos:
+    DDDD = L1=D L2=D A1=D A2=D
+    GGGG = L1=G L2=G A1=G A2=G  
+    DD   = L1=D L2=D A1=- A2=-
+    DDD- = L1=D L2=D A1=D A2=-
+    -D-- = L1=- L2=D A1=- A2=-
 
-━━━ PASO 3: ASIGNACIÓN (MÁXIMA PRIORIDAD) ━━━
-Para cada número (LARGO y ANCHO POR SEPARADO):
+FORMATO D — Texto descriptivo al costado:
+  Patrón: cant pzs → LARGO×ANCHO → texto
+  "c/grueso" o "c/G" → todos los cantos visibles = G
+  "c/delgado" o "c/D" → todos los cantos visibles = D
+  "sin canto" → sin cantos
+  "largo c/grueso, largo c/delgado" → L1=G L2=D
+  "RL" o "PL" → sin canto (pieza lisa)
 
-  El símbolo/trazo MÁS CERCANO al número → L1 (o A1)
-  El símbolo/trazo MÁS LEJANO → L2 (o A2)
+FORMATO E — Subrayado bajo las medidas:
+  Subrayado simple (—) bajo el número → D
+  Subrayado doble (══) → D, D
+  Subrayado ondulado (≈) → G
 
-  0 trazos → L1=- L2=-
-  1 trazo  → L1=tipo, L2=-
-  2 trazos → L1=tipo_cercano, L2=tipo_lejano
+━━━ PASO 2: REGLAS DE MEDIDAS (MÁXIMA PRIORIDAD) ━━━
 
-  ⚠️ Si hay 2 trazos: AMBOS deben aparecer. No dejar L2 vacío si hay 2 trazos.
-  ⚠️ Los trazos del LARGO no se copian al ANCHO ni viceversa.
-  ⚠️ No copiar cantos de otras filas.
+1. CANTIDAD: número al inicio de línea, encerrado en círculo, o "N de", "N →", "N pzs"
+2. LARGO × ANCHO: los dos números separados por "x", "×", "X"
+3. UNIDADES:
+   - Entero ≥ 200: MM directo (420, 980, 1982)
+   - Decimal con punto (57.4, 116.9, 38.4): CM → ×10 → MM (574, 1169, 384)
+   - Decimal con coma: ídem
+   - Con punto de miles (1.304,0): es 1304 MM
+4. LÍNEAS TACHADAS: ignorar completamente (son correcciones del cliente)
+5. TEXTO DESPUÉS DE FLECHA (→ ⟹): son observaciones, no medidas
 
-━━━ PASO 4: UNIDADES ━━━
-  Número entero (420, 864, 1982) → MM tal cual
-  Número con decimal (42.0, 58.5, 116.9) → CM → ×10 → MM
-  Con "cm" explícito → ×10 | Con "m" → ×1000
+━━━ PASO 3: CANTOS (secundarios — mejor dejar vacío que equivocarse) ━━━
 
-━━━ PASO 5: EXTRAS ━━━
-  Ranura "RAN/R/RA" + números → ran_libre, ran_espe, ran_prof, ran_lado
-  Ranura sin números → obs="Indicar especificaciones de ranura"
-  Perforación (puntos) → perf_cant=N, perf_lado=medida_mm
+Según el formato detectado:
+- Formato A: trazos cerca del número (≈=G, —=D)
+- Formato B: leer columnas L1/L2/A1/A2 directamente
+- Formato C: interpretar secuencia de letras DDDD/GGGG/DD-/etc.
+- Formato D: interpretar texto descriptivo
+- Formato E: subrayado simple=D, doble=D,D
 
-━━━ REGLAS ESTRICTAS ━━━
-  ✗ No duplicar cantos automáticamente
-  ✗ No copiar de otras filas
-  ✗ No inventar trazos
-  ✗ Si no hay trazo → campo vacío "-"
+Si no ves claramente el canto → dejar vacío, NO inventar.
+El usuario puede corregir los cantos manualmente en la app.
 
-━━━ VALIDACIÓN ANTES DE RESPONDER ━━━
-  1. ¿Analicé LARGO y ANCHO por separado?
-  2. ¿Si hay 1 trazo, L2 queda "-"?
-  3. ¿Si hay 2 trazos, ambos aparecen?
-  4. ¿No copié de otras filas?
+━━━ PASO 4: RANURA Y PERFORACIÓN ━━━
+Ranura: R seguido de números (R18-4-7 o R/18/4/7) → libre=18, espe=4, prof=7
+Perforación: puntos °° junto a número → perf_cant=N, perf_lado=esa_medida
+
+━━━ PASO 5: CAMBIO DE MATERIAL ━━━
+Si aparece un nuevo encabezado de material (ej: "Blanco", "MDF Blanco", "Melamina Onix")
+→ ese material aplica a todas las piezas siguientes hasta el próximo encabezado.
 
 ━━━ SALIDA ━━━
-Material: <nombre>
+Material: <nombre completo>
 Cant:<n>
-largo(veta):<mm>
-ancho:<mm>
+largo(veta):<mm exactos>
+ancho:<mm exactos>
 L1:<G|D|DM|GM|->
 L2:<G|D|DM|GM|->
 A1:<G|D|DM|GM|->
 A2:<G|D|DM|GM|->
-Obs:<texto o vacío>`;
+Obs:<texto o vacío>
 
-  const F2 = `Convierte la lectura al JSON del sistema CARPICENTRO.
-"-" en cantos → "" (vacío). Obs vacío → "".
+Un bloque por pieza. Si el material cambia, nueva línea "Material:".
+Lee TODAS las piezas. Ignora líneas tachadas.`;
+
+  const F2 = `Convierte al JSON del sistema CARPICENTRO.
+"-" o vacío en cantos → "" en JSON.
+Decimales en medidas → ya deberían estar en MM (si no los convirtiste, hazlo ahora: ×10).
 
 RESPONDE SOLO CON EL JSON:
 {"piezas":[{
@@ -193,12 +201,10 @@ RESPONDE SOLO CON EL JSON:
         const textoOperario = await callAnthropic([
           { role: 'user', content: [img, { type: 'text', text: F1 }] }
         ], 4000);
-
         const parseado = parsearTexto(textoOperario);
         if (parseado?.piezas?.length) {
           return res.status(200).json({ piezas: parseado.piezas.map(norm), _intentos: i, _via: 'parser' });
         }
-
         resultado = await callAnthropic([
           { role: 'user', content: [img, { type: 'text', text: F1 }] },
           { role: 'assistant', content: textoOperario },
@@ -209,7 +215,6 @@ RESPONDE SOLO CON EL JSON:
           { role: 'user', content: [img, { type: 'text', text: F1 + '\n\n' + F2 }] }
         ], 4096);
       }
-
       const parsed = extraerJSON(resultado);
       if (parsed?.piezas?.length) {
         return res.status(200).json({ piezas: parsed.piezas.map(norm), _intentos: i });
