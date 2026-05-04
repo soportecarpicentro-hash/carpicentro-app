@@ -438,6 +438,9 @@ body.light-mode .theme-toggle{border-color:rgba(255,255,255,.35);}
 .toast.info{border-left:3px solid #1E88E5;}
 @keyframes toastIn{from{opacity:0;transform:translateX(16px);}to{opacity:1;transform:translateX(0);}}
 @keyframes toastOut{to{opacity:0;transform:translateX(16px);}}
+@keyframes waBounceIn{0%{transform:scale(0) translateY(10px);opacity:0;}55%{transform:scale(1.18) translateY(-4px);opacity:1;}75%{transform:scale(0.93);}90%{transform:scale(1.05);}100%{transform:scale(1) translateY(0);opacity:1;}}
+@keyframes waPulse{0%,100%{box-shadow:0 4px 16px rgba(37,211,102,.45);}50%{box-shadow:0 4px 16px rgba(37,211,102,.45),0 0 0 10px rgba(37,211,102,.15);}}
+.wa-float.wa-pulsing{animation:waPulse 2.2s ease-in-out infinite!important;}
 
 /* ══ CHAT SOPORTE PREMIUM ══ */
 #chatSoporte{position:fixed;bottom:24px;right:24px;z-index:8500;display:none;flex-direction:column;align-items:flex-end;gap:10px;}
@@ -1780,9 +1783,10 @@ function setModo(m){
   el('btnV').classList.toggle('on',m==='v');
   el('vc').classList.toggle('on',m==='c');
   el('vv').classList.toggle('on',m==='v');
+  if(m==='c'){ if(!sesion) toggleWAFloat(); }
+  else { ocultarWAFloat(); }
   if(m==='v'){ if(!sesion){ el('vLogin').style.display='flex'; return; } cargarPedidos(); }
 }
-
 // ── LOGIN / LOGOUT ────────────────────────────────────────
 el('btnLogin').addEventListener('click',doLogin);
 el('lip').addEventListener('keydown',function(e){ if(e.key==='Enter') doLogin(); });
@@ -1790,6 +1794,13 @@ el('btnCancelarLogin').addEventListener('click',function(){ el('vLogin').style.d
 el('btnLogout').addEventListener('click',function(){
   mostrarModal('Cerrar sesión','¿Seguro que quieres cerrar sesión?',function(){
     sesion=null;
+    // Limpiar chat soporte
+    if(chatPoll){ clearInterval(chatPoll); chatPoll=null; }
+    chatOpen=false; chatUnread=0; chatCache=[]; chatConvs={}; chatConvActiva=null;
+    var cw=el('chatWin'); if(cw) cw.classList.remove('open');
+    var cs=el('chatSoporte'); if(cs) cs.classList.remove('visible');
+    actualizarBadge();
+    // Restaurar UI
     el('sesionInfo').style.display='none';
     el('vc').classList.add('on'); el('vv').classList.remove('on');
     el('btnC').classList.add('on'); el('btnV').classList.remove('on');
@@ -2170,20 +2181,30 @@ function toggleWAFloat(){
   var btn = el('btnWAFloat');
   if(!btn) return;
   if(sesion){ // Logueado = siempre oculto
-    btn.style.display = 'none';
+    ocultarWAFloat();
+  } else { // Cliente = mostrar con bounce + pulso
+    btn.classList.remove('wa-pulsing');
     btn.style.animation = 'none';
-  } else { // Cliente = mostrar con animación
     btn.style.display = 'flex';
-    btn.style.animation = 'waBounceIn .6s cubic-bezier(.22,1,.36,1) both';
+    void btn.offsetWidth; // forzar reflow para reiniciar animación
+    btn.style.animation = 'waBounceIn .65s cubic-bezier(.22,1,.36,1) both';
+    clearTimeout(btn._pt);
+    btn._pt = setTimeout(function(){
+      if(btn.style.display !== 'none'){
+        btn.style.animation = '';
+        btn.classList.add('wa-pulsing');
+      }
+    }, 750);
   }
 }
 
 function ocultarWAFloat(){
   var btn = el('btnWAFloat');
   if(!btn) return;
+  clearTimeout(btn._pt);
   btn.style.display = 'none';
-  btn.style.animation = 'none'; // cancelar cualquier animación activa
-  btn.classList.remove('pulsing');
+  btn.style.animation = 'none';
+  btn.classList.remove('wa-pulsing');
 }
 
 
