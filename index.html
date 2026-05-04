@@ -279,14 +279,37 @@ tr:hover td{background:#FFF5F5;}
 
 /* ── MODO CLARO ── */
 body.light-mode{
-  --dark:#F5F5F0;
-  --tx:#1A1A1A; --tx2:#333; --tx3:#666;
-  --bg:#FFFFFF; --bg2:#F0EFE9;
-  --bd:rgba(0,0,0,.12); --bd2:rgba(0,0,0,.2);
+  --dark:#FFFFFF;
+  --tx:#1A1A1A; --tx2:#2C2C2C; --tx3:#666;
+  --bg:#FFFFFF; --bg2:#F5F4F1;
+  --bd:rgba(0,0,0,.13); --bd2:rgba(0,0,0,.22);
 }
-body.light-mode .hdr{background:#1A1A1A;border-bottom:3px solid #FFD600;}
-body.light-mode .card{background:#fff;}
+body.light-mode{ background:#F5F4F1; }
+body.light-mode .hdr{background:#1A1A1A !important;border-bottom:3px solid #FFD600;}
+body.light-mode .card{background:#fff;border-color:rgba(0,0,0,.1);}
 body.light-mode .ovlbox{background:#fff;}
+body.light-mode .mbtn{background:rgba(255,255,255,.15);color:#fff;}
+body.light-mode .mbtn.on{background:#FFD600;color:#1A1A1A;}
+/* Inputs visibles en modo claro */
+body.light-mode input[type=text],
+body.light-mode input[type=number],
+body.light-mode input[type=password],
+body.light-mode select,
+body.light-mode textarea{background:#fff !important;color:#1A1A1A !important;border-color:rgba(0,0,0,.2);}
+body.light-mode .ti{background:#fff !important;color:#1A1A1A !important;}
+body.light-mode .tis{background:#fff !important;color:#1A1A1A !important;}
+/* Header de tabla en modo claro */
+body.light-mode .tw table thead tr{background:#1A1A1A;}
+/* Steps */
+body.light-mode .stp{background:#fff;border-color:rgba(0,0,0,.15);color:#555;}
+body.light-mode .stp.on{background:#FFD600;border-color:#FFD600;color:#1A1A1A;}
+body.light-mode .stp.dn{background:#1A1A1A;border-color:#1A1A1A;color:#fff;}
+/* Notas */
+body.light-mode .unidad-bar{background:#fff;border-color:rgba(0,0,0,.1);}
+/* Panel de stats */
+body.light-mode .sc{background:#fff;}
+/* Live counter */
+body.light-mode #liveCounter{background:linear-gradient(135deg,#1A1A1A 0%,#2a2a2a 100%);}
 
 /* ── TOGGLE MODO ── */
 .theme-toggle{background:none;border:1.5px solid rgba(255,255,255,.25);border-radius:999px;padding:5px 12px;color:#fff;font-size:13px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px;}
@@ -367,6 +390,23 @@ body.light-mode .theme-toggle{border-color:rgba(255,255,255,.35);}
 
 /* ── TARJETA DE PEDIDO ANIMADA ── */
 .pcard{animation:slideFade .2s ease both;}
+
+/* ── BOTÓN WA FLOTANTE ── */
+.wa-float{position:fixed;bottom:24px;right:20px;z-index:8000;width:56px;height:56px;border-radius:50%;background:#25D366;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,211,102,.45);transition:transform .2s,box-shadow .2s;animation:popIn .5s 1.5s cubic-bezier(.22,1,.36,1) both;}
+.wa-float:hover{transform:scale(1.1);box-shadow:0 6px 24px rgba(37,211,102,.6);}
+.wa-float svg{width:30px;height:30px;fill:#fff;}
+.wa-float-tip{position:absolute;right:66px;top:50%;transform:translateY(-50%);background:#1A1A1A;color:#fff;font-size:12px;font-weight:600;padding:6px 12px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .2s;}
+.wa-float:hover .wa-float-tip{opacity:1;}
+
+/* ── STATS VENDEDORAS ANIMADOS ── */
+.sc{transition:transform .15s,box-shadow .15s;}
+.sc:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.08);}
+.sv{transition:all .2s;}
+/* Línea de pedido hover */
+.prow{transition:transform .12s,box-shadow .12s;}
+.prow:hover{transform:translateX(3px);}
+/* Historial animado */
+.hi{animation:slideFade .2s ease both;}
 </style>
 </head>
 <body>
@@ -394,7 +434,7 @@ body.light-mode .theme-toggle{border-color:rgba(255,255,255,.35);}
   <div class="success-sub">Código del pedido</div>
   <div class="success-cod" id="successCod">—</div>
   <div class="success-btns">
-    <button type="button" id="successWA" class="btn bp" style="padding:12px 22px;font-size:14px;">📲 WhatsApp</button>
+    <button type="button" id="successWA" class="btn bp" style="padding:12px 22px;font-size:14px;"><svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" style="flex-shrink:0;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> WhatsApp</button>
     <button type="button" id="successQR" class="btn bs" style="padding:12px 22px;font-size:14px;">📱 QR</button>
     <button type="button" id="successNuevo" style="padding:12px 22px;font-size:14px;background:transparent;border:1.5px solid rgba(255,255,255,.25);color:#fff;border-radius:999px;cursor:pointer;">+ Nuevo pedido</button>
   </div>
@@ -2008,10 +2048,15 @@ function abrirQR(texto, titulo){
   var canvas = el('qrCanvas');
   var titleEl = el('qrTitle');
   if(!ovl || !canvas) return;
-  if(titleEl) titleEl.textContent = titulo || texto;
-  // Dibujar QR simple con el URL del pedido
-  var url = window.location.origin + '?pedido=' + encodeURIComponent(texto);
+  if(titleEl) titleEl.textContent = titulo || ('Pedido ' + texto);
+  // QR genera el link de WhatsApp con el código del pedido
+  // Al escanearlo, abre WhatsApp directo con el mensaje al call center
+  var msg = 'Hola CARPICENTRO, mi código de pedido es: *' + texto + '*';
+  var url = 'https://wa.me/51973589710?text=' + encodeURIComponent(msg);
   dibujarQRCanvas(canvas, url);
+  // Actualizar subtítulo
+  var subEl = ovl.querySelector('.qr-sub');
+  if(subEl) subEl.textContent = 'Escanea para abrir WhatsApp con tu código';
   ovl.classList.add('open');
 }
 function cerrarQR(){
@@ -2122,6 +2167,24 @@ function actualizarLiveCounter(){
   setNum('lcMats', mats, _lcPrev.mats);
   setNum('lcEnchape', enchape, _lcPrev.enchape);
   _lcPrev = {piezas:tot, lineas:lineas, mats:mats, enchape:enchape};
+}
+
+
+// ── BOTÓN WA FLOTANTE ──
+el('btnWAFloat') && el('btnWAFloat').addEventListener('click', function(){
+  var msg = 'Hola CARPICENTRO, tengo una consulta.';
+  window.open('https://wa.me/51973589710?text=' + encodeURIComponent(msg), '_blank');
+});
+// Mostrar solo en vista cliente
+function toggleWAFloat(){
+  var btn = el('btnWAFloat');
+  if(!btn) return;
+  var esCliente = !el('vlista') || el('vlista').style.display === 'none' ||
+    (el('cs1') && el('cs1').style.display !== 'none') ||
+    (el('cs2') && el('cs2').style.display !== 'none') ||
+    (el('cs3') && el('cs3').style.display !== 'none') ||
+    (el('cs4') && el('cs4').style.display !== 'none');
+  btn.style.display = sesion ? 'none' : 'flex'; // solo para clientes (no logueados)
 }
 
 // Exponer globalmente para que funcionen los onclick del HTML
@@ -2974,7 +3037,8 @@ function filtrarP(){
   if(!f.length){ c.innerHTML='<div style="text-align:center;padding:48px;color:var(--tx3);font-size:15px;">No hay pedidos que coincidan</div>'; return; }
   c.innerHTML=f.map(function(p){
     var doc=p.cliente_ruc?'RUC: '+p.cliente_ruc:p.cliente_dni?'DNI: '+p.cliente_dni:'';
-    return '<div class="prow" data-pid="'+p.id+'">'
+    var rowDelay = Math.min(i * 40, 400);
+    return '<div class="prow" style="animation:slideFade .25s '+rowDelay+'ms ease both;opacity:0;" data-pid="'+p.id+'">'
       +'<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">'
         +'<div><div style="font-size:12px;font-weight:800;color:var(--red);font-family:monospace;">'+p.codigo+'</div>'
         +'<div style="font-size:16px;font-weight:700;margin-top:2px;">'+p.cliente_nombre+'</div>'
@@ -2994,7 +3058,10 @@ function filtrarP(){
 
 function abrirDet(id){
   pedAct=allP.find(function(p){ return p.id===id; }); if(!pedAct) return;
-  el('vlista').style.display='none'; el('vdet').style.display='block';
+  el('vlista').style.display='none';
+  el('vdet').style.display='block';
+  el('vdet').style.animation='none'; void el('vdet').offsetWidth;
+  el('vdet').style.animation='fadeInUp .3s cubic-bezier(.22,1,.36,1) both';
   el('dnom').textContent=pedAct.cliente_nombre;
   var doc=pedAct.cliente_ruc?'RUC: '+pedAct.cliente_ruc:pedAct.cliente_dni?'DNI: '+pedAct.cliente_dni:'';
   el('ddoc').textContent=doc; el('dtel').textContent=pedAct.cliente_telefono||'Sin teléfono';
@@ -3132,6 +3199,11 @@ function abrirDet(id){
   window.scrollTo({top:0,behavior:'instant'});
 }
 
+function animarBadge(el){
+  if(!el) return;
+  el.style.transform='scale(1.3)';
+  setTimeout(function(){ el.style.transform='scale(1)'; el.style.transition='transform .2s'; },150);
+}
 function cambiarEst(){
   var nv=el('sest').value, an=pedAct.estado;
   sbPatch('pedidos','id=eq.'+pedAct.id,{estado:nv,vendedora_nombre:sesion?sesion.nombre:''})
@@ -3415,5 +3487,11 @@ el('lsub') && (el('lsub').textContent=new Date().toLocaleDateString('es-PE',{wee
   <img id="fotoOvlImg" src="" style="max-width:95vw;max-height:80vh;border-radius:12px;object-fit:contain;">
   <div id="fotoOvlNum" style="color:rgba(255,255,255,.6);font-size:13px;"></div>
 </div>
+
+<!-- BOTÓN WA FLOTANTE -->
+<button type="button" class="wa-float" id="btnWAFloat" title="Consulta por WhatsApp">
+  <span class="wa-float-tip">¿Consultas? Escríbenos</span>
+  <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" style="flex-shrink:0;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+</button>
 </body>
 </html>
