@@ -385,7 +385,7 @@ body.light-mode .theme-toggle{border-color:rgba(255,255,255,.35);}
 .pcard{animation:slideFade .2s ease both;}
 
 /* ── BOTÓN WA FLOTANTE ── */
-.wa-float{position:fixed;bottom:24px;right:20px;z-index:8000;width:56px;height:56px;border-radius:50%;background:#25D366;border:none;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,211,102,.45);transition:transform .2s,box-shadow .2s;animation:popIn .5s 1.5s cubic-bezier(.22,1,.36,1) both;}
+.wa-float{position:fixed;bottom:24px;right:20px;z-index:8000;width:56px;height:56px;border-radius:50%;background:#25D366;border:none;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,211,102,.45);transition:transform .2s,box-shadow .2s;}
 .wa-float:hover{transform:scale(1.1);box-shadow:0 6px 24px rgba(37,211,102,.6);}
 .wa-float svg{width:30px;height:30px;fill:#fff;}
 .wa-float-tip{position:absolute;right:66px;top:50%;transform:translateY(-50%);background:#1A1A1A;color:#fff;font-size:12px;font-weight:600;padding:6px 12px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .2s;}
@@ -2169,14 +2169,21 @@ el('btnWAFloat') && el('btnWAFloat').addEventListener('click', function(){
 function toggleWAFloat(){
   var btn = el('btnWAFloat');
   if(!btn) return;
-  // WA flotante SOLO para clientes sin sesión
-  var esLogueado = sesion && (sesion.rol === 'admin' || sesion.rol === 'vendedora');
-  btn.style.display = esLogueado ? 'none' : (sesion ? 'none' : 'flex');
+  if(sesion){ // Logueado = siempre oculto
+    btn.style.display = 'none';
+    btn.style.animation = 'none';
+  } else { // Cliente = mostrar con animación
+    btn.style.display = 'flex';
+    btn.style.animation = 'waBounceIn .6s cubic-bezier(.22,1,.36,1) both';
+  }
 }
 
 function ocultarWAFloat(){
   var btn = el('btnWAFloat');
-  if(btn){ btn.style.display='none'; btn.classList.remove('pulsing'); }
+  if(!btn) return;
+  btn.style.display = 'none';
+  btn.style.animation = 'none'; // cancelar cualquier animación activa
+  btn.classList.remove('pulsing');
 }
 
 
@@ -2202,8 +2209,12 @@ function mostrarAppTrasLogin(){
   el('vLogin').style.display = 'none';
   el('vMain').style.display = 'block';
   if(sesion.rol === 'admin' || sesion.rol === 'vendedora'){
-    // Ocultar WA flotante INMEDIATAMENTE — antes de cualquier setTimeout
+    // Ocultar WA flotante INMEDIATAMENTE — cancela también animaciones CSS
     ocultarWAFloat();
+    // Doble seguro con timeout cero — para asegurar después del render
+    setTimeout(ocultarWAFloat, 0);
+    setTimeout(ocultarWAFloat, 300);
+    setTimeout(ocultarWAFloat, 1600); // Por si la animación 1.5s ya arrancó
     switchVTab('pedidos'); cargarPedidos();
     el('vTabBar') && (el('vTabBar').style.display = 'flex');
     // Iniciar chat de soporte
@@ -2222,8 +2233,9 @@ function initChat(){
   if(!sesion) return;
   var wrap=el('chatSoporte'); if(!wrap) return;
   wrap.classList.add('visible');
-  // Triple seguro: ocultar WA en cuanto initChat corre
+  // Ocultar WA con cancelación de animación
   ocultarWAFloat();
+  setTimeout(ocultarWAFloat, 1600); // por si la animación CSS de 1.5s ya arrancó
   el('chatTit') && (el('chatTit').textContent=sesion.rol==='admin'?'Mensajes':'Soporte CARPICENTRO');
   el('chatSub') && (el('chatSub').textContent=sesion.rol==='admin'?'Conversaciones de vendedoras':'Escríbenos tu consulta o reporte');
   el('chatFab') && el('chatFab').addEventListener('click',function(){
