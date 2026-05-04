@@ -379,14 +379,7 @@ body.light-mode .theme-toggle{border-color:rgba(255,255,255,.35);}
 .lc-div{width:1px;height:28px;background:rgba(255,255,255,.1);}
 
 /* ── QR OVERLAY ── */
-#qrOverlay{display:none;position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.85);flex-direction:column;align-items:center;justify-content:center;gap:16px;}
-#qrOverlay.open{display:flex;}
-.qr-box{background:#fff;border-radius:20px;padding:24px;text-align:center;animation:popIn .35s cubic-bezier(.22,1,.36,1);}
-.qr-box canvas{border-radius:8px;}
-.qr-title{font-size:14px;font-weight:700;color:#1A1A1A;margin-top:12px;}
-.qr-sub{font-size:12px;color:#888;margin-top:4px;}
-.qr-close{background:#1A1A1A;color:#FFD600;border:none;padding:10px 28px;border-radius:999px;font-size:14px;font-weight:700;cursor:pointer;transition:transform .15s;}
-.qr-close:hover{transform:scale(1.05);}
+
 
 /* ── TARJETA DE PEDIDO ANIMADA ── */
 .pcard{animation:slideFade .2s ease both;}
@@ -445,6 +438,64 @@ body.light-mode .theme-toggle{border-color:rgba(255,255,255,.35);}
 .toast.info{border-left:3px solid #1E88E5;}
 @keyframes toastIn{from{opacity:0;transform:translateX(16px);}to{opacity:1;transform:translateX(0);}}
 @keyframes toastOut{to{opacity:0;transform:translateX(16px);}}
+
+/* ══ CHAT SOPORTE PREMIUM ══ */
+#chatSoporte{position:fixed;bottom:24px;right:24px;z-index:8500;display:none;flex-direction:column;align-items:flex-end;gap:10px;}
+#chatSoporte.visible{display:flex;}
+.chat-fab{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#1565C0,#1E88E5);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(21,101,192,.5);color:#fff;position:relative;transition:transform .2s,box-shadow .2s;animation:popIn .5s cubic-bezier(.22,1,.36,1) both;}
+.chat-fab:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(21,101,192,.65);}
+.chat-fab svg{width:24px;height:24px;fill:#fff;}
+#chatBadge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;border-radius:999px;background:#FF3B30;color:#fff;font-size:10px;font-weight:800;display:none;align-items:center;justify-content:center;padding:0 4px;border:2px solid #1A1A1A;}
+#chatBadge.has-msg{display:flex;}
+.chat-win{width:320px;background:#1A1A1A;border-radius:18px;border:1px solid rgba(255,255,255,.1);box-shadow:0 16px 48px rgba(0,0,0,.6);overflow:hidden;display:none;flex-direction:column;max-height:520px;transform-origin:bottom right;}
+.chat-win.open{display:flex;animation:chatOpen .25s cubic-bezier(.22,1,.36,1);}
+@keyframes chatOpen{from{opacity:0;transform:scale(.9) translateY(10px);}to{opacity:1;transform:scale(1) translateY(0);}}
+.chat-hdr{background:linear-gradient(135deg,#1565C0,#1976D2);padding:14px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.chat-hdr-ico{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:18px;}
+.chat-hdr-info{flex:1;}
+.chat-hdr-tit{font-size:14px;font-weight:800;color:#fff;}
+.chat-hdr-sub{font-size:11px;color:rgba(255,255,255,.6);margin-top:1px;}
+.chat-hdr-close{background:none;border:none;color:rgba(255,255,255,.6);font-size:20px;cursor:pointer;padding:4px;line-height:1;border-radius:6px;transition:all .1s;}
+.chat-hdr-close:hover{color:#fff;background:rgba(255,255,255,.15);}
+.chat-search{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0;background:#111;}
+.chat-search input{width:100%;box-sizing:border-box;background:#222;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:8px 12px;color:#fff;font-size:12px;outline:none;font-family:inherit;}
+.chat-search input::placeholder{color:#555;}
+.chat-search input:focus{border-color:#1565C0;}
+.chat-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;}
+.chat-li{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05);transition:background .12s;}
+.chat-li:hover{background:rgba(255,255,255,.06);}
+.chat-li-av{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#1565C0,#0288D1);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#fff;flex-shrink:0;}
+.chat-li-info{flex:1;min-width:0;}
+.chat-li-nom{font-size:13px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.chat-li-pre{font-size:11px;color:rgba(255,255,255,.4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
+.chat-li-meta{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;}
+.chat-li-hora{font-size:10px;color:rgba(255,255,255,.3);}
+.chat-li-unread{min-width:18px;height:18px;border-radius:999px;background:#1E88E5;color:#fff;font-size:10px;font-weight:800;display:none;align-items:center;justify-content:center;padding:0 4px;}
+.chat-li-unread.show{display:flex;}
+.chat-msgs-hdr{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.07);background:#111;flex-shrink:0;}
+.chat-back-btn{background:none;border:none;color:#1E88E5;font-size:13px;cursor:pointer;padding:4px 8px;border-radius:6px;font-family:inherit;transition:background .1s;}
+.chat-back-btn:hover{background:rgba(30,136,229,.15);}
+.chat-conv-nom{font-size:13px;font-weight:700;color:#fff;}
+.chat-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;min-height:150px;}
+.chat-bbl{max-width:82%;padding:10px 13px;border-radius:14px;font-size:13px;line-height:1.45;animation:fadeInUp .15s ease;}
+.chat-bbl.me{background:#1565C0;color:#fff;align-self:flex-end;border-bottom-right-radius:4px;}
+.chat-bbl.other{background:#252525;color:#e8e8e8;align-self:flex-start;border-bottom-left-radius:4px;}
+.chat-bbl-nom{font-size:10px;opacity:.5;margin-bottom:4px;font-weight:600;}
+.chat-bbl-hora{font-size:10px;opacity:.4;margin-top:4px;text-align:right;}
+.chat-empty{text-align:center;color:#444;font-size:13px;padding:32px 20px;line-height:1.7;}
+.chat-inp-row{display:flex;gap:8px;padding:12px 14px;border-top:1px solid rgba(255,255,255,.07);flex-shrink:0;background:#111;}
+.chat-inp{flex:1;background:#222;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 14px;color:#fff;font-size:13px;outline:none;font-family:inherit;resize:none;max-height:80px;line-height:1.4;}
+.chat-inp:focus{border-color:#1565C0;}
+.chat-inp::placeholder{color:#555;}
+.chat-send-btn{width:40px;height:40px;border-radius:12px;background:#1565C0;border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s,transform .1s;}
+.chat-send-btn:hover{background:#1976D2;transform:scale(1.05);}
+.chat-send-btn svg{width:16px;height:16px;fill:none;stroke:#fff;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;}
+/* Animaciones vendedoras */
+.prow{transition:transform .12s,box-shadow .12s;}
+.prow:hover{transform:translateX(4px);box-shadow:0 4px 16px rgba(0,0,0,.2);}
+.sc{transition:transform .15s,box-shadow .15s;}
+.sc:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.15);}
+
 </style>
 </head>
 <body>
@@ -473,21 +524,13 @@ body.light-mode .theme-toggle{border-color:rgba(255,255,255,.35);}
   <div class="success-sub">Código del pedido</div>
   <div class="success-cod" id="successCod">—</div>
   <div class="success-btns">
-    <button type="button" id="successWA" class="btn bp" style="padding:12px 22px;font-size:14px;"><svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" style="flex-shrink:0;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> WhatsApp</button>
-    <button type="button" id="successQR" class="btn bs" style="padding:12px 22px;font-size:14px;">📱 QR</button>
-    <button type="button" id="successNuevo" style="padding:12px 22px;font-size:14px;background:transparent;border:1.5px solid rgba(255,255,255,.25);color:#fff;border-radius:999px;cursor:pointer;">+ Nuevo pedido</button>
+    <button type="button" id="successWA" style="display:flex;align-items:center;gap:8px;padding:13px 24px;font-size:14px;font-weight:700;background:#25D366;color:#fff;border:none;border-radius:999px;cursor:pointer;box-shadow:0 4px 20px rgba(37,211,102,.45);"><svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" style="flex-shrink:0;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> WhatsApp</button>
+    <button type="button" id="successPDF" style="display:flex;align-items:center;gap:8px;padding:13px 24px;font-size:14px;font-weight:700;background:#FFD600;color:#1A1A1A;border:none;border-radius:999px;cursor:pointer;"><svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" style="flex-shrink:0;"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg> Descargar ticket</button>
+    <button type="button" id="successNuevo" style="padding:13px 22px;font-size:14px;font-weight:600;background:transparent;border:1.5px solid rgba(255,255,255,.3);color:#fff;border-radius:999px;cursor:pointer;">+ Nuevo pedido</button>
   </div>
 </div>
 
-<!-- QR OVERLAY -->
-<div id="qrOverlay">
-  <div class="qr-box">
-    <canvas id="qrCanvas" width="200" height="200"></canvas>
-    <div class="qr-title" id="qrTitle">Pedido</div>
-    <div class="qr-sub">Escanea para ver el pedido</div>
-  </div>
-  <button type="button" class="qr-close" id="btnCerrarQR">Cerrar</button>
-</div>
+
 
 <!-- CONTADOR LIVE -->
 <div id="liveCounter">
@@ -2048,108 +2091,30 @@ function mostrarExito(cod, waUrl){
   var sc = el('successScreen');
   if(!sc) return;
   el('successCod').textContent = cod || '—';
-  sc.style.display = 'flex';
-  setTimeout(function(){ sc.style.opacity = '1'; }, 10);
-  // Botón WhatsApp
+  sc.style.display = 'flex'; sc.style.opacity='0';
+  setTimeout(function(){ sc.style.transition='opacity .4s'; sc.style.opacity='1'; },10);
   el('successWA') && (el('successWA').onclick = function(){
-    if(waUrl) window.open(waUrl, '_blank');
+    var msg='Hola CARPICENTRO, mi pedido es: *'+cod+'*';
+    window.open('https://wa.me/51973589710?text='+encodeURIComponent(msg),'_blank');
   });
-  // Botón QR
-  el('successQR') && (el('successQR').onclick = function(){
-    abrirQR(cod, 'Pedido ' + cod);
-  });
-  // Botón Nuevo pedido
+  el('successPDF') && (el('successPDF').onclick = function(){ generarTicketPDF(cod); });
   el('successNuevo') && (el('successNuevo').onclick = function(){
-    sc.style.display = 'none';
-    resetCliente();
+    sc.style.opacity='0';
+    setTimeout(function(){ sc.style.display='none'; resetCliente(); },400);
   });
 }
 
 // ════════════════════════════════════════════════════════
 // QR CODE GENERATOR (sin librería externa)
 // ════════════════════════════════════════════════════════
-function abrirQR(texto, titulo){
-  var ovl = el('qrOverlay');
-  var canvas = el('qrCanvas');
-  var titleEl = el('qrTitle');
-  if(!ovl || !canvas) return;
-  if(titleEl) titleEl.textContent = titulo || ('Pedido ' + texto);
-  // QR genera el link de WhatsApp con el código del pedido
-  // Al escanearlo, abre WhatsApp directo con el mensaje al call center
-  var msg = 'Hola CARPICENTRO, mi código de pedido es: *' + texto + '*';
-  var url = 'https://wa.me/51973589710?text=' + encodeURIComponent(msg);
-  dibujarQRCanvas(canvas, url);
-  // Actualizar subtítulo
-  var subEl = ovl.querySelector('.qr-sub');
-  if(subEl) subEl.textContent = 'Escanea para abrir WhatsApp con tu código';
-  ovl.classList.add('open');
-}
-function cerrarQR(){
-  var ovl = el('qrOverlay');
-  if(ovl) ovl.classList.remove('open');
-}
-el('btnCerrarQR') && el('btnCerrarQR').addEventListener('click', cerrarQR);
-el('qrOverlay') && el('qrOverlay').addEventListener('click', function(e){
-  if(e.target === this) cerrarQR();
-});
-window.cerrarQR = cerrarQR;
+
+
+
 
 // QR Code simple usando canvas (implementación básica)
-function dibujarQRCanvas(canvas, texto){
-  var ctx = canvas.getContext('2d');
-  var size = 200;
-  canvas.width = size; canvas.height = size;
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, size, size);
-  // Generar patrón visual único basado en el texto
-  ctx.fillStyle = '#1A1A1A';
-  var hash = 0;
-  for(var i=0; i<texto.length; i++) hash = ((hash<<5)-hash)+texto.charCodeAt(i);
-  var modules = 21; // QR v1
-  var mSize = Math.floor(size / modules);
-  var pattern = generarPatronQR(texto, modules);
-  for(var r=0; r<modules; r++){
-    for(var c=0; c<modules; c++){
-      if(pattern[r][c]){
-        ctx.fillRect(c*mSize + (size-modules*mSize)/2, r*mSize + (size-modules*mSize)/2, mSize-1, mSize-1);
-      }
-    }
-  }
-  // Esquinas de posición (finder patterns)
-  dibujarFinder(ctx, 0, 0, mSize, (size-modules*mSize)/2);
-  dibujarFinder(ctx, modules-7, 0, mSize, (size-modules*mSize)/2);
-  dibujarFinder(ctx, 0, modules-7, mSize, (size-modules*mSize)/2);
-  // Texto del código debajo
-  ctx.fillStyle = '#666';
-  ctx.font = 'bold 10px -apple-system,sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(texto.slice(0,20), size/2, size-4);
-}
-function generarPatronQR(txt, n){
-  var grid = [];
-  for(var i=0; i<n; i++){ grid.push([]); for(var j=0; j<n; j++) grid[i].push(false); }
-  // Hash del texto para el patrón de datos
-  var hash = 5381;
-  for(var i=0; i<txt.length; i++) hash = ((hash<<5)+hash)+txt.charCodeAt(i);
-  for(var r=0; r<n; r++){
-    for(var c=0; c<n; c++){
-      // Respetar zonas de finder patterns
-      if((r<9&&c<9)||(r<9&&c>n-9)||(r>n-9&&c<9)) continue;
-      var seed = hash ^ (r*31+c*17);
-      seed = seed ^ (seed >>> 11);
-      grid[r][c] = (seed & 1) === 1;
-    }
-  }
-  return grid;
-}
-function dibujarFinder(ctx, col, row, mSize, offset){
-  ctx.fillStyle = '#1A1A1A';
-  ctx.fillRect(offset+col*mSize, offset+row*mSize, 7*mSize, 7*mSize);
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(offset+col*mSize+mSize, offset+row*mSize+mSize, 5*mSize, 5*mSize);
-  ctx.fillStyle = '#1A1A1A';
-  ctx.fillRect(offset+col*mSize+2*mSize, offset+row*mSize+2*mSize, 3*mSize, 3*mSize);
-}
+
+
+
 
 // Botón QR en el detalle del pedido — se agrega junto al botón de duplicar
 function agregarBtnQR(ped){
@@ -2240,96 +2205,131 @@ function mostrarAppTrasLogin(){
 }
 
 
+
 // ════════════════════════════════════════════════════════
-// CHAT DE SOPORTE ADMIN ↔ VENDEDORAS
+// CHAT SOPORTE — Admin ve lista / Vendedora ve su chat
 // ════════════════════════════════════════════════════════
-var chatOpen = false;
-var chatMsgsCache = [];
-var chatLastCheck = null;
-var chatInterval = null;
-var chatUnread = 0;
+var chatOpen=false,chatUnread=0,chatPoll=null,chatConvActiva=null,chatCache=[],chatConvs={};
 
 function initChat(){
   if(!sesion) return;
-  var soporte = el('chatSoporte');
-  if(!soporte) return;
-  soporte.classList.add('visible');
-  // Cargar mensajes iniciales
-  cargarMsgsChat();
-  // Polling cada 8 segundos
-  chatInterval = setInterval(cargarMsgsChat, 8000);
-  // Listeners
-  el('chatFab') && el('chatFab').addEventListener('click', function(){
-    chatOpen = !chatOpen;
-    var box = el('chatBox');
-    if(box) box.classList.toggle('open', chatOpen);
-    if(chatOpen){ chatUnread=0; actualizarBadgeChat(); scrollChatBottom(); }
+  var wrap=el('chatSoporte'); if(!wrap) return;
+  wrap.classList.add('visible');
+  var waBtn=el('btnWAFloat'); if(waBtn) waBtn.style.display='none';
+  el('chatTit') && (el('chatTit').textContent=sesion.rol==='admin'?'Mensajes':'Soporte CARPICENTRO');
+  el('chatSub') && (el('chatSub').textContent=sesion.rol==='admin'?'Conversaciones de vendedoras':'Escríbenos tu consulta o reporte');
+  el('chatFab') && el('chatFab').addEventListener('click',function(){
+    chatOpen=!chatOpen;
+    var w=el('chatWin'); if(!w) return;
+    if(chatOpen){ w.classList.add('open'); chatUnread=0; actualizarBadge(); mostrarVistaChat(); }
+    else w.classList.remove('open');
   });
-  el('btnCerrarChat') && el('btnCerrarChat').addEventListener('click', function(){
-    chatOpen = false; el('chatBox').classList.remove('open');
+  el('btnCerrarChat') && el('btnCerrarChat').addEventListener('click',function(){
+    chatOpen=false; el('chatWin') && el('chatWin').classList.remove('open');
   });
-  el('btnChatSend') && el('btnChatSend').addEventListener('click', enviarMsgChat);
-  el('chatInput') && el('chatInput').addEventListener('keydown', function(e){
-    if(e.key === 'Enter') enviarMsgChat();
+  el('btnChatVolver') && el('btnChatVolver').addEventListener('click',function(e){
+    if(e)e.preventDefault(); chatConvActiva=null; mostrarVistaChat();
   });
-  // Estado
-  var stat = el('chatStatus');
-  if(stat) stat.textContent = sesion.rol==='admin' ? 'Admin — verás mensajes de todas las vendedoras' : 'Conectada como ' + (sesion.nombre||'Vendedora');
+  el('btnChatEnviar') && el('btnChatEnviar').addEventListener('click',enviarMsg);
+  el('chatInp') && el('chatInp').addEventListener('keydown',function(e){
+    if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();enviarMsg();}
+    this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,80)+'px';
+  });
+  el('chatBuscarInp') && el('chatBuscarInp').addEventListener('input',function(){
+    renderLista(this.value.toLowerCase());
+  });
+  cargarChat();
+  chatPoll=setInterval(cargarChat,6000);
 }
 
-function cargarMsgsChat(){
-  sbGet('soporte_mensajes','order=created_at.asc&limit=50')
-  .then(function(rows){
-    rows = rows || [];
-    var prevLen = chatMsgsCache.length;
-    chatMsgsCache = rows;
-    renderMsgsChat();
-    // Notificar nuevos mensajes si el chat está cerrado
-    if(!chatOpen && rows.length > prevLen){
-      chatUnread += (rows.length - prevLen);
-      actualizarBadgeChat();
-    }
+function cargarChat(){
+  if(!sesion) return;
+  var f=sesion.rol==='admin'?'order=created_at.asc&limit=200'
+    :'or=(autor_id.eq.'+sesion.id+',destinatario_id.eq.'+sesion.id+')&order=created_at.asc&limit=100';
+  sbGet('soporte_mensajes',f).then(function(rows){
+    rows=rows||[]; var prev=chatCache.length; chatCache=rows; chatConvs={};
+    rows.forEach(function(m){
+      var key=m.autor_rol==='admin'?m.destinatario_id:m.autor_id;
+      var nom=m.autor_rol==='admin'?m.destinatario_nombre:m.autor_nombre;
+      if(!chatConvs[key]) chatConvs[key]={id:key,nombre:nom||'Vendedora',msgs:[],nuevos:0};
+      chatConvs[key].msgs.push(m);
+      if(sesion.rol==='admin'&&!m.leido&&m.autor_rol!=='admin') chatConvs[key].nuevos++;
+    });
+    if(!chatOpen&&rows.length>prev){chatUnread+=(rows.length-prev);actualizarBadge();}
+    if(chatOpen){if(sesion.rol==='admin'&&!chatConvActiva)renderLista('');else renderMsgs();}
   }).catch(function(){});
 }
 
-function renderMsgsChat(){
-  var box = el('chatMsgs'); if(!box) return;
-  if(!chatMsgsCache.length){
-    box.innerHTML = '<div class="chat-empty">Sin mensajes aún. ¡Sé el primero en escribir!</div>';
-    return;
+function mostrarVistaChat(){
+  if(sesion.rol==='admin'&&!chatConvActiva){
+    mostrarPanel('chatListaPanel');
+    renderLista(el('chatBuscarInp')?el('chatBuscarInp').value:'');
+  } else {
+    mostrarPanel('chatMsgsPanel');
+    var volver=el('btnChatVolver');
+    if(volver) volver.style.display=sesion.rol==='admin'?'inline-block':'none';
+    var nom=el('chatConvNom');
+    if(nom) nom.textContent=chatConvActiva?chatConvActiva.nombre:'Admin CARPICENTRO';
+    renderMsgs();
   }
-  box.innerHTML = chatMsgsCache.map(function(m){
-    var esYo = m.autor_id === (sesion && sesion.id);
-    var hora = m.created_at ? new Date(m.created_at).toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}) : '';
-    return '<div class="chat-msg ' + (esYo ? 'from-me' : 'from-other') + '">'
-      + (!esYo ? '<div class="chat-msg-autor">' + (m.autor_nombre||'Vendedora') + '</div>' : '')
-      + '<div>' + (m.texto||'') + '</div>'
-      + '<div class="chat-msg-time">' + hora + '</div>'
-      + '</div>';
+}
+function mostrarPanel(id){
+  ['chatListaPanel','chatMsgsPanel'].forEach(function(p){
+    var e=el(p); if(e) e.style.display=p===id?'flex':'none';
+  });
+}
+function renderLista(f){
+  var lista=el('chatLista'); if(!lista) return;
+  var convs=Object.values(chatConvs).filter(function(c){return !f||c.nombre.toLowerCase().includes(f);});
+  if(!convs.length){
+    lista.innerHTML='<div class="chat-empty">'+(f?'Sin resultados para "'+f+'"':'Sin mensajes aun.<br>Las vendedoras te escribiran aqui.')+'</div>'; return;
+  }
+  lista.innerHTML=convs.map(function(c){
+    var ult=c.msgs[c.msgs.length-1];
+    var pre=ult?(ult.texto.slice(0,38)+(ult.texto.length>38?'...':'')):'';
+    var hora=ult?new Date(ult.created_at).toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}):'';
+    return '<div class="chat-li" data-cid="'+c.id+'" data-cnom="'+encodeURIComponent(c.nombre)+'">'
+      +'<div class="chat-li-av">'+c.nombre.charAt(0).toUpperCase()+'</div>'
+      +'<div class="chat-li-info"><div class="chat-li-nom">'+c.nombre+'</div><div class="chat-li-pre">'+(pre||'Sin mensajes')+'</div></div>'
+      +'<div class="chat-li-meta"><div class="chat-li-hora">'+hora+'</div><div class="chat-li-unread'+(c.nuevos?' show':'')+'">'+( c.nuevos||'')+'</div></div>'
+      +'</div>';
   }).join('');
-  scrollChatBottom();
+  lista.querySelectorAll('.chat-li').forEach(function(li){
+    li.addEventListener('click',function(){
+      chatConvActiva={id:this.dataset.cid,nombre:decodeURIComponent(this.dataset.cnom)};
+      mostrarVistaChat();
+    });
+  });
 }
-
-function enviarMsgChat(){
-  var inp = el('chatInput'); if(!inp || !inp.value.trim()) return;
-  var texto = inp.value.trim(); inp.value = '';
-  sbPost('soporte_mensajes',{
-    autor_id: sesion.id,
-    autor_nombre: sesion.nombre || sesion.usuario,
-    autor_rol: sesion.rol,
-    texto: texto
-  }).then(function(){ cargarMsgsChat(); }).catch(function(){});
+function renderMsgs(){
+  var box=el('chatMsgs'); if(!box) return;
+  var msgs=[];
+  if(sesion.rol==='admin'&&chatConvActiva){var c=chatConvs[chatConvActiva.id];msgs=c?c.msgs:[];}
+  else msgs=chatCache;
+  if(!msgs.length){box.innerHTML='<div class="chat-empty">Sin mensajes.<br>Escribe el primero!</div>';return;}
+  box.innerHTML=msgs.map(function(m){
+    var yo=m.autor_id===sesion.id;
+    var hora=m.created_at?new Date(m.created_at).toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}):'';
+    return '<div class="chat-bbl '+(yo?'me':'other')+'">'
+      +(!yo?'<div class="chat-bbl-nom">'+(m.autor_nombre||'Admin')+'</div>':'')
+      +'<div>'+(m.texto||'')+'</div>'
+      +'<div class="chat-bbl-hora">'+hora+'</div></div>';
+  }).join('');
+  setTimeout(function(){box.scrollTop=box.scrollHeight;},50);
 }
-
-function actualizarBadgeChat(){
-  var badge = el('chatBadge'); if(!badge) return;
-  badge.textContent = chatUnread > 9 ? '9+' : chatUnread;
-  badge.classList.toggle('has-msg', chatUnread > 0);
+function enviarMsg(){
+  var inp=el('chatInp'); if(!inp||!inp.value.trim()) return;
+  var txt=inp.value.trim(); inp.value=''; inp.style.height='auto';
+  var destId=null,destNom=null;
+  if(sesion.rol==='admin'&&chatConvActiva){destId=chatConvActiva.id;destNom=chatConvActiva.nombre;}
+  else{destId='admin';destNom='Admin CARPICENTRO';}
+  sbPost('soporte_mensajes',{autor_id:sesion.id,autor_nombre:sesion.nombre||sesion.usuario,autor_rol:sesion.rol,destinatario_id:destId,destinatario_nombre:destNom,texto:txt,leido:false})
+  .then(cargarChat).catch(function(){});
 }
-
-function scrollChatBottom(){
-  var box = el('chatMsgs');
-  if(box) setTimeout(function(){ box.scrollTop = box.scrollHeight; }, 50);
+function actualizarBadge(){
+  var b=el('chatBadge'); if(!b) return;
+  b.textContent=chatUnread>9?'9+':chatUnread;
+  b.classList.toggle('has-msg',chatUnread>0);
 }
 
 
@@ -2373,6 +2373,47 @@ function showToast(msg, tipo, duracion){
   }, duracion);
 }
 
+
+function generarTicketPDF(cod){
+  var ped=allP?allP.find(function(p){return p.codigo===cod;}):null;
+  var fecha=new Date().toLocaleDateString('es-PE',{day:'2-digit',month:'long',year:'numeric'});
+  var hora=new Date().toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'});
+  var cliente=ped?(ped.cliente_nombre||'—'):'—';
+  var doc=ped?(ped.cliente_ruc?'RUC: '+ped.cliente_ruc:ped.cliente_dni?'DNI: '+ped.cliente_dni:''):'';
+  var sede=ped?(ped.sede||'—'):'—';
+  var lineas=ped?(ped.total_lineas||'—'):'—';
+  var piezas=ped?(ped.total_piezas||'—'):'—';
+  var mats=ped?(ped.materiales||''):'';
+  var body='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Ticket '+cod+'</title>'
+    +'<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:system-ui,sans-serif;background:#f0f0f0;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}'
+    +'.t{background:#fff;width:100%;max-width:400px;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.15);}'
+    +'.th{background:#1A1A1A;padding:22px;text-align:center;}.th h1{color:#FFD600;font-size:22px;font-weight:900;letter-spacing:1px;}.th p{color:rgba(255,255,255,.4);font-size:12px;margin-top:4px;}'
+    +'.tc{background:#FFD600;padding:14px 22px;text-align:center;}.tc .l{font-size:10px;font-weight:700;color:#666;letter-spacing:1px;text-transform:uppercase;}.tc .c{font-size:22px;font-weight:900;color:#1A1A1A;letter-spacing:2px;font-family:monospace;margin-top:4px;}'
+    +'.tb{padding:18px 22px;}.row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f0f0f0;font-size:13px;}.row:last-child{border:none;}.row .l{color:#999;}.row .v{font-weight:700;color:#222;text-align:right;max-width:58%;}'
+    +'.tf{background:#fafafa;padding:14px 22px;text-align:center;border-top:1px solid #eee;font-size:11px;color:#aaa;line-height:1.8;}'
+    +'.tf strong{color:#666;}.pb{display:block;width:100%;padding:14px;background:#1A1A1A;color:#FFD600;border:none;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;}'
+    +'@media print{.pb{display:none;}body{background:#fff;}}</style></head><body>'
+    +'<div class="t"><div class="th"><h1>CARPICENTRO</h1><p>Comprobante de pedido</p></div>'
+    +'<div class="tc"><div class="l">Código de pedido</div><div class="c">'+cod+'</div></div>'
+    +'<div class="tb">'
+    +'<div class="row"><span class="l">Estado</span><span class="v" style="background:#FFF3E0;color:#E65100;padding:2px 10px;border-radius:999px;font-size:11px;">⏳ Ingresado</span></div>'
+    +'<div class="row"><span class="l">Cliente</span><span class="v">'+cliente+'</span></div>'
+    +(doc?'<div class="row"><span class="l">Documento</span><span class="v">'+doc+'</span></div>':'')
+    +'<div class="row"><span class="l">Sede</span><span class="v">'+sede+'</span></div>'
+    +'<div class="row"><span class="l">Líneas</span><span class="v">'+lineas+'</span></div>'
+    +'<div class="row"><span class="l">Piezas</span><span class="v">'+piezas+'</span></div>'
+    +(mats?'<div class="row"><span class="l">Materiales</span><span class="v" style="font-size:11px;">'+mats+'</span></div>':'')
+    +'<div class="row"><span class="l">Fecha</span><span class="v">'+fecha+' '+hora+'</span></div>'
+    +'</div>'
+    +'<div class="tf">Muestra este código en tienda o por WhatsApp<br><strong>+51 973 589 710</strong><br>Av. Gerardo Unger 3209, Independencia</div>'
+    +'<button class="pb" id="pb">🖨️ Imprimir / Guardar como PDF</button>'
+    +'</div>'
+    +'<scr'+'ipt>document.getElementById("pb").addEventListener("click",function(){window.print();});<\/scr'+'ipt>'
+    +'</body></html>';
+  var w=window.open('','_blank');
+  if(w){w.document.write(body);w.document.close();}
+  else{showToast('Activa ventanas emergentes para el ticket','warn',5000);}
+}
 // Exponer globalmente para que funcionen los onclick del HTML
 window.irStepBtn = irStepBtn;
 function irPaso(n){
@@ -3694,27 +3735,36 @@ el('lsub') && (el('lsub').textContent=new Date().toLocaleDateString('es-PE',{wee
   </div>
 </div>
 
-<!-- CHAT DE SOPORTE ADMIN ↔ VENDEDORAS -->
+
+<!-- CHAT DE SOPORTE -->
 <div id="chatSoporte">
-  <div class="chat-box" id="chatBox">
+  <div class="chat-win" id="chatWin">
     <div class="chat-hdr">
-      <div>
-        <div class="chat-hdr-tit">💬 Soporte CARPICENTRO</div>
-        <div class="chat-hdr-sub" id="chatStatus">Conectando...</div>
+      <div class="chat-hdr-ico">💬</div>
+      <div class="chat-hdr-info">
+        <div class="chat-hdr-tit" id="chatTit">Soporte</div>
+        <div class="chat-hdr-sub" id="chatSub">—</div>
       </div>
-      <button type="button" id="btnCerrarChat" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;opacity:.7;padding:4px;">✕</button>
+      <button type="button" class="chat-hdr-close" id="btnCerrarChat">✕</button>
     </div>
-    <div class="chat-msgs" id="chatMsgs">
-      <div class="chat-empty">Escribe un mensaje al equipo de soporte</div>
+    <div id="chatListaPanel" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+      <div class="chat-search"><input type="text" id="chatBuscarInp" placeholder="🔍 Buscar vendedora..."></div>
+      <div class="chat-list" id="chatLista"><div class="chat-empty">Cargando...</div></div>
     </div>
-    <div class="chat-inp-row">
-      <input type="text" class="chat-inp" id="chatInput" placeholder="Escribe tu consulta...">
-      <button type="button" class="chat-send" id="btnChatSend">➤</button>
+    <div id="chatMsgsPanel" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+      <div class="chat-msgs-hdr" id="chatMsgsHdr">
+        <button type="button" class="chat-back-btn" id="btnChatVolver">← Volver</button>
+        <div class="chat-conv-nom" id="chatConvNom"></div>
+      </div>
+      <div class="chat-msgs" id="chatMsgs"><div class="chat-empty">Sin mensajes aún</div></div>
+      <div class="chat-inp-row">
+        <textarea class="chat-inp" id="chatInp" placeholder="Escribe tu mensaje..." rows="1"></textarea>
+        <button type="button" class="chat-send-btn" id="btnChatEnviar"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+      </div>
     </div>
   </div>
   <button type="button" class="chat-fab" id="chatFab">
-    <div class="chat-badge" id="chatBadge">0</div>
-    💬
+    <div id="chatBadge">0</div><svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>
   </button>
 </div>
 </body>
