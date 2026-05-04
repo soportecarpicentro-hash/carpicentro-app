@@ -2169,7 +2169,14 @@ el('btnWAFloat') && el('btnWAFloat').addEventListener('click', function(){
 function toggleWAFloat(){
   var btn = el('btnWAFloat');
   if(!btn) return;
-  btn.style.display = sesion ? 'none' : 'flex';
+  // WA flotante SOLO para clientes sin sesión
+  var esLogueado = sesion && (sesion.rol === 'admin' || sesion.rol === 'vendedora');
+  btn.style.display = esLogueado ? 'none' : (sesion ? 'none' : 'flex');
+}
+
+function ocultarWAFloat(){
+  var btn = el('btnWAFloat');
+  if(btn){ btn.style.display='none'; btn.classList.remove('pulsing'); }
 }
 
 
@@ -2195,12 +2202,12 @@ function mostrarAppTrasLogin(){
   el('vLogin').style.display = 'none';
   el('vMain').style.display = 'block';
   if(sesion.rol === 'admin' || sesion.rol === 'vendedora'){
+    // Ocultar WA flotante INMEDIATAMENTE — antes de cualquier setTimeout
+    ocultarWAFloat();
     switchVTab('pedidos'); cargarPedidos();
     el('vTabBar') && (el('vTabBar').style.display = 'flex');
     // Iniciar chat de soporte
-    setTimeout(initChat, 500);
-    // Ocultar WA flotante para vendedoras/admin
-    toggleWAFloat();
+    setTimeout(initChat, 400);
   }
 }
 
@@ -2215,7 +2222,8 @@ function initChat(){
   if(!sesion) return;
   var wrap=el('chatSoporte'); if(!wrap) return;
   wrap.classList.add('visible');
-  var waBtn=el('btnWAFloat'); if(waBtn) waBtn.style.display='none';
+  // Triple seguro: ocultar WA en cuanto initChat corre
+  ocultarWAFloat();
   el('chatTit') && (el('chatTit').textContent=sesion.rol==='admin'?'Mensajes':'Soporte CARPICENTRO');
   el('chatSub') && (el('chatSub').textContent=sesion.rol==='admin'?'Conversaciones de vendedoras':'Escríbenos tu consulta o reporte');
   el('chatFab') && el('chatFab').addEventListener('click',function(){
