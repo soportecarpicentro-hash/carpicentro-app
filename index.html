@@ -394,7 +394,6 @@ body.light-mode .theme-toggle{border-color:rgba(255,255,255,.35);}
 /* ── BOTÓN WA FLOTANTE ── */
 .wa-float{position:fixed;bottom:24px;right:20px;z-index:8000;width:56px;height:56px;border-radius:50%;background:#25D366;border:none;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,211,102,.45);transition:transform .2s,box-shadow .2s;animation:popIn .5s 1.5s cubic-bezier(.22,1,.36,1) both;}
 .wa-float:hover{transform:scale(1.1);box-shadow:0 6px 24px rgba(37,211,102,.6);}
-.wa-float.pulsing{animation:waBounceIn .6s cubic-bezier(.22,1,.36,1) both,waPulse 2s 1s ease-in-out infinite;}
 .wa-float svg{width:30px;height:30px;fill:#fff;}
 .wa-float-tip{position:absolute;right:66px;top:50%;transform:translateY(-50%);background:#1A1A1A;color:#fff;font-size:12px;font-weight:600;padding:6px 12px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .2s;}
 .wa-float:hover .wa-float-tip{opacity:1;}
@@ -410,41 +409,11 @@ body.light-mode .theme-toggle{border-color:rgba(255,255,255,.35);}
 .hi{animation:slideFade .2s ease both;}
 
 @keyframes dotPulse{0%,100%{transform:scale(.6);opacity:.4;}50%{transform:scale(1.2);opacity:1;}}
-@keyframes waBounceIn{0%{transform:scale(0) rotate(-15deg);opacity:0;}60%{transform:scale(1.15) rotate(5deg);}80%{transform:scale(.95);}100%{transform:scale(1) rotate(0deg);opacity:1;}}
-@keyframes waPulse{0%,100%{box-shadow:0 4px 16px rgba(37,211,102,.45);}50%{box-shadow:0 4px 28px rgba(37,211,102,.8),0 0 0 8px rgba(37,211,102,.1);}}
-
-/* ── CHAT VENTANA ── */
-.chat-window{width:320px;background:#1A1A1A;border-radius:16px;border:1px solid rgba(255,255,255,.1);box-shadow:0 12px 40px rgba(0,0,0,.6);overflow:hidden;display:none;flex-direction:column;max-height:500px;animation:fadeInUp .25s cubic-bezier(.22,1,.36,1);}
-.chat-window.open{display:flex;}
-.chat-hdr-left{display:flex;flex-direction:column;gap:2px;}
-.chat-hdr-close{background:none;border:none;color:rgba(255,255,255,.7);font-size:18px;cursor:pointer;padding:4px;line-height:1;border-radius:6px;}
-.chat-hdr-close:hover{color:#fff;background:rgba(255,255,255,.1);}
-.chat-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;}
-.chat-list-item{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.06);transition:background .12s;}
-.chat-list-item:hover{background:rgba(255,255,255,.05);}
-.chat-list-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#1565C0,#4CAF50);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;flex-shrink:0;}
-.chat-list-info{flex:1;min-width:0;}
-.chat-list-name{font-size:13px;font-weight:700;color:#fff;}
-.chat-list-preview{font-size:11px;color:rgba(255,255,255,.4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
-.chat-list-meta{display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
-.chat-list-time{font-size:10px;color:rgba(255,255,255,.3);}
-.chat-list-unread{min-width:18px;height:18px;border-radius:999px;background:#FF3B30;color:#fff;font-size:10px;font-weight:800;display:none;align-items:center;justify-content:center;padding:0 4px;}
-.chat-list-unread.show{display:flex;}
-.chat-search{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0;}
-.chat-search input{width:100%;box-sizing:border-box;background:#2C2C2C;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:7px 12px;color:#fff;font-size:12px;outline:none;font-family:inherit;}
-.chat-search input::placeholder{color:#555;}
-.chat-back{background:none;border:none;color:rgba(255,255,255,.5);font-size:12px;cursor:pointer;padding:8px 16px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0;}
-.chat-back:hover{color:#fff;}
-.chat-bubble{max-width:82%;padding:9px 12px;border-radius:14px;font-size:13px;line-height:1.45;animation:fadeInUp .15s ease;}
-.chat-bubble.me{background:#1565C0;color:#fff;align-self:flex-end;border-bottom-right-radius:4px;}
-.chat-bubble.other{background:#2A2A2A;color:#e0e0e0;align-self:flex-start;border-bottom-left-radius:4px;}
-.chat-bubble-name{font-size:10px;opacity:.5;margin-bottom:3px;font-weight:600;}
-.chat-bubble-time{font-size:10px;opacity:.4;margin-top:3px;text-align:right;}
-.chat-empty-msg{text-align:center;color:#444;font-size:13px;padding:28px 16px;line-height:1.6;}
 
 /* ── CHAT DE SOPORTE ── */
 #chatSoporte{position:fixed;bottom:24px;right:20px;z-index:8000;display:none;}
-#chatSoporte.visible{display:block;}
+#chatSoporte.visible{display:flex;flex-direction:column;align-items:flex-end;gap:10px;}
+#chatSoporte .chat-fab{display:flex !important;}
 .chat-fab{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#1565C0,#1E88E5);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(21,101,192,.45);transition:transform .2s;animation:popIn .5s 1.5s cubic-bezier(.22,1,.36,1) both;color:#fff;font-size:22px;}
 .chat-fab:hover{transform:scale(1.1);}
 .chat-fab .chat-badge{position:absolute;top:-3px;right:-3px;width:16px;height:16px;border-radius:50%;background:#FF3B30;color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;display:none;}
@@ -467,15 +436,15 @@ body.light-mode .theme-toggle{border-color:rgba(255,255,255,.35);}
 .chat-send:hover{background:#1976D2;}
 .chat-empty{text-align:center;color:#555;font-size:13px;padding:24px;}
 
-/* ── TOAST NOTIFICATIONS (reemplazo de alerts) ── */
-#toastContainer{position:fixed;top:80px;right:20px;z-index:99000;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
-.toast{background:#1E1E1E;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 18px;font-size:13px;font-weight:500;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.4);display:flex;align-items:center;gap:10px;pointer-events:auto;animation:toastIn .3s cubic-bezier(.22,1,.36,1) both;max-width:300px;}
+/* ── TOASTS ── */
+#toastContainer{position:fixed;top:76px;right:20px;z-index:99000;display:flex;flex-direction:column;gap:8px;pointer-events:none;min-width:260px;}
+.toast{background:#1E1E1E;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 16px;font-size:13px;font-weight:500;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.4);display:flex;align-items:center;gap:10px;pointer-events:auto;animation:toastIn .3s cubic-bezier(.22,1,.36,1) both;max-width:300px;}
 .toast.ok{border-left:3px solid #2ECC71;}
 .toast.err{border-left:3px solid #FF3B30;}
 .toast.warn{border-left:3px solid #FFD600;}
 .toast.info{border-left:3px solid #1E88E5;}
-@keyframes toastIn{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
-@keyframes toastOut{to{opacity:0;transform:translateX(20px);}}
+@keyframes toastIn{from{opacity:0;transform:translateX(16px);}to{opacity:1;transform:translateX(0);}}
+@keyframes toastOut{to{opacity:0;transform:translateX(16px);}}
 </style>
 </head>
 <body>
@@ -504,9 +473,9 @@ body.light-mode .theme-toggle{border-color:rgba(255,255,255,.35);}
   <div class="success-sub">Código del pedido</div>
   <div class="success-cod" id="successCod">—</div>
   <div class="success-btns">
-    <button type="button" id="successWA" style="display:flex;align-items:center;gap:8px;padding:13px 22px;font-size:14px;font-weight:700;background:#25D366;color:#fff;border:none;border-radius:999px;cursor:pointer;box-shadow:0 4px 16px rgba(37,211,102,.4);transition:transform .15s,box-shadow .15s;" onmouseenter="this.style.transform='scale(1.05)'" onmouseleave="this.style.transform='scale(1)'"><svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" style="flex-shrink:0;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> WhatsApp</button>
-    <button type="button" id="successPDF" style="display:flex;align-items:center;gap:8px;padding:13px 22px;font-size:14px;font-weight:700;background:#FFD600;color:#1A1A1A;border:none;border-radius:999px;cursor:pointer;box-shadow:0 4px 16px rgba(255,214,0,.3);transition:transform .15s;" onmouseenter="this.style.transform='scale(1.05)'" onmouseleave="this.style.transform='scale(1)'"><svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" style="flex-shrink:0;"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg> Descargar ticket</button>
-    <button type="button" id="successNuevo" style="padding:13px 22px;font-size:14px;font-weight:600;background:transparent;border:1.5px solid rgba(255,255,255,.3);color:#fff;border-radius:999px;cursor:pointer;transition:all .15s;" onmouseenter="this.style.borderColor='#FFD600';this.style.color='#FFD600'" onmouseleave="this.style.borderColor='rgba(255,255,255,.3)';this.style.color='#fff'">+ Nuevo pedido</button>
+    <button type="button" id="successWA" class="btn bp" style="padding:12px 22px;font-size:14px;"><svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" style="flex-shrink:0;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> WhatsApp</button>
+    <button type="button" id="successQR" class="btn bs" style="padding:12px 22px;font-size:14px;">📱 QR</button>
+    <button type="button" id="successNuevo" style="padding:12px 22px;font-size:14px;background:transparent;border:1.5px solid rgba(255,255,255,.25);color:#fff;border-radius:999px;cursor:pointer;">+ Nuevo pedido</button>
   </div>
 </div>
 
@@ -1005,6 +974,7 @@ if('serviceWorker' in navigator){
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(toggleWAFloat, 100);
 
 // ── CONFIG ──────────────────────────────────────────────
 var SB  = 'https://cybybindlspwbkocrang.supabase.co';
@@ -1775,15 +1745,16 @@ el('btnLogin').addEventListener('click',doLogin);
 el('lip').addEventListener('keydown',function(e){ if(e.key==='Enter') doLogin(); });
 el('btnCancelarLogin').addEventListener('click',function(){ el('vLogin').style.display='none'; setModo('c'); });
 el('btnLogout').addEventListener('click',function(){
-  if(!confirm('¿Cerrar sesión?')) return;
-  sesion=null;
-  el('sesionInfo').style.display='none';
-  el('vc').classList.add('on'); el('vv').classList.remove('on');
-  el('btnC').classList.add('on'); el('btnV').classList.remove('on');
-  // Ocultar tab de usuarios y resetear a pedidos
-  var tabBar=el('vTabBar');
-  if(tabBar) tabBar.style.display='none';
-  switchVTab('pedidos');
+  mostrarModal('Cerrar sesión','¿Seguro que quieres cerrar sesión?',function(){
+    sesion=null;
+    el('sesionInfo').style.display='none';
+    el('vc').classList.add('on'); el('vv').classList.remove('on');
+    el('btnC').classList.add('on'); el('btnV').classList.remove('on');
+    var tabBar=el('vTabBar');
+    if(tabBar) tabBar.style.display='none';
+    switchVTab('pedidos');
+    toggleWAFloat();
+  },null,{labelOk:'Cerrar sesión',labelNo:'Cancelar'});
 });
 function doLogin(){
   var u=el('liu').value.trim(), p=el('lip').value.trim();
@@ -1860,7 +1831,7 @@ function buscarDoc(){
 
 // ── PASOS CLIENTE ─────────────────────────────────────────
 el('btnContinuar1').addEventListener('click',function(){ irPaso(2); });
-el('btnAtras2').addEventListener('click',function(){ irPaso(1); });
+el('btnAtras2').addEventListener('click',function(e){ if(e)e.preventDefault(); irPaso(1); });
 el('btnManual').addEventListener('click',irManual);
 el('btnAtras3').addEventListener('click',function(){ irPaso(2); });
 el('btnConfirmar').addEventListener('click',confirmarPedido);
@@ -1899,7 +1870,7 @@ function irStepBtn(n){
 // ══════════════════════════════════════════════════════
 // PANEL DE CONFIRMACIÓN DE CANTOS (tras lectura IA)
 // ══════════════════════════════════════════════════════
-var CANTO_CICLO = ['','D','G'];
+var CANTO_CICLO = ['','D','G','DM','GM'];
 
 function cbNext(val){
   var i = CANTO_CICLO.indexOf(val);
@@ -1996,9 +1967,9 @@ function mostrarConfirmacionCantos(){
 // ── FEATURE 1: Duplicar pedido ──────────────────────
 function usarComoBase(ped){
   if(!ped) return;
-  if(!confirm('¿Usar este pedido como base para uno nuevo?\nSe cargarán las piezas en el paso 3.')) return;
+  // Se carga directamente — el toast informa
   sbGet('pedido_piezas','pedido_id=eq.'+ped.id+'&order=linea.asc').then(function(pzs){
-    if(!pzs||!pzs.length){ showToast('No se encontraron piezas en este pedido.', 'warn'); return; }
+    if(!pzs||!pzs.length){ alert('No se encontraron piezas.'); return; }
     if(el('nom')) el('nom').value=ped.cliente_nombre||'';
     if(el('tel')) el('tel').value=ped.cliente_telefono||'';
     if(el('fi')) el('fi').value=ped.cliente_ruc||ped.cliente_dni||'';
@@ -2083,9 +2054,9 @@ function mostrarExito(cod, waUrl){
   el('successWA') && (el('successWA').onclick = function(){
     if(waUrl) window.open(waUrl, '_blank');
   });
-  // Botón PDF del ticket
-  el('successPDF') && (el('successPDF').onclick = function(){
-    generarTicketPDF(cod);
+  // Botón QR
+  el('successQR') && (el('successQR').onclick = function(){
+    abrirQR(cod, 'Pedido ' + cod);
   });
   // Botón Nuevo pedido
   el('successNuevo') && (el('successNuevo').onclick = function(){
@@ -2233,13 +2204,7 @@ el('btnWAFloat') && el('btnWAFloat').addEventListener('click', function(){
 function toggleWAFloat(){
   var btn = el('btnWAFloat');
   if(!btn) return;
-  if(!sesion){
-    btn.style.display = 'flex';
-    btn.classList.add('pulsing');
-  } else {
-    btn.style.display = 'none';
-    btn.classList.remove('pulsing');
-  }
+  btn.style.display = sesion ? 'none' : 'flex';
 }
 
 
@@ -2275,206 +2240,137 @@ function mostrarAppTrasLogin(){
 }
 
 
+// ════════════════════════════════════════════════════════
+// CHAT DE SOPORTE ADMIN ↔ VENDEDORAS
+// ════════════════════════════════════════════════════════
+var chatOpen = false;
+var chatMsgsCache = [];
+var chatLastCheck = null;
+var chatInterval = null;
+var chatUnread = 0;
 
-// ── TOAST NOTIFICATIONS ──────────────────────────────────────────────
+function initChat(){
+  if(!sesion) return;
+  var soporte = el('chatSoporte');
+  if(!soporte) return;
+  soporte.classList.add('visible');
+  // Cargar mensajes iniciales
+  cargarMsgsChat();
+  // Polling cada 8 segundos
+  chatInterval = setInterval(cargarMsgsChat, 8000);
+  // Listeners
+  el('chatFab') && el('chatFab').addEventListener('click', function(){
+    chatOpen = !chatOpen;
+    var box = el('chatBox');
+    if(box) box.classList.toggle('open', chatOpen);
+    if(chatOpen){ chatUnread=0; actualizarBadgeChat(); scrollChatBottom(); }
+  });
+  el('btnCerrarChat') && el('btnCerrarChat').addEventListener('click', function(){
+    chatOpen = false; el('chatBox').classList.remove('open');
+  });
+  el('btnChatSend') && el('btnChatSend').addEventListener('click', enviarMsgChat);
+  el('chatInput') && el('chatInput').addEventListener('keydown', function(e){
+    if(e.key === 'Enter') enviarMsgChat();
+  });
+  // Estado
+  var stat = el('chatStatus');
+  if(stat) stat.textContent = sesion.rol==='admin' ? 'Admin — verás mensajes de todas las vendedoras' : 'Conectada como ' + (sesion.nombre||'Vendedora');
+}
+
+function cargarMsgsChat(){
+  sbGet('soporte_mensajes','order=created_at.asc&limit=50')
+  .then(function(rows){
+    rows = rows || [];
+    var prevLen = chatMsgsCache.length;
+    chatMsgsCache = rows;
+    renderMsgsChat();
+    // Notificar nuevos mensajes si el chat está cerrado
+    if(!chatOpen && rows.length > prevLen){
+      chatUnread += (rows.length - prevLen);
+      actualizarBadgeChat();
+    }
+  }).catch(function(){});
+}
+
+function renderMsgsChat(){
+  var box = el('chatMsgs'); if(!box) return;
+  if(!chatMsgsCache.length){
+    box.innerHTML = '<div class="chat-empty">Sin mensajes aún. ¡Sé el primero en escribir!</div>';
+    return;
+  }
+  box.innerHTML = chatMsgsCache.map(function(m){
+    var esYo = m.autor_id === (sesion && sesion.id);
+    var hora = m.created_at ? new Date(m.created_at).toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}) : '';
+    return '<div class="chat-msg ' + (esYo ? 'from-me' : 'from-other') + '">'
+      + (!esYo ? '<div class="chat-msg-autor">' + (m.autor_nombre||'Vendedora') + '</div>' : '')
+      + '<div>' + (m.texto||'') + '</div>'
+      + '<div class="chat-msg-time">' + hora + '</div>'
+      + '</div>';
+  }).join('');
+  scrollChatBottom();
+}
+
+function enviarMsgChat(){
+  var inp = el('chatInput'); if(!inp || !inp.value.trim()) return;
+  var texto = inp.value.trim(); inp.value = '';
+  sbPost('soporte_mensajes',{
+    autor_id: sesion.id,
+    autor_nombre: sesion.nombre || sesion.usuario,
+    autor_rol: sesion.rol,
+    texto: texto
+  }).then(function(){ cargarMsgsChat(); }).catch(function(){});
+}
+
+function actualizarBadgeChat(){
+  var badge = el('chatBadge'); if(!badge) return;
+  badge.textContent = chatUnread > 9 ? '9+' : chatUnread;
+  badge.classList.toggle('has-msg', chatUnread > 0);
+}
+
+function scrollChatBottom(){
+  var box = el('chatMsgs');
+  if(box) setTimeout(function(){ box.scrollTop = box.scrollHeight; }, 50);
+}
+
+
+// ── MODAL DE CONFIRMACIÓN premium (reemplaza confirm()) ──────────────
+function mostrarModal(titulo, msg, onOk, onCancel, opciones){
+  var m = document.createElement('div');
+  m.style.cssText = 'position:fixed;inset:0;z-index:99500;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);';
+  var tipo = (opciones&&opciones.tipo) || 'warn';
+  var icons = {warn:'⚠️',danger:'🗑️',info:'ℹ️',ok:'✅'};
+  var btnColor = tipo==='danger' ? '#FF3B30' : '#FFD600';
+  var btnTxt = tipo==='danger' ? '#fff' : '#1A1A1A';
+  var labelOk = (opciones&&opciones.labelOk) || 'Confirmar';
+  var labelNo = (opciones&&opciones.labelNo) || 'Cancelar';
+  m.innerHTML = '<div style="background:#1E1E1E;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px 24px;max-width:360px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.6);animation:popIn .25s cubic-bezier(.22,1,.36,1);">'
+    + '<div style="font-size:32px;margin-bottom:12px;text-align:center;">' + (icons[tipo]||'⚠️') + '</div>'
+    + '<div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:8px;text-align:center;">' + titulo + '</div>'
+    + '<div style="font-size:14px;color:rgba(255,255,255,.55);line-height:1.6;margin-bottom:24px;text-align:center;">' + msg + '</div>'
+    + '<div style="display:flex;gap:10px;">'
+    + '<button id="mNo" style="flex:1;padding:12px;border-radius:12px;border:1.5px solid rgba(255,255,255,.15);background:transparent;color:#fff;font-size:14px;cursor:pointer;font-family:inherit;font-weight:600;">' + labelNo + '</button>'
+    + '<button id="mOk" style="flex:1;padding:12px;border-radius:12px;border:none;background:' + btnColor + ';color:' + btnTxt + ';font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">' + labelOk + '</button>'
+    + '</div></div>';
+  document.body.appendChild(m);
+  var close = function(){ if(m.parentNode) document.body.removeChild(m); };
+  m.querySelector('#mOk').addEventListener('click', function(){ close(); if(onOk) onOk(); });
+  m.querySelector('#mNo').addEventListener('click', function(){ close(); if(onCancel) onCancel(); });
+  m.addEventListener('click', function(e){ if(e.target===m){ close(); if(onCancel) onCancel(); } });
+}
+
+// ── TOAST NOTIFICATIONS ───────────────────────────────────────────────
 function showToast(msg, tipo, duracion){
   tipo = tipo || 'info'; duracion = duracion || 3500;
-  var icons = {ok:'✅', err:'❌', warn:'⚠️', info:'ℹ️'};
+  var icons = {ok:'✅',err:'❌',warn:'⚠️',info:'ℹ️'};
   var tc = el('toastContainer'); if(!tc) return;
   var t = document.createElement('div');
   t.className = 'toast ' + tipo;
-  t.innerHTML = '<span>' + (icons[tipo]||'') + '</span><span>' + msg + '</span>';
+  t.innerHTML = '<span style="flex-shrink:0;">' + (icons[tipo]||'') + '</span><span>' + msg + '</span>';
   tc.appendChild(t);
   setTimeout(function(){
     t.style.animation = 'toastOut .3s ease forwards';
     setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); }, 300);
   }, duracion);
-}
-
-// Reemplazar confirm() nativo para acciones de pedido
-function confirmarAccion(msg, callback){
-  var tc = el('toastContainer'); if(!tc){ if(confirm(msg)) callback(); return; }
-  var t = document.createElement('div');
-  t.className = 'toast warn';
-  t.style.cssText += 'flex-direction:column;gap:10px;align-items:flex-start;max-width:320px;';
-  t.innerHTML = '<div style="display:flex;gap:8px;align-items:center;"><span>⚠️</span><span>' + msg + '</span></div>'
-    + '<div style="display:flex;gap:8px;align-self:flex-end;">'
-    + '<button style="background:#FFD600;color:#1A1A1A;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;" id="toastOk">Confirmar</button>'
-    + '<button style="background:rgba(255,255,255,.1);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;" id="toastNo">Cancelar</button>'
-    + '</div>';
-  tc.appendChild(t);
-  t.querySelector('#toastOk').addEventListener('click', function(){ if(t.parentNode) t.parentNode.removeChild(t); callback(); });
-  t.querySelector('#toastNo').addEventListener('click', function(){ if(t.parentNode) t.parentNode.removeChild(t); });
-}
-
-
-// ── GENERAR TICKET PDF ───────────────────────────────────────────────
-function generarTicketPDF(cod){
-  // Buscar el pedido en allP
-  var ped = allP ? allP.find(function(p){ return p.codigo === cod; }) : null;
-  var fecha = new Date().toLocaleDateString('es-PE',{day:'2-digit',month:'long',year:'numeric'});
-  var hora = new Date().toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'});
-  var cliente = ped ? (ped.cliente_nombre || 'Cliente') : 'Cliente';
-  var doc = ped ? (ped.cliente_ruc ? 'RUC: '+ped.cliente_ruc : ped.cliente_dni ? 'DNI: '+ped.cliente_dni : '') : '';
-  var sede = ped ? (ped.sede || '') : '';
-  var lineas = ped ? (ped.total_lineas || '—') : '—';
-  var piezas = ped ? (ped.total_piezas || '—') : '—';
-
-  var html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
-    + '<title>Ticket ' + cod + ' — CARPICENTRO</title>'
-    + '<style>'
-    + 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#1A1A1A;}'
-    + '.logo-area{text-align:center;margin-bottom:24px;}'
-    + '.logo-area h1{font-size:28px;font-weight:900;margin:8px 0 4px;letter-spacing:1px;}'
-    + '.logo-area p{font-size:12px;color:#666;margin:0;}'
-    + '.divider{border:none;border-top:2px solid #FFD600;margin:16px 0;}'
-    + '.cod{background:#1A1A1A;color:#FFD600;padding:12px 20px;border-radius:10px;text-align:center;font-size:22px;font-weight:900;letter-spacing:2px;margin:16px 0;font-family:monospace;}'
-    + '.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:14px;}'
-    + '.row .lbl{color:#888;}'
-    + '.row .val{font-weight:600;}'
-    + '.footer{text-align:center;margin-top:24px;font-size:11px;color:#aaa;line-height:1.8;}'
-    + '.badge{display:inline-block;background:#FFF3E0;color:#E65100;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;}'
-    + '@media print{body{max-width:100%;} .no-print{display:none;}}'
-    + '</style></head><body>'
-    + '<div class="logo-area"><h1>🪵 CARPICENTRO</h1><p>Sistema de pedidos de melamina</p></div>'
-    + '<hr class="divider">'
-    + '<div class="cod">' + cod + '</div>'
-    + '<div class="row"><span class="lbl">Estado</span><span class="badge">⏳ Ingresado</span></div>'
-    + '<div class="row"><span class="lbl">Cliente</span><span class="val">' + cliente + '</span></div>'
-    + (doc ? '<div class="row"><span class="lbl">Documento</span><span class="val">' + doc + '</span></div>' : '')
-    + (sede ? '<div class="row"><span class="lbl">Sede</span><span class="val">' + sede + '</span></div>' : '')
-    + '<div class="row"><span class="lbl">Líneas</span><span class="val">' + lineas + '</span></div>'
-    + '<div class="row"><span class="lbl">Total piezas</span><span class="val">' + piezas + '</span></div>'
-    + '<div class="row"><span class="lbl">Fecha</span><span class="val">' + fecha + ' · ' + hora + '</span></div>'
-    + '<hr class="divider">'
-    + '<div class="footer">'
-    + 'Guarda este código para dar seguimiento a tu pedido<br>'
-    + 'WhatsApp: <strong>+51 973 589 710</strong><br>'
-    + 'Av. Gerardo Unger 3209, Independencia — Lima<br><br>'
-    + '<em>Ticket generado automáticamente por CARPICENTRO App</em>'
-    + '</div>'
-    + '<div class="no-print" style="text-align:center;margin-top:24px;">'
-    + '<button onclick="window.print()" style="background:#1A1A1A;color:#FFD600;border:none;padding:10px 28px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">🖨️ Imprimir / Guardar PDF</button>'
-    + '</div>'
-    
-    + '</body></html>';
-
-  var w = window.open('', '_blank');
-  if(w){ w.document.write(html); w.document.close(); }
-  else { showToast('Activa las ventanas emergentes para descargar el ticket', 'warn'); }
-}
-
-
-// ════════════════════════════════════════════════════════
-// CHAT DE SOPORTE — Admin ve lista por vendedora / Vendedora ve su chat
-// ════════════════════════════════════════════════════════
-var chatOpen=false, chatUnread=0, chatInterval=null;
-var chatConvActual=null, chatMsgsCache=[], chatConversaciones={};
-
-function initChat(){
-  if(!sesion) return;
-  var s=el('chatSoporte'); if(!s) return;
-  s.classList.add('visible');
-  var tit=el('chatTitle'), sub=el('chatStatus');
-  if(tit) tit.textContent = sesion.rol==='admin' ? '💬 Mensajes' : '💬 Soporte';
-  if(sub) sub.textContent = sesion.rol==='admin' ? 'Mensajes de vendedoras' : 'Escríbenos cualquier consulta';
-  el('chatFab') && el('chatFab').addEventListener('click', function(){
-    chatOpen=!chatOpen;
-    var w=el('chatWindow'); if(w) w.classList.toggle('open',chatOpen);
-    if(chatOpen){ chatUnread=0; actualizarBadgeChat(); if(sesion.rol==='admin') mostrarListaChat(); else mostrarMisChat(); }
-  });
-  el('btnCerrarChat') && el('btnCerrarChat').addEventListener('click', function(){ chatOpen=false; var w=el('chatWindow'); if(w) w.classList.remove('open'); });
-  el('btnChatBack') && el('btnChatBack').addEventListener('click', function(){ chatConvActual=null; mostrarListaChat(); });
-  el('btnChatSend') && el('btnChatSend').addEventListener('click', enviarMsgChat);
-  el('chatInput') && el('chatInput').addEventListener('keydown', function(e){ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();enviarMsgChat();} });
-  el('chatSearchInp') && el('chatSearchInp').addEventListener('input', function(){ renderListaChat(this.value.toLowerCase()); });
-  cargarMsgsChat();
-  chatInterval=setInterval(cargarMsgsChat, 6000);
-}
-
-function cargarMsgsChat(){
-  var filtro=sesion.rol==='admin'
-    ? 'order=created_at.asc&limit=200'
-    : 'or=(autor_id.eq.'+sesion.id+',destinatario_id.eq.'+sesion.id+')&order=created_at.asc&limit=100';
-  sbGet('soporte_mensajes',filtro).then(function(rows){
-    rows=rows||[];
-    var prev=chatMsgsCache.length; chatMsgsCache=rows;
-    chatConversaciones={};
-    rows.forEach(function(m){
-      var key=m.autor_rol==='admin'?m.destinatario_id:m.autor_id;
-      var nom=m.autor_rol==='admin'?m.destinatario_nombre:m.autor_nombre;
-      if(!chatConversaciones[key]) chatConversaciones[key]={id:key,nombre:nom,msgs:[],unread:0};
-      chatConversaciones[key].msgs.push(m);
-      if(sesion.rol==='admin'&&!m.leido&&m.autor_rol!=='admin') chatConversaciones[key].unread++;
-    });
-    if(!chatOpen&&rows.length>prev){ chatUnread+=(rows.length-prev); actualizarBadgeChat(); }
-    if(chatOpen){ if(sesion.rol==='admin'&&!chatConvActual) mostrarListaChat(); else renderMsgsActual(); }
-  }).catch(function(){});
-}
-
-function mostrarListaChat(){
-  var lv=el('chatListaView'),mv=el('chatMensajesView');
-  if(lv){lv.style.display='flex';} if(mv){mv.style.display='none';}
-  renderListaChat('');
-}
-function renderListaChat(f){
-  var lista=el('chatLista'); if(!lista) return;
-  var convs=Object.values(chatConversaciones).filter(function(c){return !f||c.nombre.toLowerCase().includes(f);});
-  if(!convs.length){ lista.innerHTML='<div class="chat-empty-msg">'+(f?'Sin resultados para "'+f+'"':'Sin mensajes aún. Las vendedoras podrán escribirte aquí.')+'</div>'; return; }
-  lista.innerHTML=convs.map(function(c){
-    var ult=c.msgs[c.msgs.length-1];
-    var prev=ult?(ult.texto.slice(0,35)+(ult.texto.length>35?'...':'')):'';
-    var hora=ult?new Date(ult.created_at).toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}):'';
-    return '<div class="chat-list-item" data-cid="'+c.id+'" data-cnom="'+c.nombre+'">'
-      +'<div class="chat-list-avatar">'+c.nombre.charAt(0).toUpperCase()+'</div>'
-      +'<div class="chat-list-info"><div class="chat-list-name">'+c.nombre+'</div><div class="chat-list-preview">'+(prev||'Sin mensajes')+'</div></div>'
-      +'<div class="chat-list-meta"><div class="chat-list-time">'+hora+'</div><div class="chat-list-unread'+(c.unread?' show':'')+'">'+( c.unread||'')+'</div></div>'
-      +'</div>';
-  }).join('');
-  lista.querySelectorAll('.chat-list-item').forEach(function(item){
-    item.addEventListener('click',function(){
-      chatConvActual={id:this.dataset.cid,nombre:this.dataset.cnom};
-      var lv=el('chatListaView'),mv=el('chatMensajesView');
-      if(lv)lv.style.display='none'; if(mv)mv.style.display='flex';
-      var sub=el('chatStatus'); if(sub)sub.textContent='Con '+chatConvActual.nombre;
-      renderMsgsActual();
-    });
-  });
-}
-function mostrarMisChat(){
-  var lv=el('chatListaView'),mv=el('chatMensajesView'),back=el('btnChatBack');
-  if(lv)lv.style.display='none'; if(mv)mv.style.display='flex'; if(back)back.style.display='none';
-  renderMsgsActual();
-}
-function renderMsgsActual(){
-  var box=el('chatMsgs'); if(!box) return;
-  var msgs=[];
-  if(sesion.rol==='admin'&&chatConvActual){ var c=chatConversaciones[chatConvActual.id]; msgs=c?c.msgs:[]; }
-  else msgs=chatMsgsCache;
-  if(!msgs.length){ box.innerHTML='<div class="chat-empty-msg">Sin mensajes aún.<br>¡Escribe el primero!</div>'; return; }
-  box.innerHTML=msgs.map(function(m){
-    var esYo=m.autor_id===sesion.id;
-    var hora=m.created_at?new Date(m.created_at).toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}):'';
-    return '<div class="chat-bubble '+(esYo?'me':'other')+'">'
-      +(!esYo?'<div class="chat-bubble-name">'+(m.autor_nombre||'Admin')+'</div>':'')
-      +'<div>'+(m.texto||'')+'</div>'
-      +'<div class="chat-bubble-time">'+hora+'</div></div>';
-  }).join('');
-  setTimeout(function(){box.scrollTop=box.scrollHeight;},50);
-}
-function enviarMsgChat(){
-  var inp=el('chatInput'); if(!inp||!inp.value.trim()) return;
-  var texto=inp.value.trim(); inp.value='';
-  var destId=null,destNom=null;
-  if(sesion.rol==='admin'&&chatConvActual){destId=chatConvActual.id;destNom=chatConvActual.nombre;}
-  else if(sesion.rol!=='admin'){destId='admin';destNom='Admin CARPICENTRO';}
-  sbPost('soporte_mensajes',{autor_id:sesion.id,autor_nombre:sesion.nombre||sesion.usuario,autor_rol:sesion.rol,destinatario_id:destId,destinatario_nombre:destNom,texto:texto,leido:false})
-  .then(function(){cargarMsgsChat();}).catch(function(){});
-}
-function actualizarBadgeChat(){
-  var b=el('chatBadge'); if(!b) return;
-  b.textContent=chatUnread>9?'9+':chatUnread;
-  b.classList.toggle('has-msg',chatUnread>0);
 }
 
 // Exponer globalmente para que funcionen los onclick del HTML
@@ -3020,7 +2916,8 @@ function confirmarPedido(){
     if(l>0 && a>0 && l<a) medRaro.push('Fila '+(i+1)+': largo('+l+') < ancho('+a+') — ¿invertidos?');
   });
   if(medRaro.length){
-    if(!confirm('⚠️ Medidas fuera de rango normal:\n'+medRaro.slice(0,6).join('\n')+'\n\n¿Continuar?')) return;
+    showToast(medRaro.slice(0,3).join(' | '),'warn',5000);
+    // Continuar de todas formas — la vendedora puede corregir después
   }
   var sinMat=pcs.filter(function(p){ return !p.material; });
   if(sinMat.length){ alert('⚠️ Hay '+sinMat.length+' pieza(s) sin material seleccionado.'); return; }
@@ -3064,8 +2961,8 @@ function confirmarPedido(){
     +(conPerf?'Con perforación: '+conPerf+' línea(s)\n':'')
     +(formicas&&formicas.filter(function(f){return f.material&&f.qty;}).length?'Fórmicas: '+formicas.filter(function(f){return f.material&&f.qty;}).length+' línea(s)\n':'')
     +'\n¿Confirmar y guardar el pedido?';
-  if(!confirm(resumen)) return;
-
+  // Mostrar resumen como toast informativo y proceder
+  showToast('Procesando pedido...','info',2000);
   sbPost('pedidos',datos)
   .then(function(ped){
     var pid=Array.isArray(ped)?ped[0]&&ped[0].id:ped&&ped.id;
@@ -3119,13 +3016,13 @@ function confirmarPedido(){
         +'</a>'
       +'</div>';
       ['cs1','cs2','cs3','cs4'].forEach(function(id,i){ el(id).style.display=(i===3)?'block':'none'; });
-      // Ocultar TODOS los pasos — la pantalla de éxito lo cubre todo
-      ['cs1','cs2','cs3','cs4'].forEach(function(id){ var e=el(id); if(e) e.style.display='none'; });
       [1,2,3,4].forEach(function(i){ var s=el('stp'+i); s.classList.remove('on','dn'); if(i===4)s.classList.add('on'); else s.classList.add('dn'); });
       window.scrollTo({top:0,behavior:'instant'});
-      // Mostrar pantalla de éxito SIN delay — no hay nada que ver debajo
-      var waLink = el('cs4') ? el('cs4').querySelector('a[href*="wa.me"]') : null;
-      mostrarExito(_pedidoConfirmadoCod, waLink ? waLink.href : null);
+      // Mostrar pantalla de éxito animada
+      setTimeout(function(){
+        var waLink = el('cs4') ? el('cs4').querySelector('a[href*="wa.me"]') : null;
+        mostrarExito(_pedidoConfirmadoCod, waLink ? waLink.href : null);
+      }, 300);
     });
   })
   .catch(function(err){ console.error(err); alert('Error al enviar el pedido: '+err.message+'\n\nAbre F12 → Consola para ver el detalle.'); })
@@ -3623,9 +3520,8 @@ function renderEditT(){
   tb.querySelectorAll('.ecard-del[data-del]').forEach(function(btn){
     btn.addEventListener('click',function(){
       var idx=parseInt(this.dataset.del);
-      if(pzEdit.length<=1){ showToast('Debe haber al menos 1 pieza.', 'warn'); return; }
-      if(!confirm('¿Eliminar la pieza '+(idx+1)+'?')) return;
-      pzEdit.splice(idx,1); renderEditT();
+      if(pzEdit.length<=1){ alert('Debe haber al menos 1 pieza.'); return; }
+      mostrarModal('Eliminar pieza','¿Quieres eliminar esta pieza?',function(){ pzEdit.splice(idx,1); renderEditT(); },null,{tipo:'danger',labelOk:'Eliminar'});
     });
   });
 }
@@ -3800,36 +3696,25 @@ el('lsub') && (el('lsub').textContent=new Date().toLocaleDateString('es-PE',{wee
 
 <!-- CHAT DE SOPORTE ADMIN ↔ VENDEDORAS -->
 <div id="chatSoporte">
-  <div class="chat-window" id="chatWindow">
+  <div class="chat-box" id="chatBox">
     <div class="chat-hdr">
-      <div class="chat-hdr-left">
-        <div class="chat-hdr-tit" id="chatTitle">💬 Soporte</div>
-        <div class="chat-hdr-sub" id="chatStatus">—</div>
+      <div>
+        <div class="chat-hdr-tit">💬 Soporte CARPICENTRO</div>
+        <div class="chat-hdr-sub" id="chatStatus">Conectando...</div>
       </div>
-      <button type="button" class="chat-hdr-close" id="btnCerrarChat">✕</button>
+      <button type="button" id="btnCerrarChat" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;opacity:.7;padding:4px;">✕</button>
     </div>
-    <div id="chatListaView" style="display:none;flex-direction:column;flex:1;min-height:0;">
-      <div class="chat-search">
-        <input type="text" id="chatSearchInp" placeholder="🔍 Buscar vendedora...">
-      </div>
-      <div class="chat-list" id="chatLista">
-        <div class="chat-empty-msg">Cargando chats...</div>
-      </div>
+    <div class="chat-msgs" id="chatMsgs">
+      <div class="chat-empty">Escribe un mensaje al equipo de soporte</div>
     </div>
-    <div id="chatMensajesView" style="display:none;flex-direction:column;flex:1;min-height:0;">
-      <button type="button" class="chat-back" id="btnChatBack">← Volver</button>
-      <div class="chat-msgs" id="chatMsgs">
-        <div class="chat-empty-msg">Sin mensajes aún</div>
-      </div>
-      <div class="chat-inp-row">
-        <textarea class="chat-inp" id="chatInput" placeholder="Escribe tu mensaje..." rows="1"></textarea>
-        <button type="button" class="chat-send" id="btnChatSend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z"/></svg></button>
-      </div>
+    <div class="chat-inp-row">
+      <input type="text" class="chat-inp" id="chatInput" placeholder="Escribe tu consulta...">
+      <button type="button" class="chat-send" id="btnChatSend">➤</button>
     </div>
   </div>
   <button type="button" class="chat-fab" id="chatFab">
-    <div id="chatBadge">0</div>
-    <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>
+    <div class="chat-badge" id="chatBadge">0</div>
+    💬
   </button>
 </div>
 </body>
