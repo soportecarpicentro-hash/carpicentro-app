@@ -2390,6 +2390,12 @@ function enviarMsg(){
     autor_rol:sesion.rol,conv_id:convId,
     texto:txt,leido:false
   }).then(function(){
+    // Quitar el mensaje temporal antes de que cargarChat traiga el real del servidor
+    chatCache=chatCache.filter(function(m){return m.id!==tmpId;});
+    if(sesion.rol==='admin'&&chatConvActiva){
+      var k2=String(chatConvActiva.id);
+      if(chatConvs[k2]) chatConvs[k2].msgs=chatConvs[k2].msgs.filter(function(m){return m.id!==tmpId;});
+    }
     cargarChat();
   }).catch(function(err){
     // Revertir optimista y restaurar texto para que el usuario pueda reintentar
@@ -2805,6 +2811,7 @@ function bindInputs(tb, arr, isMain){
       if(!isNaN(i)&&k){
         arr[i][k]=this.value;
         if(isMain&&k!=='obs'&&k.indexOf('perf_')<0&&k.indexOf('ran_')<0) updSG();
+        if(isMain) actualizarLiveCounter();
         // Re-render fila si cambió un canto (para mostrar/ocultar selector de color)
         var cantoCols=['l1','l2','a1','a2'];
         if(isMain && cantoCols.indexOf(k)>=0) renderTabla();
