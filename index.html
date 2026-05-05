@@ -1709,6 +1709,7 @@ function fL(d){ if(!d)return''; var dt=new Date(d); return dt.toLocaleDateString
 
 // ── SUPABASE ─────────────────────────────────────────────
 function sbGet(t,q){ return fetch(SB+'/rest/v1/'+t+'?'+(q||''),{headers:Object.assign({},HH,{'Prefer':'return=representation'})}).then(function(r){return r.ok?r.json():[];}).catch(function(){return[];}); }
+function sbGetChat(t,q){ return fetch(SB+'/rest/v1/'+t+'?'+(q||''),{headers:HH}).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;}); }
 function sbPost(t,d){ return fetch(SB+'/rest/v1/'+t,{method:'POST',headers:Object.assign({},HH,{'Prefer':'return=representation'}),body:JSON.stringify(d)}).then(function(r){if(r.ok)return r.json();return r.text().then(function(txt){throw new Error(r.status+': '+txt.slice(0,200));});}); }
 function sbPatch(t,q,d){ return fetch(SB+'/rest/v1/'+t+'?'+q,{method:'PATCH',headers:Object.assign({},HH,{'Prefer':'return=representation'}),body:JSON.stringify(d)}).then(function(r){return r.ok?r.json():null;}); }
 function sbDel(t,q){ return fetch(SB+'/rest/v1/'+t+'?'+q,{method:'DELETE',headers:HH}); }
@@ -2275,26 +2276,28 @@ function cargarChat(){
   if(!sesion) return;
   var f=sesion.rol==='admin'
     ?'order=created_at.asc&limit=300'
-    :'or=(autor_id.eq.'+sesion.id+',destinatario_id.eq.'+sesion.id+')&order=created_at.asc&limit=100';
-  sbGet('soporte_mensajes',f).then(function(rows){
-    rows=rows||[];
+    :'or=(autor_id.eq.'+String(sesion.id)+',destinatario_id.eq.'+String(sesion.id)+')&order=created_at.asc&limit=100';
+  sbGetChat('soporte_mensajes',f).then(function(rows){
+    // null = error de red/permisos → conservar cache actual para no borrar mensajes
+    if(rows===null) return;
     var prev=chatCache.length;
-    chatCache=rows;
+    // Filtrar temporales (optimistas) antes de sobrescribir
+    var tmpPendientes=chatCache.filter(function(m){return String(m.id).indexOf('_t')===0;});
+    chatCache=rows.concat(tmpPendientes);
     chatConvs={};
-    rows.forEach(function(m){
-      // La clave es siempre el ID de la vendedora (no del admin)
+    chatCache.forEach(function(m){
       var key=String(m.autor_rol==='admin'?m.destinatario_id:m.autor_id);
       var nom=m.autor_rol==='admin'?m.destinatario_nombre:m.autor_nombre;
       if(!chatConvs[key]) chatConvs[key]={id:key,nombre:nom||'Vendedora',msgs:[],nuevos:0};
       chatConvs[key].msgs.push(m);
-      if(sesion.rol==='admin'&&!m.leido&&m.autor_rol!=='admin') chatConvs[key].nuevos++;
+      if(sesion.rol==='admin'&&!m.leido&&m.autor_rol!=='admin'&&String(m.id).indexOf('_t')!==0) chatConvs[key].nuevos++;
     });
     if(!chatOpen&&rows.length>prev){ chatUnread+=(rows.length-prev); actualizarBadge(); }
     if(chatOpen){
       if(sesion.rol==='admin'&&!chatConvActiva) renderLista('');
       else renderMsgs();
     }
-  }).catch(function(){});
+  });
 }
 
 function mostrarVistaChat(){
@@ -2370,11 +2373,10 @@ function renderMsgs(){
 function enviarMsg(){
   var inp=el('chatInp'); if(!inp||!inp.value.trim()) return;
   var txt=inp.value.trim(); inp.value=''; inp.style.height='auto';
-  var destId,destNom;
-  if(sesion.rol==='admin'&&chatConvActiva){ destId=chatConvActiva.id; destNom=chatConvActiva.nombre; }
-  else { destId='admin'; destNom='Admin CARPICENTRO'; }
-  // Inserción optimista: muestra el mensaje de inmediato sin esperar al servidor
-  var tmp={id:'_t'+Date.now(),autor_id:sesion.id,autor_nombre:sesion.nombre||sesion.usuario,
+  var destId=sesion.rol==='admin'&&chatConvActiva ? String(chatConvActiva.id) : 'admin';
+  var destNom=sesion.rol==='admin'&&chatConvActiva ? chatConvActiva.nombre : 'Admin CARPICENTRO';
+  var tmpId='_t'+Date.now();
+  var tmp={id:tmpId,autor_id:String(sesion.id),autor_nombre:sesion.nombre||sesion.usuario,
     autor_rol:sesion.rol,destinatario_id:destId,destinatario_nombre:destNom,
     texto:txt,leido:false,created_at:new Date().toISOString()};
   chatCache.push(tmp);
@@ -2384,9 +2386,22 @@ function enviarMsg(){
     chatConvs[key].msgs.push(tmp);
   }
   renderMsgs();
-  sbPost('soporte_mensajes',{autor_id:sesion.id,autor_nombre:sesion.nombre||sesion.usuario,
-    autor_rol:sesion.rol,destinatario_id:destId,destinatario_nombre:destNom,texto:txt,leido:false})
-  .then(function(){ cargarChat(); }).catch(function(){});
+  sbPost('soporte_mensajes',{
+    autor_id:String(sesion.id),autor_nombre:sesion.nombre||sesion.usuario,
+    autor_rol:sesion.rol,destinatario_id:destId,destinatario_nombre:destNom,
+    texto:txt,leido:false
+  }).then(function(){
+    cargarChat();
+  }).catch(function(err){
+    // Revertir optimista y restaurar texto para que el usuario pueda reintentar
+    chatCache=chatCache.filter(function(m){return m.id!==tmpId;});
+    if(sesion.rol==='admin'&&chatConvActiva){
+      var k=String(chatConvActiva.id);
+      if(chatConvs[k]) chatConvs[k].msgs=chatConvs[k].msgs.filter(function(m){return m.id!==tmpId;});
+    }
+    inp.value=txt; renderMsgs();
+    showToast('Error al enviar: '+(err&&err.message?err.message:'sin permisos en la tabla'),'err',6000);
+  });
 }
 function actualizarBadge(){
   var b=el('chatBadge'); if(!b) return;
