@@ -521,17 +521,6 @@ body.light-mode .theme-toggle{border-color:rgba(255,255,255,.35);}
 
 
 
-<!-- CONTADOR LIVE -->
-<div id="liveCounter">
-  <div style="font-size:10px;color:#FFD600;font-weight:800;letter-spacing:1px;margin-right:4px;">EN VIVO</div>
-  <div class="lc-item"><div class="lc-num" id="lcPiezas">0</div><div class="lc-lbl">Piezas</div></div>
-  <div class="lc-div"></div>
-  <div class="lc-item"><div class="lc-num" id="lcLineas">0</div><div class="lc-lbl">Líneas</div></div>
-  <div class="lc-div"></div>
-  <div class="lc-item"><div class="lc-num" id="lcMats">0</div><div class="lc-lbl">Materiales</div></div>
-  <div class="lc-div"></div>
-  <div class="lc-item"><div class="lc-num" id="lcEnchape">0</div><div class="lc-lbl">Con enchape</div></div>
-</div>
 
 <!-- LOGIN -->
 <div id="vLogin" class="lw" style="display:none;">
@@ -559,6 +548,18 @@ body.light-mode .theme-toggle{border-color:rgba(255,255,255,.35);}
       <button type="button" id="btnLogout" class="logout-btn">⏻ Salir</button>
     </div>
   </div>
+</div>
+
+<!-- CONTADOR LIVE — debe ir DESPUÉS del header para que sticky top:64px funcione -->
+<div id="liveCounter">
+  <div style="font-size:10px;color:#FFD600;font-weight:800;letter-spacing:1px;margin-right:4px;">EN VIVO</div>
+  <div class="lc-item"><div class="lc-num" id="lcPiezas">0</div><div class="lc-lbl">Piezas</div></div>
+  <div class="lc-div"></div>
+  <div class="lc-item"><div class="lc-num" id="lcLineas">0</div><div class="lc-lbl">Líneas</div></div>
+  <div class="lc-div"></div>
+  <div class="lc-item"><div class="lc-num" id="lcMats">0</div><div class="lc-lbl">Materiales</div></div>
+  <div class="lc-div"></div>
+  <div class="lc-item"><div class="lc-num" id="lcEnchape">0</div><div class="lc-lbl">Con enchape</div></div>
 </div>
 
 <!-- CLIENTE -->
@@ -1783,7 +1784,7 @@ el('btnLogout').addEventListener('click',function(){
     sesion=null;
     // Limpiar chat soporte
     if(chatPoll){ clearInterval(chatPoll); chatPoll=null; }
-    chatOpen=false; chatUnread=0; chatCache=[]; chatConvs={}; chatConvActiva=null;
+    chatOpen=false; chatUnread=0; chatCache=[]; chatConvs={}; chatConvActiva=null; chatRenderKey='';
     var cw=el('chatWin'); if(cw) cw.classList.remove('open');
     var cs=el('chatSoporte'); if(cs) cs.classList.remove('visible');
     actualizarBadge();
@@ -2133,7 +2134,8 @@ function agregarBtnQR(ped){
 // ════════════════════════════════════════════════════════
 var _lcPrev = {piezas:0, lineas:0, mats:0, enchape:0};
 function actualizarLiveCounter(){
-  var paso3 = el('cs3') && el('cs3').style.display !== 'none';
+  var enPanelCliente = el('vc') && el('vc').classList.contains('on');
+  var paso3 = enPanelCliente && el('cs3') && el('cs3').style.display !== 'none';
   var counter = el('liveCounter');
   if(!counter) return;
 
@@ -2234,7 +2236,7 @@ function mostrarAppTrasLogin(){
 // ════════════════════════════════════════════════════════
 // CHAT SOPORTE — Admin ve lista / Vendedora ve su chat
 // ════════════════════════════════════════════════════════
-var chatOpen=false,chatUnread=0,chatPoll=null,chatConvActiva=null,chatCache=[],chatConvs={};
+var chatOpen=false,chatUnread=0,chatPoll=null,chatConvActiva=null,chatCache=[],chatConvs={},chatRenderKey='';
 
 function escChat(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
@@ -2294,7 +2296,12 @@ function cargarChat(){
     if(!chatOpen&&rows.length>prev){ chatUnread+=(rows.length-prev); actualizarBadge(); }
     if(chatOpen){
       if(sesion.rol==='admin'&&!chatConvActiva) renderLista('');
-      else renderMsgs();
+      else {
+        // Solo re-renderizar si los mensajes cambiaron (evita flash en el polling)
+        var lastId=chatCache.length?String(chatCache[chatCache.length-1].id):'';
+        var newKey=chatCache.length+'|'+lastId;
+        if(newKey!==chatRenderKey){ chatRenderKey=newKey; renderMsgs(); }
+      }
     }
   });
 }
@@ -2347,6 +2354,8 @@ function renderLista(filtro){
 }
 function renderMsgs(){
   var box=el('chatMsgs'); if(!box) return;
+  // Conservar posición si el usuario está scrolleando hacia arriba (no forzar scroll al fondo)
+  var atBottom=box.scrollHeight-box.scrollTop-box.clientHeight<100;
   var msgs=[];
   if(sesion.rol==='admin'&&chatConvActiva){
     var c=chatConvs[String(chatConvActiva.id)]; msgs=c?c.msgs:[];
@@ -2358,16 +2367,16 @@ function renderMsgs(){
     return;
   }
   box.innerHTML=msgs.map(function(m){
-    // Comparación con String() para evitar mismatch entre número y texto
     var yo=String(m.autor_id)===String(sesion.id);
+    var esTmp=String(m.id).indexOf('_t')===0;
     var hora=m.created_at?new Date(m.created_at).toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}):'';
-    return '<div class="chat-bbl '+(yo?'me':'other')+'">'
+    return '<div class="chat-bbl '+(yo?'me':'other')+'" style="'+(esTmp?'opacity:.6':'')+'">'
       +(!yo?'<div class="chat-bbl-nom">'+escChat(m.autor_nombre||'Admin')+'</div>':'')
       +'<div class="chat-bbl-txt">'+escChat(m.texto||'')+'</div>'
-      +'<div class="chat-bbl-hora">'+hora+(yo?' ✓':'')+'</div>'
+      +'<div class="chat-bbl-hora">'+hora+(yo?esTmp?' ⏳':' ✓':'')+'</div>'
       +'</div>';
   }).join('');
-  setTimeout(function(){ box.scrollTop=box.scrollHeight; },50);
+  if(atBottom) setTimeout(function(){ box.scrollTop=box.scrollHeight; },30);
 }
 function enviarMsg(){
   var inp=el('chatInp'); if(!inp||!inp.value.trim()) return;
