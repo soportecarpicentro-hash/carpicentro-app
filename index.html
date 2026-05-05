@@ -1773,6 +1773,7 @@ function setModo(m){
   el('vv').classList.toggle('on',m==='v');
   if(m==='c'){ if(!sesion) toggleWAFloat(); }
   else { ocultarWAFloat(); }
+  actualizarLiveCounter(); // Ocultar "EN VIVO" al salir del panel cliente
   if(m==='v'){ if(!sesion){ el('vLogin').style.display='flex'; return; } cargarPedidos(); }
 }
 // ── LOGIN / LOGOUT ────────────────────────────────────────
@@ -1813,6 +1814,7 @@ function doLogin(){
       mostrarBienvenida(sesion.nombre || 'Bienvenida');
       el('vc').classList.remove('on'); el('vv').classList.add('on');
       el('btnC').classList.remove('on'); el('btnV').classList.add('on');
+      actualizarLiveCounter(); // Ocultar "EN VIVO" al iniciar sesión
       // Mostrar tab de usuarios solo para admin
       var tabBar=el('vTabBar');
       if(tabBar) tabBar.style.display=sesion.rol==='admin'?'flex':'none';
@@ -2399,13 +2401,23 @@ function enviarMsg(){
     autor_rol:sesion.rol,conv_id:convId,
     texto:txt,leido:false
   }).then(function(){
-    // Quitar el mensaje temporal antes de que cargarChat traiga el real del servidor
-    chatCache=chatCache.filter(function(m){return m.id!==tmpId;});
+    // Confirmar burbuja en el DOM sin reconstruir todo (elimina el tick visual)
+    var box=el('chatMsgs');
+    if(box) box.querySelectorAll('.chat-bbl.me').forEach(function(b){
+      if(b.style.opacity==='0.6'){
+        b.style.opacity='';
+        var h=b.querySelector('.chat-bbl-hora'); if(h) h.textContent=h.textContent.replace(' ⏳',' ✓');
+      }
+    });
+    // _t → _c en cache: confirmado pero sin ID real del servidor todavía
+    var cId=tmpId.replace('_t','_c');
+    var upd=function(m){ return m.id===tmpId?Object.assign({},m,{id:cId}):m; };
+    chatCache=chatCache.map(upd);
     if(sesion.rol==='admin'&&chatConvActiva){
       var k2=String(chatConvActiva.id);
-      if(chatConvs[k2]) chatConvs[k2].msgs=chatConvs[k2].msgs.filter(function(m){return m.id!==tmpId;});
+      if(chatConvs[k2]) chatConvs[k2].msgs=chatConvs[k2].msgs.map(upd);
     }
-    cargarChat();
+    chatRenderKey=''; // El próximo poll sincronizará con el ID real del servidor
   }).catch(function(err){
     // Revertir optimista y restaurar texto para que el usuario pueda reintentar
     chatCache=chatCache.filter(function(m){return m.id!==tmpId;});
