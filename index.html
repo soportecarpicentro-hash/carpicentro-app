@@ -1727,7 +1727,7 @@ var CANTO_COLORES = ["BLANCO", "CARAMELO", "PAMELA", "ONIX", "CAPRI", "MADERA", 
 var CANTOS = ['','D','G','Dx','Dy','Dm','Dz','Gx','Gy','Gm','Gz'];
 
 // Para cada canto, si requiere especificar color
-function cantoNecesitaColor(c){ return c==='Dx'||c==='Dm'||c==='Dz'||c==='Gx'||c==='Gm'||c==='Gz'; }
+function cantoNecesitaColor(c){ return c==='Dx'||c==='Dy'||c==='Dm'||c==='Dz'||c==='Gx'||c==='Gy'||c==='Gm'||c==='Gz'; }
 // Material sin enchape
 function matSinEnchape(mat){ return !!MAT_NO_ENCHAPE[mat]; }
 var VETAS  = ['1-Longitud','2-Ancho','Sin veta'];
@@ -2085,7 +2085,13 @@ var _COLOR_NORM = {
   'NEGRA':'NEGRO','NEGROS':'NEGRO','NEGRAS':'NEGRO',
   'BLANCA':'BLANCO','BLANCOS':'BLANCO','BLANCAS':'BLANCO',
   'ÓNIX':'ONIX','CARBÓN':'CARBON','ÁMBAR':'AMBAR',
-  // Colores libres (no en CANTO_COLORES estándar — se devuelven tal cual)
+  // Variantes gramaticales de colores EN CANTO_COLORES
+  'GRAFITA':'GRAFITO','ARENOSO':'ARENA','ARENOSA':'ARENA',
+  'CENIZO':'CENIZA','CENIZOS':'CENIZA',
+  'NOGALES':'NOGAL','ROBLE':'ROBLE GRIS',
+  'WENGE':'WENGUE',
+  'CAPRIS':'CAPRI',
+  // Colores libres (no en CANTO_COLORES — se devuelven tal cual)
   'ROSA':'ROSA','ROSADO':'ROSA','ROSADA':'ROSA',
   'TURQUESA':'TURQUESA','MORADO':'MORADO','MORADA':'MORADO',
   'VIOLETA':'VIOLETA','NARANJA':'NARANJA',
@@ -2094,6 +2100,10 @@ var _COLOR_NORM = {
   'PLATEADO':'PLATEADO','PLATEADA':'PLATEADO',
   'CREMA':'CREMA','MARFIL':'MARFIL','LILA':'LILA',
   'FUCSIA':'FUCSIA','CELESTE':'CELESTE',
+  'CASTAÑO':'CASTAÑO','CASTAÑA':'CASTAÑO',
+  'BAMBU':'BAMBU','BAMBÚ':'BAMBU',
+  'VERDE':'VERDE','ROJO':'ROJO','ROJA':'ROJO',
+  'BEIGE':'BEIGE','OCRE':'OCRE','TERRACOTA':'TERRACOTA',
 };
 // Caché de CANTO_COLORES ordenados de mayor a menor longitud (evita "NOGAL" antes que "NOGAL OSCURO")
 var _COLORES_SORTED = null;
