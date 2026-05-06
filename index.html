@@ -316,8 +316,6 @@ body.light-mode .stp.dn{background:#1A1A1A;border-color:#1A1A1A;color:#fff;}
 body.light-mode .unidad-bar{background:#fff;border-color:rgba(0,0,0,.1);}
 /* Panel de stats */
 body.light-mode .sc{background:#fff;}
-/* Live counter */
-body.light-mode #liveCounter{background:linear-gradient(135deg,#1A1A1A 0%,#2a2a2a 100%);}
 
 /* ── TOGGLE MODO ── */
 .theme-toggle{background:none;border:1.5px solid rgba(255,255,255,.25);border-radius:999px;padding:5px 12px;color:#fff;font-size:13px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px;}
@@ -331,7 +329,7 @@ body.light-mode .theme-toggle{border-color:rgba(255,255,255,.35);}
 @keyframes shimmer{0%{background-position:-200% 0;}100%{background-position:200% 0;}}
 @keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.05);}}
 @keyframes slideFade{from{opacity:0;transform:translateX(-8px);}to{opacity:1;transform:translateX(0);}}
-@keyframes countUp{from{transform:scale(0.8);opacity:0;}to{transform:scale(1);opacity:1;}}
+
 @keyframes logoFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
 @keyframes gradientShift{0%{background-position:0% 50%;}50%{background-position:100% 50%;}100%{background-position:0% 50%;}}
 @keyframes splashLogoAnim{
@@ -380,15 +378,6 @@ body.light-mode .theme-toggle{border-color:rgba(255,255,255,.35);}
 .b-lst{background:linear-gradient(135deg,#E0F7FA,#B2EBF2);color:#006064;border:1px solid #80DEEA;}
 .b-ent{background:linear-gradient(135deg,#F9FBE7,#F0F4C3);color:#33691E;border:1px solid #DCE775;}
 .b-nop{background:linear-gradient(135deg,#FAFAFA,#F5F5F5);color:#616161;border:1px solid #E0E0E0;}
-
-/* ── CONTADOR EN TIEMPO REAL ── */
-#liveCounter{display:none;position:sticky;top:64px;z-index:80;background:linear-gradient(135deg,var(--dark) 0%,#2a2a2a 100%);border-bottom:2px solid #FFD600;padding:8px 18px;}
-#liveCounter.active{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
-.lc-item{display:flex;flex-direction:column;align-items:center;}
-.lc-num{font-size:22px;font-weight:900;color:#FFD600;line-height:1;transition:all .2s;min-width:32px;text-align:center;}
-.lc-num.bump{animation:countUp .2s ease both;}
-.lc-lbl{font-size:9px;color:rgba(255,255,255,.5);font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
-.lc-div{width:1px;height:28px;background:rgba(255,255,255,.1);}
 
 /* ── QR OVERLAY ── */
 
@@ -602,18 +591,6 @@ body.light-mode .theme-toggle{border-color:rgba(255,255,255,.35);}
       <button type="button" id="btnLogout" class="logout-btn">⏻ Salir</button>
     </div>
   </div>
-</div>
-
-<!-- CONTADOR LIVE — debe ir DESPUÉS del header para que sticky top:64px funcione -->
-<div id="liveCounter">
-  <div style="font-size:10px;color:#FFD600;font-weight:800;letter-spacing:1px;margin-right:4px;">EN VIVO</div>
-  <div class="lc-item"><div class="lc-num" id="lcPiezas">0</div><div class="lc-lbl">Piezas</div></div>
-  <div class="lc-div"></div>
-  <div class="lc-item"><div class="lc-num" id="lcLineas">0</div><div class="lc-lbl">Líneas</div></div>
-  <div class="lc-div"></div>
-  <div class="lc-item"><div class="lc-num" id="lcMats">0</div><div class="lc-lbl">Materiales</div></div>
-  <div class="lc-div"></div>
-  <div class="lc-item"><div class="lc-num" id="lcEnchape">0</div><div class="lc-lbl">Con enchape</div></div>
 </div>
 
 <!-- CLIENTE -->
@@ -1845,7 +1822,6 @@ function setModo(m){
   el('vv').classList.toggle('on',m==='v');
   if(m==='c'){ if(!sesion) toggleWAFloat(); }
   else { ocultarWAFloat(); }
-  actualizarLiveCounter(); // Ocultar "EN VIVO" al salir del panel cliente
   if(m==='v'){ if(!sesion){ el('vLogin').style.display='flex'; return; } cargarPedidos(); }
 }
 // ── LOGIN / LOGOUT ────────────────────────────────────────
@@ -1887,7 +1863,6 @@ function doLogin(){
       mostrarBienvenida(sesion.nombre || 'Bienvenida');
       el('vc').classList.remove('on'); el('vv').classList.add('on');
       el('btnC').classList.remove('on'); el('btnV').classList.add('on');
-      actualizarLiveCounter(); // Ocultar "EN VIVO" al iniciar sesión
       // Mostrar tab de usuarios solo para admin
       var tabBar=el('vTabBar');
       if(tabBar) tabBar.style.display=sesion.rol==='admin'?'flex':'none';
@@ -2107,6 +2082,38 @@ function usarComoBase(ped){
 
 
 // ── DETECCIÓN AUTOMÁTICA DE COLOR DEL MATERIAL ─────────────────────
+var _COLOR_KW = {
+  'NEGRO':'NEGRO','NEGRA':'NEGRO','NEGROS':'NEGRO','NEGRAS':'NEGRO',
+  'BLANCO':'BLANCO','BLANCA':'BLANCO','BLANCOS':'BLANCO','BLANCAS':'BLANCO',
+  'AZUL':'AZUL ACERO','AZULES':'AZUL ACERO',
+  'ROJO':'ROJO','ROJA':'ROJO','ROJOS':'ROJO','ROJAS':'ROJO',
+  'VERDE':'VERDE','VERDES':'VERDE',
+  'GRIS':'GRIS PERLA','GRISES':'GRIS PERLA',
+  'CENIZA':'CENIZA',
+  'BEIGE':'ARENA',
+  'ARENA':'ARENA',
+  'CAFE':'NOGAL','CAFÉ':'NOGAL',
+  'MARRON':'NOGAL OSCURO','MARRÓN':'NOGAL OSCURO','MARRONES':'NOGAL OSCURO',
+  'WENGUE':'WENGUE',
+  'NOGAL':'NOGAL',
+  'GRAFITO':'GRAFITO',
+  'CARBON':'CARBON','CARBÓN':'CARBON',
+  'HAYA':'HAYA',
+  'CEREZO':'CEREZO',
+  'AMARILLO':'AMARILLO COLORPLAST','AMARILLA':'AMARILLO COLORPLAST',
+  'ROBLE':'ROBLE GRIS',
+  'TRIGO':'TRIGO',
+  'ONIX':'ONIX','ÓNIX':'ONIX',
+  'CAPRI':'CAPRI',
+  'PAMELA':'PAMELA',
+  'ALMENDRA':'ALMENDRA',
+  'AMBAR':'AMBAR','ÁMBAR':'AMBAR',
+  'CARAMELO':'CARAMELO',
+  'MIEL':'CARAMELO',
+  'PINO':'HAYA',
+  'MADERA':'MADERA',
+  'CAOBA':'CEREZO',
+};
 function detectarColorMaterial(mat){
   if(!mat) return '';
   var m = mat.toUpperCase();
@@ -2121,6 +2128,11 @@ function detectarColorMaterial(mat){
     for(var j=0; j<palabras.length; j++){
       if(palabras[j].length>3 && m.indexOf(palabras[j])>=0) return CANTO_COLORES[i];
     }
+  }
+  // 3. Diccionario de palabras clave en español (formas femeninas/plurales)
+  var tokens = m.split(/[\s\-\/]+/);
+  for(var i=0; i<tokens.length; i++){
+    if(_COLOR_KW[tokens[i]]) return _COLOR_KW[tokens[i]];
   }
   return '';
 }
@@ -2203,37 +2215,6 @@ function agregarBtnQR(ped){
   btn.addEventListener('click', function(){ abrirQR(ped.codigo, 'Pedido ' + ped.codigo); });
   el('dacts').appendChild(btn);
 }
-
-// ════════════════════════════════════════════════════════
-// CONTADOR EN TIEMPO REAL
-// ════════════════════════════════════════════════════════
-var _lcPrev = {piezas:0, lineas:0, mats:0, enchape:0};
-function actualizarLiveCounter(){
-  var enPanelCliente = el('vc') && el('vc').classList.contains('on');
-  var paso3 = enPanelCliente && el('cs3') && el('cs3').style.display !== 'none';
-  var counter = el('liveCounter');
-  if(!counter) return;
-
-  if(!paso3 || !pcs.length){ counter.classList.remove('active'); return; }
-  counter.classList.add('active');
-
-  var tot = pcs.reduce(function(s,p){ return s+(parseInt(p.qty)||0); }, 0);
-  var lineas = pcs.filter(function(p){ return p.material||p.largo||p.ancho; }).length;
-  var mats = [...new Set(pcs.filter(function(p){ return p.material; }).map(function(p){ return p.material; }))].length;
-  var enchape = pcs.filter(function(p){ return p.l1||p.l2||p.a1||p.a2; }).length;
-
-  function setNum(id, val, prev){
-    var el2 = el(id); if(!el2) return;
-    if(val !== prev){ el2.classList.remove('bump'); void el2.offsetWidth; el2.classList.add('bump'); }
-    el2.textContent = val;
-  }
-  setNum('lcPiezas', tot, _lcPrev.piezas);
-  setNum('lcLineas', lineas, _lcPrev.lineas);
-  setNum('lcMats', mats, _lcPrev.mats);
-  setNum('lcEnchape', enchape, _lcPrev.enchape);
-  _lcPrev = {piezas:tot, lineas:lineas, mats:mats, enchape:enchape};
-}
-
 
 // ── BOTÓN WA FLOTANTE ──
 el('btnWAFloat') && el('btnWAFloat').addEventListener('click', function(){
@@ -2745,7 +2726,6 @@ function irPaso(n){
   }
   ['cs1','cs2','cs3','cs4'].forEach(function(id,i){ if(el(id)) el(id).style.display=(i+1===n)?'block':'none'; });
   [1,2,3,4].forEach(function(i){ var s=el('stp'+i); if(s){ s.classList.remove('on','dn'); if(i===n)s.classList.add('on'); else if(i<n)s.classList.add('dn'); }});
-  actualizarLiveCounter();
   window.scrollTo({top:0,behavior:'instant'});
 }
 function irManual(){
@@ -3040,7 +3020,16 @@ function bindMatBtns(tb, arr){
     btn.addEventListener('click',function(){
       var i=parseInt(this.dataset.i), prefix=this.dataset.prefix;
       matFiltroTipo=null; // reset filtro — tablero muestra todos los grupos
-      abrirMat(function(mat){ arr[i].material=mat; if(prefix==='c') renderTabla(); else renderEditT(); }, arr[i].material);
+      abrirMat(function(mat){
+        arr[i].material=mat;
+        if(prefix==='c'){
+          // Auto-detectar color del canto desde el nombre del material
+          var colorMat=detectarColorMaterial(mat);
+          if(colorMat && !arr[i].col_d) arr[i].col_d=colorMat;
+          if(colorMat){ colorDGGlobal=colorMat; var sdg=el('colorDGGlobal'); if(sdg) sdg.value=colorMat; }
+          renderTabla();
+        } else { renderEditT(); }
+      }, arr[i].material);
     });
   });
 }
@@ -3053,7 +3042,6 @@ function bindInputs(tb, arr, isMain){
       if(!isNaN(i)&&k){
         arr[i][k]=this.value;
         if(isMain&&k!=='obs'&&k.indexOf('perf_')<0&&k.indexOf('ran_')<0) updSG();
-        if(isMain) actualizarLiveCounter();
         // Re-render fila si cambió un canto (para mostrar/ocultar selector de color)
         var cantoCols=['l1','l2','a1','a2'];
         if(isMain && cantoCols.indexOf(k)>=0) renderTabla();
@@ -3196,8 +3184,6 @@ function renderTabla(){
   bindInputs(tb, pcs, true);
   updSG();
   renderFormicas();
-  // Actualizar contador en tiempo real
-  actualizarLiveCounter();
   // Mostrar/ocultar banner de color D/G global
   var hayCantosD=pcs.some(function(p){return p.l1==='D'||p.l2==='D'||p.a1==='D'||p.a2==='D'||p.l1==='G'||p.l2==='G'||p.a1==='G'||p.a2==='G';});
   var banner=el('colorDGBanner');
