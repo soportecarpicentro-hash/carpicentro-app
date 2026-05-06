@@ -112,7 +112,7 @@ export default async function handler(req, res) {
     const n = v => Math.round(parseFloat(String(v ?? '').replace(',', '.')) || 0);
     const c = v => {
       const x = s(v).toUpperCase().replace(/^-+$/, '');
-      if (['D', 'G', 'DM', 'GM'].includes(x)) return x;
+      if (x === 'D' || x === 'G') return x;
       return '';
     };
     const rs = v => { const x = s(v); return /^\d+$/.test(x) && parseInt(x) > 0 ? x : ''; };
@@ -160,7 +160,6 @@ Antes de leer nada, identifica qué formato usa la lista:
 FORMATO A — Trazos/gusanitos sobre las medidas (listas manuales):
   • Trazos ONDULADOS (≈ ∿ ~) sobre o bajo un número = canto GRUESO G
   • Línea RECTA simple (─ —) sobre o bajo un número = canto DELGADO D
-  • Doble línea recta = DM (doble melamina)
   • El símbolo está SOBRE la medida de LARGO → aplica a L1 y L2
   • El símbolo está SOBRE la medida de ANCHO → aplica a A1 y A2
   • Símbolo sobre AMBAS medidas → cantos en los 4 lados
@@ -168,7 +167,7 @@ FORMATO A — Trazos/gusanitos sobre las medidas (listas manuales):
   • Mezcla (recta bajo largo, onda bajo ancho) → L1=D L2=D A1=G A2=G
 
 FORMATO B — Tabla con columnas L1/L2/A1/A2 (listas impresas/Excel):
-  • Leer directamente la letra de cada celda: D, G, DM, GM
+  • Leer directamente la letra de cada celda: D o G
   • Guión o vacío → sin canto ("")
 
 FORMATO C — Código de letras al costado de cada pieza:
@@ -179,11 +178,9 @@ FORMATO C — Código de letras al costado de cada pieza:
   • "c/G" o "CG" o "c/grueso" o solo "G" = todos los lados = G
   • "c/D" o "CD" o "c/delgado" o solo "D" = todos los lados = D
   • "PL" / "RL" / "S/C" / "liso" = sin cantos (todos vacíos)
-  • "DM" solo = L1=DM L2=DM A1=DM A2=DM
 
 FORMATO D — Subrayado:
-  • Una línea recta bajo la pieza = D en esos lados
-  • Doble línea = DM | Ondulado = G
+  • Una línea recta bajo la pieza = D en esos lados | Ondulado = G
 
 FORMATO E — Texto descriptivo:
   • "largo c/grueso" → L1=G L2=G | "ancho c/delgado" → A1=D A2=D
@@ -233,8 +230,7 @@ REGLAS GENERALES:
 • Si ves un canto igual en L1 y L2, escríbelo en ambos
 • Si solo hay canto en un lado → el otro queda ""
 • Si ves el mismo símbolo en todos los lados → copiar en L1 L2 A1 A2
-• DM = canto de melamina doble (dos capas) — más grueso que D
-• GM = canto grueso de melamina
+• Solo dos valores posibles: D (delgado) o G (grueso)
 • SI NO PUEDES DETERMINAR CON CERTEZA → dejar "" (JAMÁS inventar)
 
 ━━━ PASO 4 — RANURA: CAPTURA COMPLETA ━━━
@@ -276,10 +272,10 @@ Material: <nombre completo>
 Cant: <número>
 largo(veta): <mm entero>
 ancho: <mm entero>
-L1: <D|G|DM|GM|->
-L2: <D|G|DM|GM|->
-A1: <D|G|DM|GM|->
-A2: <D|G|DM|GM|->
+L1: <D|G|->
+L2: <D|G|->
+A1: <D|G|->
+A2: <D|G|->
 Ranura: libre=<n> espe=<n> prof=<n> lado=<lado> det=<texto>
 Perf: cant=<n> lado=<lado> det=<texto>
 Obs: <observación o vacío>
