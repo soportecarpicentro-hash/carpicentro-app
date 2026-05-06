@@ -745,10 +745,8 @@ body.light-mode .theme-toggle{border-color:rgba(255,255,255,.35);}
         <!-- SELECTOR COLOR D/G GLOBAL -->
         <div id="colorDGBanner" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;background:#EBF5FB;border:1.5px solid #1565C0;border-radius:10px;padding:10px 16px;margin-bottom:10px;">
           <span style="font-size:13px;font-weight:700;color:#1565C0;">🎨 Color canto D/G</span>
-          <select id="colorDGGlobal" style="font-size:13px;padding:6px 12px;border:1.5px solid #1565C0;border-radius:8px;min-width:160px;">
-            <option value="">— Seleccionar color —</option>
-          </select>
-
+          <input type="text" id="colorDGGlobal" list="cantoDL" placeholder="— Escribir o seleccionar —" autocomplete="off" style="font-size:13px;padding:6px 12px;border:1.5px solid #1565C0;border-radius:8px;min-width:160px;">
+          <datalist id="cantoDL"></datalist>
         </div>
 
         <!-- Tabla principal (scroll horizontal) -->
@@ -1726,7 +1724,7 @@ var CANTO_COLORES = ["BLANCO", "CARAMELO", "PAMELA", "ONIX", "CAPRI", "MADERA", 
 
 // CANTOS: '' vacío, 'D'/'G' = color igual al tablero,
 //         'Dx'/'Gx'/'Dz'/'Gz' = otro color (se pide cuál)
-var CANTOS = ['','D','G','Dx','Dm','Dz','Gx','Gm','Gz'];
+var CANTOS = ['','D','G','Dx','Dy','Dm','Dz','Gx','Gy','Gm','Gz'];
 
 // Para cada canto, si requiere especificar color
 function cantoNecesitaColor(c){ return c==='Dx'||c==='Dm'||c==='Dz'||c==='Gx'||c==='Gm'||c==='Gz'; }
@@ -2087,6 +2085,15 @@ var _COLOR_NORM = {
   'NEGRA':'NEGRO','NEGROS':'NEGRO','NEGRAS':'NEGRO',
   'BLANCA':'BLANCO','BLANCOS':'BLANCO','BLANCAS':'BLANCO',
   'ÓNIX':'ONIX','CARBÓN':'CARBON','ÁMBAR':'AMBAR',
+  // Colores libres (no en CANTO_COLORES estándar — se devuelven tal cual)
+  'ROSA':'ROSA','ROSADO':'ROSA','ROSADA':'ROSA',
+  'TURQUESA':'TURQUESA','MORADO':'MORADO','MORADA':'MORADO',
+  'VIOLETA':'VIOLETA','NARANJA':'NARANJA',
+  'SALMON':'SALMON','SALMÓN':'SALMON',
+  'DORADO':'DORADO','DORADA':'DORADO',
+  'PLATEADO':'PLATEADO','PLATEADA':'PLATEADO',
+  'CREMA':'CREMA','MARFIL':'MARFIL','LILA':'LILA',
+  'FUCSIA':'FUCSIA','CELESTE':'CELESTE',
 };
 // Caché de CANTO_COLORES ordenados de mayor a menor longitud (evita "NOGAL" antes que "NOGAL OSCURO")
 var _COLORES_SORTED = null;
@@ -2103,8 +2110,9 @@ function detectarColorMaterial(mat){
   //    Prefijo: "GRIS" → "GRIS PERLA"; "AZUL" → "AZUL ACERO" (primer resultado, no "ALUMINIO CANPLAST")
   var tokens = m.split(/[\s\-\/]+/);
   for(var i=0; i<tokens.length; i++){
-    var t = (_COLOR_NORM[tokens[i]] || tokens[i]);
-    // 2a. Coincidencia exacta
+    var raw = tokens[i];
+    var t = (_COLOR_NORM[raw] || raw);
+    // 2a. Coincidencia exacta en CANTO_COLORES
     for(var j=0; j<CANTO_COLORES.length; j++){
       if(CANTO_COLORES[j].toUpperCase()===t) return CANTO_COLORES[j];
     }
@@ -2113,6 +2121,8 @@ function detectarColorMaterial(mat){
     for(var j=0; j<CANTO_COLORES.length; j++){
       if(CANTO_COLORES[j].toUpperCase().indexOf(pref)===0) return CANTO_COLORES[j];
     }
+    // 2c. Color libre: alias explícito en _COLOR_NORM (ROSA, TURQUESA, etc.)
+    if(Object.prototype.hasOwnProperty.call(_COLOR_NORM, raw)) return t;
   }
   return '';
 }
@@ -3079,22 +3089,19 @@ function renderTabla(){
     // Usa el color ya elegido para el mismo tipo (Dx comparte con otros Dx de la fila)
     function getColorTipo(canto){
       // Dx/Dy/Dz comparten col_dx; Gx/Gy/Gz comparten col_gx
-      if(canto==='Dx'||canto==='Dm'||canto==='Dz') return p.col_dx||'';
-      if(canto==='Gx'||canto==='Gm'||canto==='Gz') return p.col_gx||'';
+      if(canto==='Dx'||canto==='Dy'||canto==='Dm'||canto==='Dz') return p.col_dx||'';
+      if(canto==='Gx'||canto==='Gy'||canto==='Gm'||canto==='Gz') return p.col_gx||'';
       return '';
     }
     function colorSel(lado, canto, colorVal){
       if(!canto) return '';
       if(canto==='D'||canto==='G') return '';
-      // Para Dx/Dy/Dz → todos usan col_dx. Para Gx/Gy/Gz → todos usan col_gx
-      var isD=(canto==='Dx'||canto==='Dm'||canto==='Dz');
+      // Para Dx/Dy/Dm/Dz → todos usan col_dx. Para Gx/Gy/Gm/Gz → todos usan col_gx
+      var isD=(canto==='Dx'||canto==='Dy'||canto==='Dm'||canto==='Dz');
       var dataKey=isD?'col_dx':'col_gx';
       var currentColor=isD?(p.col_dx||''):(p.col_gx||'');
-      var copts=CANTO_COLORES.map(function(cc){
-        return '<option value="'+cc+'"'+(currentColor===cc?' selected':'')+'>'+cc+'</option>';
-      }).join('');
       var borderC=isD?'#7B1FA2':'#1565C0';
-      return '<select class="tis" data-i="'+i+'" data-k="'+dataKey+'" style="width:70px;font-size:10px;border-color:'+borderC+';margin-top:2px;" title="Color '+canto+'"><option value="">Color…</option>'+copts+'</select>';
+      return '<input type="text" class="tis" list="cantoDL" data-i="'+i+'" data-k="'+dataKey+'" value="'+currentColor+'" placeholder="Color…" autocomplete="off" style="width:70px;font-size:10px;border-color:'+borderC+';margin-top:2px;" title="Color '+canto+'">';
     }
 
     // Selector color D general (cuando ponen D en varios lados y quieren indicar el color una vez)
@@ -3156,10 +3163,7 @@ function renderTabla(){
   var banner=el('colorDGBanner');
   if(banner) banner.style.display=hayCantosD?'flex':'none';
   var selDG=el('colorDGGlobal');
-  if(selDG){
-    if(selDG.options.length<2) selDG.innerHTML='<option value="">— Seleccionar color —</option>'+CANTO_COLORES.map(function(c){return '<option value="'+c+'">'+c+'</option>';}).join('');
-    selDG.value=colorDGGlobal;
-  }
+  if(selDG) selDG.value=colorDGGlobal;
 }
 
 
@@ -3250,10 +3254,10 @@ function confirmarPedido(){
     // col_d: usar el global si existe
     if(!p.col_d && colorDGGlobal) p.col_d=colorDGGlobal;
     if(cantosD && !p.col_d){ sinColor.push('Fila '+(i+1)+': falta el color de canto D/G'); }
-    var tieneDx=[p.l1,p.l2,p.a1,p.a2].some(function(c){return c==='Dx'||c==='Dm'||c==='Dz';});
-    var tieneGx=[p.l1,p.l2,p.a1,p.a2].some(function(c){return c==='Gx'||c==='Gm'||c==='Gz';});
-    if(tieneDx&&!p.col_dx) sinColor.push('Fila '+(i+1)+': Dx/Dm/Dz sin color de canto delgado extra');
-    if(tieneGx&&!p.col_gx) sinColor.push('Fila '+(i+1)+': Gx/Gm/Gz sin color de canto grueso extra');
+    var tieneDx=[p.l1,p.l2,p.a1,p.a2].some(function(c){return c==='Dx'||c==='Dy'||c==='Dm'||c==='Dz';});
+    var tieneGx=[p.l1,p.l2,p.a1,p.a2].some(function(c){return c==='Gx'||c==='Gy'||c==='Gm'||c==='Gz';});
+    if(tieneDx&&!p.col_dx) sinColor.push('Fila '+(i+1)+': Dx/Dy/Dm/Dz sin color de canto delgado extra');
+    if(tieneGx&&!p.col_gx) sinColor.push('Fila '+(i+1)+': Gx/Gy/Gm/Gz sin color de canto grueso extra');
   });
   if(sinColor.length){ alert('⚠️ Debes indicar el color del canto en:\n'+sinColor.join('\n')); return; }
   var nom=el('cnom').value.trim(); if(!nom){ alert('Ingresa tu nombre.'); return; }
@@ -3280,7 +3284,7 @@ function confirmarPedido(){
         ancho:Math.round(parseFloat(p.ancho)||0),
         veta:p.veta||'1-Longitud',
         l1:p.l1||'',l2:p.l2||'',a1:p.a1||'',a2:p.a2||'',
-        obs:(p.obs||'')+(p.col_d?' [D/G:'+p.col_d+']':'')+(p.col_dx?' [Dx/Dm/Dz:'+p.col_dx+']':'')+(p.col_gx?' [Gx/Gm/Gz:'+p.col_gx+']':'')};
+        obs:(p.obs||'')+(p.col_d?' [D/G:'+p.col_d+']':'')+(p.col_dx?' [Dx/Dy/Dm/Dz:'+p.col_dx+']':'')+(p.col_gx?' [Gx/Gy/Gm/Gz:'+p.col_gx+']':'')};
     }))
     .then(function(){
       if(!frmActivas.length) return Promise.resolve();
@@ -3352,12 +3356,11 @@ el('btnRefresh').addEventListener('click',cargarPedidos);
 (function(){
   var sel=el('colorDGGlobal');
   if(!sel) return;
-  // Cargar opciones de CANTO_COLORES
-  sel.innerHTML='<option value="">— Sin color especificado —</option>'
-    +CANTO_COLORES.map(function(c){return '<option value="'+c+'">'+c+'</option>';}).join('');
-  sel.addEventListener('change',function(){
+  // Poblar datalist cantoDL
+  var dl=el('cantoDL');
+  if(dl) dl.innerHTML=CANTO_COLORES.map(function(c){return '<option value="'+c+'">';}).join('');
+  sel.addEventListener('input',function(){
     colorDGGlobal=this.value;
-    // Aplicar a todos los pcs
     pcs.forEach(function(p){ p.col_d=colorDGGlobal; });
     renderTabla();
   });
