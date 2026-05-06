@@ -1,5 +1,5 @@
-// api/leer-lista.js — CARPICENTRO v20
-// Medidas: CERO ERRORES. Cantos: MÁXIMO ESFUERZO. Ranuras y perforaciones: captura completa.
+// api/leer-lista.js — CARPICENTRO v22
+// Prioridad absoluta: CANTIDADES sin fallo. Cantos: perfección. Medidas: cero errores.
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -110,15 +110,12 @@ export default async function handler(req, res) {
   function norm(p) {
     const s = v => String(v ?? '').trim();
     const n = v => Math.round(parseFloat(String(v ?? '').replace(',', '.')) || 0);
-    const c = v => {
-      const x = s(v).toUpperCase().replace(/^-+$/, '');
-      if (x === 'D' || x === 'G') return x;
-      return '';
-    };
+    const c = v => { const x = s(v).toUpperCase().replace(/^-+$/, ''); return (x === 'D' || x === 'G') ? x : ''; };
     const rs = v => { const x = s(v); return /^\d+$/.test(x) && parseInt(x) > 0 ? x : ''; };
+    const qty = Math.max(1, parseInt(p.qty) || 1);
     return {
       material: s(p.material) || 'MELA PELIKANO BLANCO',
-      qty: Math.max(1, parseInt(p.qty) || 1),
+      qty,
       largo: n(p.largo), ancho: n(p.ancho),
       veta: s(p.veta) || '1-Longitud',
       l1: c(p.l1), l2: c(p.l2), a1: c(p.a1), a2: c(p.a2),
@@ -129,7 +126,6 @@ export default async function handler(req, res) {
     };
   }
 
-  // Lista completa de colores del sistema para que la IA los identifique en la imagen
   const COLORES_CANTO = [
     'BLANCO','CARAMELO','PAMELA','ONIX','CAPRI','MADERA','TRIGO','CENIZA',
     'NOGAL OSCURO','WENGUE','GRIS PERLA','ARENA','NEGRO','ROBLE GRIS','HAYA',
@@ -142,134 +138,158 @@ export default async function handler(req, res) {
 
   const img = { type: 'image', source: { type: 'base64', media_type: mt, data: imagen_b64 } };
 
-  // ══════════════════════════════════════════════════════════════════
-  // FASE 1 — Lectura experta: medidas + cantos + ranuras + perforaciones
-  // ══════════════════════════════════════════════════════════════════
-  const F1 = `Eres el operario jefe de corte de CARPICENTRO, con 20 años leyendo listas de corte de melamina. Tu trabajo es extraer todos los datos de la imagen con precisión absoluta.
+  const F1 = `Eres el operario jefe de corte de CARPICENTRO con 20 años de experiencia. Lees listas de corte de melamina con precisión absoluta. Un error en la CANTIDAD de piezas arruina la producción completa.
 
-PRIORIDADES (todas importantes):
-① Medidas (largo/ancho): CERO ERRORES — son el corazón del trabajo
-② Cantos (L1/L2/A1/A2): MÁXIMO ESFUERZO — estudia cada símbolo
-③ Ranuras y perforaciones: CAPTURA COMPLETA — datos de producción críticos
-④ Material y cantidad: EXACTOS — afectan el presupuesto
+━━━ ANÁLISIS PREVIO (hacer ANTES de leer pieza por pieza) ━━━
 
-━━━ PASO 1 — DETECTA EL FORMATO DE CANTOS ━━━
+Observa la imagen completa y responde estas preguntas internamente:
 
-Antes de leer nada, identifica qué formato usa la lista:
+① ¿CÓMO SE INDICA LA CANTIDAD en este documento?
+   Opción A: número pequeño ANTES del × (ej: "3 × 840 × 420")
+   Opción B: número en CÍRCULO o entre paréntesis junto a la pieza (ej: ③ o (3))
+   Opción C: columna separada "Cant" / "N" / "Pzs" a la izquierda
+   Opción D: número DESPUÉS de las medidas (ej: "840×420 ×3" o "840×420 /3")
+   Opción E: número en línea aparte encima o debajo de las medidas
+   Opción F: NO se indica cantidad → todas son qty=1
+   ⚠ IMPORTANTE: Si ves números 1,2,3,4... consecutivos al margen, son NÚMEROS DE FILA, no cantidades
 
-FORMATO A — Trazos/gusanitos sobre las medidas (listas manuales):
-  • Trazos ONDULADOS (≈ ∿ ~) sobre o bajo un número = canto GRUESO G
-  • Línea RECTA simple (─ —) sobre o bajo un número = canto DELGADO D
-  • El símbolo está SOBRE la medida de LARGO → aplica a L1 y L2
-  • El símbolo está SOBRE la medida de ANCHO → aplica a A1 y A2
-  • Símbolo sobre AMBAS medidas → cantos en los 4 lados
-  • Símbolo solo sobre LARGO y no sobre ANCHO → solo L1=X L2=X, A1="" A2=""
-  • Mezcla (recta bajo largo, onda bajo ancho) → L1=D L2=D A1=G A2=G
+② ¿CÓMO SE INDICAN LOS CANTOS?
+   Formato A: trazos/ondas dibujados sobre las medidas
+   Formato B: columnas L1/L2/A1/A2 con letras D o G
+   Formato C: código de letras al costado (DDDD, GG--, etc.)
+   Formato D: subrayado bajo la pieza
+   Formato E: texto descriptivo (c/grueso, c/delgado, etc.)
+   Formato F: no hay cantos indicados en la lista
 
-FORMATO B — Tabla con columnas L1/L2/A1/A2 (listas impresas/Excel):
-  • Leer directamente la letra de cada celda: D o G
-  • Guión o vacío → sin canto ("")
+③ ¿EN QUÉ UNIDADES ESTÁN LAS MEDIDAS?
+   MM: números ≥ 200 sin decimal (420, 840, 1830)
+   CM: números con decimal (57.4, 116.9) o enteros pequeños (84, 42)
 
-FORMATO C — Código de letras al costado de cada pieza:
-  • 4 letras = L1 L2 A1 A2 en ese orden estricto
-  • DDDD=todos D | GGGG=todos G | DD--=L1:D L2:D | D-D-=L1:D A1:D
-  • 3 letras: DDD=L1:D L2:D A1:D | GGG=L1:G L2:G A1:G
-  • 2 letras: DD=L1:D L2:D | GG=L1:G L2:G
-  • "c/G" o "CG" o "c/grueso" o solo "G" = todos los lados = G
-  • "c/D" o "CD" o "c/delgado" o solo "D" = todos los lados = D
-  • "PL" / "RL" / "S/C" / "liso" = sin cantos (todos vacíos)
+━━━ CANTIDADES — ERROR AQUÍ = PEDIDO INCORRECTO = PÉRDIDA TOTAL ━━━
+
+La cantidad es el número de piezas idénticas. Sigue este proceso EXACTO:
+
+PASO A — Localiza la cantidad usando el método identificado en el análisis previo.
+
+PASO B — Valida que sea una cantidad real:
+  ✓ La cantidad es SIEMPRE un entero entre 1 y 99
+  ✓ Un número ≥ 100 NUNCA es una cantidad — es una medida
+  ✓ Decimales NUNCA son cantidades — son medidas en CM
+  ✓ Si no hay cantidad explícita → qty = 1
+  ✓ Si hay duda entre cantidad y número de fila → analizar si se repite el mismo número en varias filas (sí = cantidad) o si los números son únicos y consecutivos (no = número de fila, qty=1)
+
+PASO C — Ejemplos de lectura correcta:
+  "3 × 840 × 420"       → qty=3, largo=840, ancho=420  ✓
+  "③ 840×420"           → qty=3, largo=840, ancho=420  ✓
+  "(5) 1200×600"        → qty=5, largo=1200, ancho=600 ✓
+  "840×420"             → qty=1, largo=840, ancho=420  ✓
+  "840×420×3"           → qty=3, largo=840, ancho=420  ✓
+  "1. 840×420 DDDD"     → si "1." es número de fila: qty=1, largo=840, ancho=420  ✓
+  "2 pzs 600×400"       → qty=2, largo=600, ancho=400  ✓
+  "10 → 1830×60"        → qty=10, largo=1830, ancho=60 ✓
+
+PASO D — Errores fatales a evitar:
+  ✗ NUNCA leer la medida como cantidad
+  ✗ NUNCA leer el número de fila como cantidad
+  ✗ NUNCA inventar una cantidad que no está escrita
+  ✗ NUNCA omitir una cantidad que sí está escrita
+
+━━━ MEDIDAS — CERO ERRORES ━━━
+
+LARGO y ANCHO (separados por x, ×, X, /, "por"):
+• El número MAYOR es siempre el LARGO
+
+CONVERSIÓN DE UNIDADES:
+  ✓ Entero ≥ 200 → MM directo (840 → 840)
+  ✓ Decimal con punto (57.4) → CM → ×10 → MM (574)
+  ✓ Decimal con coma (57,4) → CM → ×10 → MM (574)
+  ✓ Entero 40–199 sin decimal ni unidad → probablemente CM → ×10
+  ✓ Con "cm" explícito → ×10 | con "mm" explícito → directo
+  ✓ Punto de miles (1.304) → 1304 MM
+  ✓ Número < 40 sin contexto → probable CM → ×10
+
+VERIFICACIÓN PIEZA A PIEZA (obligatoria):
+  □ ¿Largo > Ancho? Si no, intercambiar.
+  □ ¿Ambos entre 40 mm y 2800 mm? Si no, revisar conversión.
+  □ ¿Había decimal? → confirmar ×10 aplicado.
+
+LÍNEAS TACHADAS → IGNORAR completamente.
+
+VETA:
+  ↕ o sin indicación → "1-Longitud" | ↔ → "2-Ancho" | "SV"/"sin veta" → "Sin veta"
+
+━━━ CANTOS — PERFECCIÓN ABSOLUTA ━━━
+
+Solo dos valores posibles: D (delgado) o G (grueso).
+Aplica el formato detectado en el análisis previo.
+
+FORMATO A — Trazos/gusanitos sobre las medidas:
+  • Trazos ONDULADOS (≈ ∿ ~) = G | Línea RECTA simple (─) = D
+  • El símbolo está sobre el LARGO → L1=X L2=X (ambos bordes largos)
+  • El símbolo está sobre el ANCHO → A1=X A2=X (ambos bordes cortos)
+  • Símbolo sobre ambas medidas → L1 L2 A1 A2 todos con ese canto
+  • Símbolo solo sobre LARGO → L1=X L2=X, A1="" A2=""
+  • Sin símbolo sobre ANCHO → A1="" A2=""
+  • Mezcla: recta sobre largo + onda sobre ancho → L1=D L2=D A1=G A2=G
+
+FORMATO B — Columnas L1/L2/A1/A2:
+  • Leer la celda de cada columna: D o G | guión o vacío → ""
+
+FORMATO C — Código de letras al costado:
+  • 4 posiciones fijas = L1 L2 A1 A2 (en ese orden)
+  • DDDD→todos D | GGGG→todos G | D---→solo L1=D | -D--→solo L2=D
+  • DD--→L1=D L2=D | DG--→L1=D L2=G | D-D-→L1=D A1=D
+  • 3 letras: DDD→L1=D L2=D A1=D | GGD→L1=G L2=G A1=D
+  • 2 letras: DD→L1=D L2=D | GG→L1=G L2=G
+  • 1 letra: D→todos D | G→todos G
+  • "c/G" "CG" "c/grueso"→todos G | "c/D" "CD" "c/delgado"→todos D
+  • "PL" "RL" "S/C" "liso"→sin cantos
 
 FORMATO D — Subrayado:
-  • Una línea recta bajo la pieza = D en esos lados | Ondulado = G
+  • Línea recta bajo la pieza = D | Línea ondulada = G
+  • El subrayado aplica a los lados de la dimensión que subraya
 
 FORMATO E — Texto descriptivo:
   • "largo c/grueso" → L1=G L2=G | "ancho c/delgado" → A1=D A2=D
-  • "un lado largo grueso" → L1=G (solo uno)
-  • "3 lados" → los 3 lados con canto, el 4to sin
+  • "un lado largo" → solo L1=X | "3 lados" → los 3 con canto, el 4to sin
 
-━━━ PASO 2 — MEDIDAS: CERO ERRORES ━━━
+FORMATO F — Sin cantos:
+  • Todos los campos L1 L2 A1 A2 = ""
 
-CANTIDAD (qty):
-• Número al inicio de línea, en círculo ○, con punto •, "N pzs", "N de", "N →"
-• Si hay ambigüedad: qty=1
+REGLAS DE ORO PARA CANTOS:
+  ✗ NUNCA copiar los cantos de la pieza anterior si esta no tiene marca propia
+  ✗ NUNCA inventar un canto si el símbolo no es claro
+  ✗ NUNCA asumir "todos llevan canto" sin marca explícita
+  ✓ Cada pieza tiene sus propios cantos independientes
+  ✓ Si el símbolo es ambiguo → ""
+  ✓ Mejor vacío que incorrecto
 
-LARGO y ANCHO:
-• Separados por: x · × · X · / · "por"
-• El número MAYOR es siempre el LARGO
+━━━ RANURA ━━━
 
-CONVERSIÓN DE UNIDADES — APLICAR ANTES DE ESCRIBIR:
-  ✓ Entero ≥ 200: ya es MM → copiar directo (840 → 840)
-  ✓ Decimal con PUNTO (57.4): es CM → ×10 → MM (57.4 → 574)
-  ✓ Decimal con COMA (57,4): es CM → ×10 → MM (57,4 → 574)
-  ✓ Entero < 200 sin decimal y sin unidad: probablemente CM → ×10
-  ✓ Punto separador de miles (1.304): es 1304 MM → usar directo
-  ✓ Unidad "cm" explícita → ×10 | unidad "mm" explícita → directo
-  ✓ Números con 1 decimal como 85.0 o 60.5: SON CM → ×10 (850, 605)
+Buscar: R, RAN, RANURA seguido de números.
+Formatos: R18/4/7 | R18-4-7 | R(18)(4)(7)
+Orden: libre=distancia al borde / espe=ancho ranura / prof=profundidad
+Lado: L, A, L1, L2, A1, A2, ambos, todos.
+Si NO hay ranura → omitir línea Ranura.
 
-VERIFICACIÓN OBLIGATORIA POR PIEZA:
-  □ ¿El número mayor es el largo? Si no, intercambiar.
-  □ ¿Ambos valores entre 40 y 2800? Si no, revisar la conversión.
-  □ ¿Había decimal? → confirmar que se multiplicó ×10.
-  □ ¿La proporción es razonable para melamina? (largo ÷ ancho generalmente entre 1 y 6)
+━━━ PERFORACIÓN ━━━
 
-IGNORA COMPLETAMENTE: líneas tachadas (con raya horizontal encima)
+Buscar: ° ○ "perf" "P°" con número de agujeros.
+Formatos: "4° L1" | "3 perf A" | "°°° L" | "P4"
+Detalle: posición, diámetro (Ø5mm).
+Si NO hay perforación → omitir línea Perf.
 
-VETA:
-• Flecha vertical ↕ o sin indicación → "1-Longitud"
-• Flecha horizontal ↔ o "T" rotada → "2-Ancho"
-• "SV" / "sin veta" → "Sin veta"
+━━━ MATERIAL ━━━
 
-━━━ PASO 3 — CANTOS: MÁXIMO ESFUERZO ━━━
+Capturar el encabezado de material completo con su color.
+Colores del sistema: ${COLORES_CANTO}
+Si cambia → "Material: <nombre>" antes del nuevo bloque.
+Default: MELA PELIKANO BLANCO
 
-Aplica el formato detectado en el Paso 1.
-Estudia cada símbolo gráfico con atención — pueden ser muy pequeños.
+━━━ FORMATO DE SALIDA — UN BLOQUE POR PIEZA ━━━
 
-REGLAS GENERALES:
-• L1 y L2 son los dos bordes del lado LARGO de la pieza
-• A1 y A2 son los dos bordes del lado ANCHO (corto)
-• Si ves un canto igual en L1 y L2, escríbelo en ambos
-• Si solo hay canto en un lado → el otro queda ""
-• Si ves el mismo símbolo en todos los lados → copiar en L1 L2 A1 A2
-• Solo dos valores posibles: D (delgado) o G (grueso)
-• SI NO PUEDES DETERMINAR CON CERTEZA → dejar "" (JAMÁS inventar)
-
-━━━ PASO 4 — RANURA: CAPTURA COMPLETA ━━━
-
-Buscar: "R", "RAN", "RANURA", "Rura" seguido de números o separadores
-Formatos habituales:
-• R18/4/7 → libre=18, espe=4, prof=7
-• R 18-4-7 → libre=18, espe=4, prof=7
-• R(18)(4)(7) → libre=18, espe=4, prof=7
-• Solo "R18" → puede ser libre=18, espe y prof pueden estar en contexto
-Orden SIEMPRE: libre (distancia al borde) / espe (ancho ranura) / prof (profundidad)
-Lado: L=largo, A=ancho, L1/L2/A1/A2, "ambos lados L", "todos"
-Detalle extra: posición especial, centrada, etc.
-Si NO hay ranura → omitir completamente la línea "Ranura:".
-
-━━━ PASO 5 — PERFORACIÓN: CAPTURA COMPLETA ━━━
-
-Buscar: círculos ○, puntos °, "perf", "P°", número de agujeros
-Formatos habituales:
-• °° junto a largo → cant=2, lado=L
-• "4° L1" → cant=4, lado=L1
-• "3 perf A" → cant=3, lado=A
-• "P4" o "4P" → cant=4
-• Diámetro: "Ø5" o "5mm" → va en det
-Detalle: posición, diámetro, distribución
-Si NO hay perforación → omitir completamente la línea "Perf:".
-
-━━━ PASO 6 — MATERIAL ━━━
-
-Si hay encabezado de material antes de un grupo de piezas, capturarlo completo.
-Colores disponibles (usar nombre exacto si lo reconoces en la imagen):
-${COLORES_CANTO}
-Si el material cambia → nueva línea "Material: <nombre completo>" antes del siguiente bloque.
-Si no se indica: usar "MELA PELIKANO BLANCO"
-
-━━━ FORMATO DE SALIDA (un bloque por pieza) ━━━
-
-Material: <nombre completo>
-Cant: <número>
+Material: <nombre>
+Cant: <entero 1-99>
 largo(veta): <mm entero>
 ancho: <mm entero>
 L1: <D|G|->
@@ -278,34 +298,26 @@ A1: <D|G|->
 A2: <D|G|->
 Ranura: libre=<n> espe=<n> prof=<n> lado=<lado> det=<texto>
 Perf: cant=<n> lado=<lado> det=<texto>
-Obs: <observación o vacío>
+Obs: <vacío o nota si hubo duda>
 
 REGLAS DE SALIDA:
-• Omitir líneas Ranura/Perf si no existen en esa pieza
-• Lee ABSOLUTAMENTE TODAS las piezas visibles (no omitir ninguna)
-• Ignora líneas tachadas
-• Si hay dudas en medidas → anotar en Obs
-• Si hay dudas en cantos → dejar "" (no inventar)`;
+• Omitir líneas Ranura/Perf cuando no existan
+• Lee TODAS las piezas de la imagen, sin saltarte ninguna
+• Si hubo alguna duda en qty o medidas, anotarlo en Obs de esa pieza`;
 
-  // ══════════════════════════════════════════════════════════════════
-  // FASE 2 — Conversión a JSON limpio
-  // ══════════════════════════════════════════════════════════════════
-  const F2 = `Convierte la lectura al JSON del sistema CARPICENTRO.
+  const F2 = `Convierte al JSON del sistema CARPICENTRO.
 
-REGLAS:
+REGLAS ESTRICTAS:
 • "-" o vacío en L1/L2/A1/A2 → "" en JSON
-• Medidas decimales → si no se convirtieron a MM, hacerlo ahora (×10)
-• perf_cant, ran_libre, ran_espe, ran_prof → números enteros como string ("4", "18")
-• Si no hay ranura → ran_libre/espe/prof/lado/det = ""
-• Si no hay perforación → perf_cant/lado/det = ""
+• Medidas decimales: si no están en MM, multiplicar ×10 ahora
+• qty: entero ≥ 1 (si dice 0 o negativo → 1)
+• ran_libre/espe/prof y perf_cant → enteros positivos como string ("4", "18") o ""
+• Si no hay ranura → todos los ran_* = ""
+• Si no hay perforación → todos los perf_* = ""
 
-RESPONDE SOLO CON EL JSON (sin markdown, sin texto adicional):
+RESPONDE SOLO CON EL JSON (sin markdown):
 {"piezas":[{
-  "material":"string",
-  "qty":1,
-  "largo":0,
-  "ancho":0,
-  "veta":"1-Longitud",
+  "material":"string","qty":1,"largo":0,"ancho":0,"veta":"1-Longitud",
   "l1":"","l2":"","a1":"","a2":"",
   "perf_cant":"","perf_lado":"","perf_det":"",
   "ran_libre":"","ran_espe":"","ran_prof":"","ran_lado":"","ran_det":"",
