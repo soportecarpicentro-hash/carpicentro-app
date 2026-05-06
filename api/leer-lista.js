@@ -1,5 +1,6 @@
-// api/leer-lista.js — CARPICENTRO v22
+// api/leer-lista.js — CARPICENTRO v23
 // Prioridad absoluta: CANTIDADES sin fallo. Cantos: perfección. Medidas: cero errores.
+// v23: Opus 4.7 + pre-escaneo de cantidades + resolución 1800px
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -16,12 +17,12 @@ export default async function handler(req, res) {
 
   async function callAnthropic(msgs, maxTok = 8192) {
     const ctrl = new AbortController();
-    const tmo = setTimeout(() => ctrl.abort(), 50000);
+    const tmo = setTimeout(() => ctrl.abort(), 55000);
     try {
       const resp = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': KEY, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: maxTok, messages: msgs }),
+        body: JSON.stringify({ model: 'claude-opus-4-7', max_tokens: maxTok, messages: msgs }),
         signal: ctrl.signal,
       });
       clearTimeout(tmo);
@@ -164,6 +165,15 @@ Observa la imagen completa y responde estas preguntas internamente:
 ③ ¿EN QUÉ UNIDADES ESTÁN LAS MEDIDAS?
    MM: números ≥ 200 sin decimal (420, 840, 1830)
    CM: números con decimal (57.4, 116.9) o enteros pequeños (84, 42)
+
+━━━ PRE-ESCANEO GLOBAL (obligatorio antes de leer fila a fila) ━━━
+
+Ahora recorre toda la imagen de arriba a abajo y anota:
+• Total de piezas/filas visibles: <N>
+• Secuencia de cantidades detectadas: <q1, q2, q3, ...> (una por cada pieza, en orden)
+
+Este pre-escaneo es tu referencia. Al leer fila a fila confirmarás que coincide.
+Si una cantidad no coincide con tu pre-escaneo → revisarla antes de escribirla.
 
 ━━━ CANTIDADES — ERROR AQUÍ = PEDIDO INCORRECTO = PÉRDIDA TOTAL ━━━
 
@@ -331,7 +341,7 @@ RESPONDE SOLO CON EL JSON (sin markdown):
       if (i <= 2) {
         const textoOperario = await callAnthropic([
           { role: 'user', content: [img, { type: 'text', text: F1 }] }
-        ], 5000);
+        ], 6000);
         const parseado = parsearTexto(textoOperario);
         if (parseado?.piezas?.length) {
           return res.status(200).json({ piezas: parseado.piezas.map(norm), _intentos: i, _via: 'parser' });
