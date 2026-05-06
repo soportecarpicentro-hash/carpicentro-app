@@ -2082,57 +2082,30 @@ function usarComoBase(ped){
 
 
 // ── DETECCIÓN AUTOMÁTICA DE COLOR DEL MATERIAL ─────────────────────
-var _COLOR_KW = {
-  'NEGRO':'NEGRO','NEGRA':'NEGRO','NEGROS':'NEGRO','NEGRAS':'NEGRO',
-  'BLANCO':'BLANCO','BLANCA':'BLANCO','BLANCOS':'BLANCO','BLANCAS':'BLANCO',
-  'AZUL':'AZUL ACERO','AZULES':'AZUL ACERO',
-  'ROJO':'ROJO','ROJA':'ROJO','ROJOS':'ROJO','ROJAS':'ROJO',
-  'VERDE':'VERDE','VERDES':'VERDE',
-  'GRIS':'GRIS PERLA','GRISES':'GRIS PERLA',
-  'CENIZA':'CENIZA',
-  'BEIGE':'ARENA',
-  'ARENA':'ARENA',
-  'CAFE':'NOGAL','CAFÉ':'NOGAL',
-  'MARRON':'NOGAL OSCURO','MARRÓN':'NOGAL OSCURO','MARRONES':'NOGAL OSCURO',
-  'WENGUE':'WENGUE',
-  'NOGAL':'NOGAL',
-  'GRAFITO':'GRAFITO',
-  'CARBON':'CARBON','CARBÓN':'CARBON',
-  'HAYA':'HAYA',
-  'CEREZO':'CEREZO',
-  'AMARILLO':'AMARILLO COLORPLAST','AMARILLA':'AMARILLO COLORPLAST',
-  'ROBLE':'ROBLE GRIS',
-  'TRIGO':'TRIGO',
-  'ONIX':'ONIX','ÓNIX':'ONIX',
-  'CAPRI':'CAPRI',
-  'PAMELA':'PAMELA',
-  'ALMENDRA':'ALMENDRA',
-  'AMBAR':'AMBAR','ÁMBAR':'AMBAR',
-  'CARAMELO':'CARAMELO',
-  'MIEL':'CARAMELO',
-  'PINO':'HAYA',
-  'MADERA':'MADERA',
-  'CAOBA':'CEREZO',
+// Solo formas gramaticales — el valor DEBE existir tal cual en CANTO_COLORES
+var _COLOR_NORM = {
+  'NEGRA':'NEGRO','NEGROS':'NEGRO','NEGRAS':'NEGRO',
+  'BLANCA':'BLANCO','BLANCOS':'BLANCO','BLANCAS':'BLANCO',
+  'ÓNIX':'ONIX','CARBÓN':'CARBON','ÁMBAR':'AMBAR',
 };
+// Caché de CANTO_COLORES ordenados de mayor a menor longitud (evita "NOGAL" antes que "NOGAL OSCURO")
+var _COLORES_SORTED = null;
 function detectarColorMaterial(mat){
   if(!mat) return '';
-  var m = mat.toUpperCase();
-  // 1. Buscar coincidencia exacta en CANTO_COLORES
-  for(var i=0; i<CANTO_COLORES.length; i++){
-    var c = CANTO_COLORES[i].toUpperCase();
-    if(m.indexOf(c)>=0) return CANTO_COLORES[i];
+  var m = mat.toUpperCase().trim();
+  if(!_COLORES_SORTED) _COLORES_SORTED = CANTO_COLORES.slice().sort(function(a,b){return b.length-a.length;});
+  // 1. El nombre del material contiene una entrada completa de CANTO_COLORES
+  for(var i=0; i<_COLORES_SORTED.length; i++){
+    if(m.indexOf(_COLORES_SORTED[i].toUpperCase())>=0) return _COLORES_SORTED[i];
   }
-  // 2. Buscar por palabras del color (>3 letras) en el nombre del material
-  for(var i=0; i<CANTO_COLORES.length; i++){
-    var palabras = CANTO_COLORES[i].toUpperCase().split(/[\s\/]+/);
-    for(var j=0; j<palabras.length; j++){
-      if(palabras[j].length>3 && m.indexOf(palabras[j])>=0) return CANTO_COLORES[i];
-    }
-  }
-  // 3. Diccionario de palabras clave en español (formas femeninas/plurales)
+  // 2. Por token: cada palabra del material se busca EXACTAMENTE en CANTO_COLORES
+  //    (con normalización de género/plural). "AZUL" no está en la lista → no da falsos positivos.
   var tokens = m.split(/[\s\-\/]+/);
   for(var i=0; i<tokens.length; i++){
-    if(_COLOR_KW[tokens[i]]) return _COLOR_KW[tokens[i]];
+    var t = _COLOR_NORM[tokens[i]] || tokens[i];
+    for(var j=0; j<CANTO_COLORES.length; j++){
+      if(CANTO_COLORES[j].toUpperCase()===t) return CANTO_COLORES[j];
+    }
   }
   return '';
 }
