@@ -2098,13 +2098,20 @@ function detectarColorMaterial(mat){
   for(var i=0; i<_COLORES_SORTED.length; i++){
     if(m.indexOf(_COLORES_SORTED[i].toUpperCase())>=0) return _COLORES_SORTED[i];
   }
-  // 2. Por token: cada palabra del material se busca EXACTAMENTE en CANTO_COLORES
-  //    (con normalización de género/plural). "AZUL" no está en la lista → no da falsos positivos.
+  // 2. Por token: exacto o prefijo
+  //    Exacto: "NEGRO" → "NEGRO"; con norma: "NEGRA" → "NEGRO"
+  //    Prefijo: "GRIS" → "GRIS PERLA"; "AZUL" → "AZUL ACERO" (primer resultado, no "ALUMINIO CANPLAST")
   var tokens = m.split(/[\s\-\/]+/);
   for(var i=0; i<tokens.length; i++){
-    var t = _COLOR_NORM[tokens[i]] || tokens[i];
+    var t = (_COLOR_NORM[tokens[i]] || tokens[i]);
+    // 2a. Coincidencia exacta
     for(var j=0; j<CANTO_COLORES.length; j++){
       if(CANTO_COLORES[j].toUpperCase()===t) return CANTO_COLORES[j];
+    }
+    // 2b. Prefijo: el token es la primera palabra del color (evita "AZUL"→"ALUMINIO CANPLAST")
+    var pref = t+' ';
+    for(var j=0; j<CANTO_COLORES.length; j++){
+      if(CANTO_COLORES[j].toUpperCase().indexOf(pref)===0) return CANTO_COLORES[j];
     }
   }
   return '';
@@ -2175,19 +2182,6 @@ function mostrarExito(cod, waUrl){
 
 
 
-// Botón QR en el detalle del pedido — se agrega junto al botón de duplicar
-function agregarBtnQR(ped){
-  if(!ped || !el('dacts')) return;
-  // Remover QR anterior si existe
-  var viejoQR = el('dacts').querySelector('.btn-qr');
-  if(viejoQR) viejoQR.remove();
-  var btn = document.createElement('button');
-  btn.type = 'button'; btn.className = 'btn bs btn-qr';
-  btn.style.cssText = 'padding:9px 14px;font-size:13px;';
-  btn.innerHTML = '📱 QR';
-  btn.addEventListener('click', function(){ abrirQR(ped.codigo, 'Pedido ' + ped.codigo); });
-  el('dacts').appendChild(btn);
-}
 
 // ── BOTÓN WA FLOTANTE ──
 el('btnWAFloat') && el('btnWAFloat').addEventListener('click', function(){
@@ -3580,8 +3574,6 @@ function abrirDet(id){
     el('dacts').insertBefore(btn, el('dacts').firstChild);
     btn.addEventListener('click',function(){ usarComoBase(pedRef); });
   })(pedAct);
-  // Botón QR del pedido
-  agregarBtnQR(pedAct);
   el('btnCambEst').addEventListener('click',cambiarEst);
   el('btnMkV').addEventListener('click',function(){ marcarVenta(!pedAct.convertido_venta); });
   if(isAdmin) el('btnDelPed').addEventListener('click',eliminarPedido);
