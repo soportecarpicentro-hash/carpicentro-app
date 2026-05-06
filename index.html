@@ -157,6 +157,45 @@ tr.duda td .ti, tr.duda td .tis{background:#FFFDE7;}
 .mat-btn-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;border:1px solid #ccc;}
 .mat-btn-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
 
+/* SKELETON LOADING */
+.sk-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.sk-b{border-radius:6px;background:linear-gradient(90deg,#ececec 25%,#d8d8d8 50%,#ececec 75%);background-size:200% 100%;animation:shimmer 1.4s ease-in-out infinite;}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* MIS PEDIDOS */
+.mis-ped-toggle{width:100%;margin-top:14px;padding:10px 16px;background:var(--gl);border:1.5px dashed var(--bd2);border-radius:var(--rads);cursor:pointer;font-size:13px;font-weight:700;color:var(--tx3);text-align:center;font-family:inherit;transition:all .2s;}
+.mis-ped-toggle:hover{background:var(--redl);border-color:var(--red);color:var(--red);}
+#misPedidosPanel{display:none;margin-top:12px;padding:12px;background:var(--gl);border-radius:var(--rads);border:1.5px solid var(--bd);}
+.mis-ped-item{padding:10px 12px;background:var(--bg);border-radius:8px;margin-bottom:7px;border-left:3px solid var(--red);cursor:pointer;transition:all .15s;}
+.mis-ped-item:last-child{margin-bottom:0;}
+.mis-ped-item:hover{transform:translateX(3px);box-shadow:0 2px 8px rgba(0,0,0,.09);}
+.mis-ped-cod{font-size:13px;font-weight:800;color:var(--tx);}
+.mis-ped-info{font-size:11px;color:var(--tx3);margin-top:3px;}
+.mp-badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;margin-left:6px;vertical-align:middle;}
+
+/* IA CONFIRM OVERLAY */
+#iaConfirmOvl{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:450;display:none;align-items:center;justify-content:center;padding:12px;overflow-y:auto;}
+#iaConfirmOvl.open{display:flex;}
+.ia-box{background:var(--bg);border-radius:var(--rad);width:100%;max-width:500px;margin:auto;max-height:92vh;display:flex;flex-direction:column;border-top:4px solid var(--red);box-shadow:0 20px 60px rgba(0,0,0,.35);}
+.ia-hdr{padding:14px 18px 10px;border-bottom:1px solid var(--bd);}
+.ia-hdr-t{font-size:16px;font-weight:800;color:var(--tx);}
+.ia-hdr-s{font-size:12px;color:var(--tx3);margin-top:3px;}
+.ia-list{overflow-y:auto;flex:1;padding:10px 12px;}
+.ia-item{display:flex;align-items:center;gap:12px;padding:10px 10px;border-radius:8px;margin-bottom:6px;background:var(--gl);border:1.5px solid var(--bd);transition:border-color .15s;}
+.ia-item.alert{background:#FFF3E0;border-color:#FF6F00;}
+.ia-qty{font-size:28px;font-weight:900;color:var(--red);min-width:42px;text-align:center;line-height:1;flex-shrink:0;}
+.ia-det{flex:1;min-width:0;}
+.ia-mat{font-size:12px;font-weight:700;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ia-dim{font-size:11px;color:var(--tx3);margin-top:2px;}
+.ia-canto{font-size:10px;color:#1565C0;margin-top:2px;font-weight:600;}
+.ia-btns{padding:12px 14px;display:flex;gap:10px;border-top:1px solid var(--bd);flex-shrink:0;}
+
+/* STEP SLIDE */
+@keyframes slideInR{from{transform:translateX(30px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes slideInL{from{transform:translateX(-30px);opacity:0}to{transform:translateX(0);opacity:1}}
+.paso-fwd{animation:slideInR .3s cubic-bezier(.4,0,.2,1) both;}
+.paso-bck{animation:slideInL .3s cubic-bezier(.4,0,.2,1) both;}
+
 /* TABLA */
 .tw{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:var(--rads);border:2px solid var(--dark);}
 table{width:100%;border-collapse:collapse;font-size:13px;}
@@ -541,6 +580,24 @@ body.light-mode .theme-toggle{border-color:rgba(255,255,255,.35);}
   <div class="splash-tag">SISTEMA DE PEDIDOS</div>
 </div>
 
+<!-- CONFETTI -->
+<canvas id="confettiCv" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9998;display:none;"></canvas>
+
+<!-- CONFIRM IA -->
+<div id="iaConfirmOvl">
+  <div class="ia-box">
+    <div class="ia-hdr">
+      <div class="ia-hdr-t">✅ Revisá las piezas detectadas</div>
+      <div class="ia-hdr-s" id="iaConfirmSub"></div>
+    </div>
+    <div class="ia-list" id="iaConfirmList"></div>
+    <div class="ia-btns">
+      <button type="button" class="btn bp" style="flex:1;font-size:14px;" id="iaConfirmOk">Confirmar y continuar →</button>
+      <button type="button" class="btn bs" style="flex:0 0 auto;font-size:13px;" id="iaConfirmEdit">✏️ Editar</button>
+    </div>
+  </div>
+</div>
+
 <!-- PANTALLA DE ÉXITO -->
 <div id="successScreen">
   <div class="success-circle">
@@ -648,6 +705,15 @@ body.light-mode .theme-toggle{border-color:rgba(255,255,255,.35);}
         </div>
         <div class="btn-row">
           <button type="button" id="btnContinuar1" class="btn bp" style="min-width:180px;">Continuar →</button>
+        </div>
+        <!-- MIS PEDIDOS -->
+        <button type="button" class="mis-ped-toggle" id="btnMisPedidos">📦 Ver mis pedidos anteriores</button>
+        <div id="misPedidosPanel">
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <input type="text" id="mpTel" placeholder="Tu número de teléfono" inputmode="tel" style="flex:1;padding:9px 12px;border:2px solid var(--bd2);border-radius:var(--rads);font-size:13px;font-family:inherit;outline:none;background:var(--bg);color:var(--tx);">
+            <button type="button" class="btn bp" id="btnMpBuscar" style="padding:9px 18px;font-size:13px;flex-shrink:0;">Buscar</button>
+          </div>
+          <div id="mpResultados"></div>
         </div>
       </div>
     </div>
@@ -1735,7 +1801,7 @@ var ESTL = {ingresado:'⏳ Ingresado',revisado:'👁 Revisado',en_optiplaning:'�
 var ESTC = {ingresado:'b-ing',revisado:'b-rev',en_optiplaning:'b-opt',en_produccion:'b-pro',listo:'b-lst',entregado:'b-ent',no_procedio:'b-nop'};
 
 // ── ESTADO ───────────────────────────────────────────────
-var pcs=[],allP=[],_pedidoConfirmadoCod='',_pedidoConfirmadoWA=null,_lastPedidoData=null,pedAct=null,pzEdit=[],sesion=null,unidad='mm',matCb=null,matCbSel='',colorDGGlobal='';
+var pcs=[],allP=[],_pedidoConfirmadoCod='',_pedidoConfirmadoWA=null,_lastPedidoData=null,pedAct=null,pzEdit=[],sesion=null,unidad='mm',matCb=null,matCbSel='',colorDGGlobal='',pasoActual=1;
 
 // ── HELPERS ──────────────────────────────────────────────
 function el(id){ return document.getElementById(id); }
@@ -2179,6 +2245,7 @@ function mostrarExito(cod, waUrl){
   el('successCod').textContent = cod || '—';
   sc.style.display = 'flex'; sc.style.opacity='0';
   setTimeout(function(){ sc.style.transition='opacity .4s'; sc.style.opacity='1'; },10);
+  lanzarConfeti();
   el('successWA') && (el('successWA').onclick = function(){
     var msg='Hola CARPICENTRO, mi pedido es: *'+cod+'*';
     window.open('https://wa.me/51973589710?text='+encodeURIComponent(msg),'_blank');
@@ -2189,6 +2256,114 @@ function mostrarExito(cod, waUrl){
     setTimeout(function(){ sc.style.display='none'; resetCliente(); },400);
   });
 }
+
+// ── CONFETTI ──────────────────────────────────────────────
+function lanzarConfeti(){
+  var cv=el('confettiCv'); if(!cv) return;
+  cv.style.display='block';
+  cv.width=window.innerWidth; cv.height=window.innerHeight;
+  var ctx=cv.getContext('2d');
+  var cols=['#C62828','#FFD600','#1565C0','#2E7D32','#AD1457','#E65100','#fff'];
+  var parts=[];
+  for(var i=0;i<130;i++){
+    parts.push({x:Math.random()*cv.width,y:-20-Math.random()*120,
+      w:7+Math.random()*7,h:4+Math.random()*5,
+      col:cols[Math.floor(Math.random()*cols.length)],
+      rot:Math.random()*Math.PI*2,rv:(Math.random()-.5)*.18,
+      vx:(Math.random()-.5)*3.5,vy:3+Math.random()*3.5,op:1});
+  }
+  var t0=null,dur=3200;
+  function frame(ts){
+    if(!t0)t0=ts;
+    var el2=ts-t0;
+    ctx.clearRect(0,0,cv.width,cv.height);
+    parts.forEach(function(p){
+      p.x+=p.vx; p.y+=p.vy; p.rot+=p.rv;
+      if(el2>dur-900) p.op=Math.max(0,p.op-.025);
+      ctx.save(); ctx.globalAlpha=p.op;
+      ctx.translate(p.x+p.w/2,p.y+p.h/2); ctx.rotate(p.rot);
+      ctx.fillStyle=p.col; ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+      ctx.restore();
+    });
+    if(el2<dur) requestAnimationFrame(frame);
+    else { ctx.clearRect(0,0,cv.width,cv.height); cv.style.display='none'; }
+  }
+  requestAnimationFrame(frame);
+}
+
+// ── IA CONFIRM OVERLAY ─────────────────────────────────────
+function mostrarIAConfirm(piezas, conDuda){
+  var lista=el('iaConfirmList'), sub=el('iaConfirmSub');
+  if(!lista) return;
+  var dubCount=conDuda?conDuda.length:0;
+  sub.textContent=piezas.length+' piezas detectadas'+(dubCount?' · '+dubCount+' con duda (resaltadas)':'')+'  — revisá las cantidades';
+  var html='';
+  piezas.forEach(function(p,i){
+    var cantos=[p.l1,p.l2,p.a1,p.a2].filter(Boolean);
+    var cantosTxt=cantos.length?'Cantos: L1='+p.l1+' L2='+p.l2+' A1='+p.a1+' A2='+p.a2:'Sin cantos';
+    var mat=(p.material||'Material').replace(/^mela(mina)?\s+pelikano\s+/i,'').replace(/^mela(mina)?\s+/i,'');
+    var dimTxt=p.largo&&p.ancho?p.largo+' × '+p.ancho+' mm':p.largo?p.largo+' × ? mm':'Sin medidas';
+    var esAlerta=p.qty>15;
+    html+='<div class="ia-item'+(esAlerta?' alert':'')+(p._duda?' alert':'')+'">'
+      +'<div class="ia-qty">'+p.qty+'</div>'
+      +'<div class="ia-det">'
+      +'<div class="ia-mat">'+mat+'</div>'
+      +'<div class="ia-dim">'+dimTxt+(p.veta&&p.veta!=='1-Longitud'?' · '+p.veta:'')+'</div>'
+      +(cantos.length?'<div class="ia-canto">'+cantosTxt+'</div>':'')
+      +(p.obs?'<div style="font-size:10px;color:#E65100;margin-top:2px;">⚠ '+p.obs+'</div>':'')
+      +'</div></div>';
+  });
+  lista.innerHTML=html||'<div style="text-align:center;padding:20px;color:var(--tx3);">Sin piezas</div>';
+  var ovl=el('iaConfirmOvl');
+  ovl.classList.add('open');
+  el('iaConfirmOk').onclick=function(){ ovl.classList.remove('open'); irPaso(3); setTimeout(function(){ renderTabla(); mostrarConfirmacionCantos(); },50); };
+  el('iaConfirmEdit').onclick=function(){ ovl.classList.remove('open'); irPaso(3); setTimeout(function(){ renderTabla(); mostrarConfirmacionCantos(); },50); };
+}
+
+// ── MIS PEDIDOS ─────────────────────────────────────────────
+(function(){
+  var btn=el('btnMisPedidos'), panel=el('misPedidosPanel');
+  if(!btn||!panel) return;
+  btn.addEventListener('click',function(){
+    var abierto=panel.style.display==='block';
+    panel.style.display=abierto?'none':'block';
+    btn.textContent=abierto?'📦 Ver mis pedidos anteriores':'📦 Cerrar mis pedidos';
+    if(!abierto){
+      var tel=el('ctel')?el('ctel').value.trim():'';
+      if(tel){ var mp=el('mpTel'); if(mp) mp.value=tel; buscarMisPedidos(); }
+    }
+  });
+  var btnB=el('btnMpBuscar');
+  if(btnB) btnB.addEventListener('click',buscarMisPedidos);
+  var mpI=el('mpTel');
+  if(mpI) mpI.addEventListener('keydown',function(e){ if(e.key==='Enter') buscarMisPedidos(); });
+})();
+
+function buscarMisPedidos(){
+  var tel=(el('mpTel')?el('mpTel').value.trim():'');
+  var res=el('mpResultados'); if(!res) return;
+  if(!tel){ res.innerHTML='<div style="font-size:12px;color:var(--tx3);text-align:center;padding:8px;">Ingresa tu teléfono.</div>'; return; }
+  res.innerHTML='<div style="font-size:12px;color:var(--tx3);padding:8px 0;display:flex;align-items:center;gap:6px;"><div class="spin" style="width:13px;height:13px;border-width:2px;"></div> Buscando...</div>';
+  sbGet('pedidos','cliente_telefono=eq.'+encodeURIComponent(tel)+'&order=created_at.desc&limit=6&select=id,codigo,estado,created_at,total_piezas,sede,materiales')
+  .then(function(data){
+    if(!data||!data.length){ res.innerHTML='<div style="font-size:12px;color:var(--tx3);text-align:center;padding:10px;">No se encontraron pedidos para este teléfono.</div>'; return; }
+    var colores={ingresado:'#78909C',revision:'#1565C0',en_optiplaning:'#E65100',en_produccion:'#6A1B9A',listo:'#2E7D32',entregado:'#00695C',no_procedio:'#B71C1C'};
+    var html=data.map(function(p){
+      var fecha=p.created_at?new Date(p.created_at).toLocaleDateString('es-PE',{day:'2-digit',month:'short',year:'numeric'}):'';
+      var col=colores[p.estado]||'#78909C';
+      var estTxt=(ESTL[p.estado]||p.estado||'').replace(/^[^\s]+\s/,'');
+      var mats=Array.isArray(p.materiales)&&p.materiales.length?p.materiales.slice(0,2).join(', ')+(p.materiales.length>2?'…':''):'';
+      return '<div class="mis-ped-item">'
+        +'<div class="mis-ped-cod">'+p.codigo+'<span class="mp-badge" style="background:'+col+'22;color:'+col+';">'+estTxt+'</span></div>'
+        +'<div class="mis-ped-info">'+fecha+' · '+(p.total_piezas||0)+' piezas · '+(p.sede||'')+(mats?' · '+mats:'')+'</div>'
+        +'</div>';
+    }).join('');
+    res.innerHTML=html;
+  }).catch(function(){
+    res.innerHTML='<div style="font-size:12px;color:#B71C1C;padding:8px;">No se pudo conectar. Intenta de nuevo.</div>';
+  });
+}
+window.buscarMisPedidos=buscarMisPedidos;
 
 // ════════════════════════════════════════════════════════
 // QR CODE GENERATOR (sin librería externa)
@@ -2707,12 +2882,24 @@ function generarTicketPDF(cod){
 window.irStepBtn = irStepBtn;
 function irPaso(n){
   if(n===2 && el('cnom') && !el('cnom').value.trim()){ alert('Por favor ingresa tu nombre para continuar.'); el('cnom').focus(); return; }
-  // Solo redirigir a manual si venimos del paso 1 (avanzando), no al retroceder desde el paso 3
   if(n===2 && el('cmet') && el('cmet').value==='manual'){
     var cs3e=el('cs3'); if(!cs3e||cs3e.style.display!=='block'){ irManual(); return; }
   }
-  ['cs1','cs2','cs3','cs4'].forEach(function(id,i){ if(el(id)) el(id).style.display=(i+1===n)?'block':'none'; });
+  var dir = n >= pasoActual ? 'paso-fwd' : 'paso-bck';
+  ['cs1','cs2','cs3','cs4'].forEach(function(id,i){
+    var p=el(id); if(!p) return;
+    if(i+1===n){
+      p.style.display='block';
+      p.classList.remove('paso-fwd','paso-bck');
+      void p.offsetWidth;
+      p.classList.add(dir);
+    } else {
+      p.style.display='none';
+      p.classList.remove('paso-fwd','paso-bck');
+    }
+  });
   [1,2,3,4].forEach(function(i){ var s=el('stp'+i); if(s){ s.classList.remove('on','dn'); if(i===n)s.classList.add('on'); else if(i<n)s.classList.add('dn'); }});
+  pasoActual=n;
   window.scrollTo({top:0,behavior:'instant'});
 }
 function irManual(){
@@ -2872,10 +3059,9 @@ function leerTodasConIA(){
         ran_lado:p.ran_lado||'',ran_det:p.ran_det||'',
         _duda:!!(p.obs&&p.obs.indexOf('REVISAR:')>=0)};
     });
-    var msg='<div class="ais ok"><span>✓ <strong>'+pcs.length+' piezas</strong> detectadas. <strong>Revisa los cantos</strong> y confirma para continuar.</span></div>';
+    var msg='<div class="ais ok"><span>✓ <strong>'+pcs.length+' piezas</strong> detectadas.</span></div>';
     el('aist').innerHTML=msg; el('aist3').innerHTML=msg;
-    irPaso(3);
-    setTimeout(function(){ mostrarConfirmacionCantos(); },50);
+    mostrarIAConfirm(pcs, conDuda);
   }).catch(function(err){
     console.error('IA error:',err);
     var msg=err.message||'error desconocido';
@@ -2926,7 +3112,19 @@ function procesarImg(f){
   agregarImagenes([f]);
 }
 
-function setAI(t,m){ var h='<div class="ais '+t+'">'+(t==='ld'?'<div class="spin"></div>':'')+'<span>'+m+'</span></div>'; el('aist').innerHTML=h; el('aist3').innerHTML=t!=='ld'?h:''; }
+function setAI(t,m){
+  if(t==='ld'){
+    var skRow='<div class="sk-row"><div class="sk-b" style="height:18px;width:32px;flex-shrink:0;"></div><div class="sk-b" style="height:14px;flex:1;"></div><div class="sk-b" style="height:14px;width:54px;flex-shrink:0;"></div><div class="sk-b" style="height:14px;width:54px;flex-shrink:0;"></div></div>';
+    var sk='<div style="padding:6px 0;">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:12px;color:var(--tx3);font-weight:600;"><div class="spin" style="width:14px;height:14px;border-width:2px;"></div><span>'+m+'</span></div>'
+      +skRow+skRow+skRow+skRow
+      +'</div>';
+    el('aist').innerHTML=sk; el('aist3').innerHTML='';
+    return;
+  }
+  var h='<div class="ais '+t+'"><span>'+m+'</span></div>';
+  el('aist').innerHTML=h; el('aist3').innerHTML=h;
+}
 
 function procesarImg(f){
   var pr=new FileReader(); pr.onload=function(e){ el('prevImg').src=e.target.result; el('prevWrap').style.display='block'; }; pr.readAsDataURL(f);
