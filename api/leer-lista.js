@@ -1,4 +1,4 @@
-// api/leer-lista.js — CARPICENTRO v23
+// api/leer-lista.js — CARPICENTRO v24
 // Prioridad absoluta: CANTIDADES sin fallo. Cantos: perfección. Medidas: cero errores.
 // v23: Opus 4.7 + pre-escaneo de cantidades + resolución 1800px
 
@@ -81,10 +81,10 @@ export default async function handler(req, res) {
       if (!cur) continue;
       if (/^largo[^:]*:/i.test(l)) { cur.largo = num(l.replace(/^largo[^:]*:/i, '')); continue; }
       if (/^ancho[^:]*:/i.test(l)) { cur.ancho = num(l.replace(/^ancho[^:]*:/i, '')); continue; }
-      if (/^l1[:\s]/i.test(l)) { cur.l1 = limpia(l.replace(/^l1[:\s]*/i, '')); continue; }
-      if (/^l2[:\s]/i.test(l)) { cur.l2 = limpia(l.replace(/^l2[:\s]*/i, '')); continue; }
-      if (/^a1[:\s]/i.test(l)) { cur.a1 = limpia(l.replace(/^a1[:\s]*/i, '')); continue; }
-      if (/^a2[:\s]/i.test(l)) { cur.a2 = limpia(l.replace(/^a2[:\s]*/i, '')); continue; }
+      if (/^l1\s*[:\s]/i.test(l)) { cur.l1 = limpia(l.replace(/^l1\s*[:\s]*/i, '')); continue; }
+      if (/^l2\s*[:\s]/i.test(l)) { cur.l2 = limpia(l.replace(/^l2\s*[:\s]*/i, '')); continue; }
+      if (/^a1\s*[:\s]/i.test(l)) { cur.a1 = limpia(l.replace(/^a1\s*[:\s]*/i, '')); continue; }
+      if (/^a2\s*[:\s]/i.test(l)) { cur.a2 = limpia(l.replace(/^a2\s*[:\s]*/i, '')); continue; }
       if (/^veta[:\s]/i.test(l)) { cur.veta = limpia(l.replace(/^veta[:\s]*/i, '')) || '1-Longitud'; continue; }
       if (/^ranura[:\s]/i.test(l)) {
         const r = l.replace(/^ranura[:\s]*/i, '');
@@ -111,7 +111,15 @@ export default async function handler(req, res) {
   function norm(p) {
     const s = v => String(v ?? '').trim();
     const n = v => Math.round(parseFloat(String(v ?? '').replace(',', '.')) || 0);
-    const c = v => { const x = s(v).toUpperCase().replace(/^-+$/, ''); return (x === 'D' || x === 'G') ? x : ''; };
+    const c = v => {
+      const raw = s(v).toUpperCase().replace(/^[-–—\s]+$/, '');
+      if (!raw) return '';
+      const first = raw.split(/[\s(,/]/)[0];
+      if (first === 'D' || first === 'G') return first;
+      if (/^DEL|^FIN|^DELG/i.test(raw)) return 'D';
+      if (/^GRU|^GRUE/i.test(raw)) return 'G';
+      return '';
+    };
     const rs = v => { const x = s(v); return /^\d+$/.test(x) && parseInt(x) > 0 ? x : ''; };
     const qty = Math.max(1, parseInt(p.qty) || 1);
     return {
@@ -228,51 +236,55 @@ LÍNEAS TACHADAS → IGNORAR completamente.
 VETA:
   ↕ o sin indicación → "1-Longitud" | ↔ → "2-Ancho" | "SV"/"sin veta" → "Sin veta"
 
-━━━ CANTOS — PERFECCIÓN ABSOLUTA ━━━
+━━━ CANTOS ━━━
 
-Solo dos valores posibles: D (delgado) o G (grueso).
-Aplica el formato detectado en el análisis previo.
+Dos valores válidos: D (delgado/fino) o G (grueso/gordo). Guión - = sin canto.
+⚠ OBLIGATORIO: escribe SIEMPRE las 4 líneas L1: L2: A1: A2: para cada pieza (usa - si no hay).
 
-FORMATO A — Trazos/gusanitos sobre las medidas:
-  • Trazos ONDULADOS (≈ ∿ ~) = G | Línea RECTA simple (─) = D
-  • El símbolo está sobre el LARGO → L1=X L2=X (ambos bordes largos)
-  • El símbolo está sobre el ANCHO → A1=X A2=X (ambos bordes cortos)
-  • Símbolo sobre ambas medidas → L1 L2 A1 A2 todos con ese canto
-  • Símbolo solo sobre LARGO → L1=X L2=X, A1="" A2=""
-  • Sin símbolo sobre ANCHO → A1="" A2=""
-  • Mezcla: recta sobre largo + onda sobre ancho → L1=D L2=D A1=G A2=G
+FORMATO A — Trazos/marcas SOBRE o JUNTO a los números de medida:
+  • Trazo RECTO (─ — _ /) = D | Trazo ONDULADO (∿ ~ ≈ zigzag) = G
+  • La marca está SOBRE el número LARGO (el mayor) → L1=X L2=X
+  • La marca está SOBRE el número ANCHO (el menor) → A1=X A2=X
+  • Marca sobre AMBOS números → L1=X L2=X A1=X A2=X
+  • Pequeño guión o tick al lado del número = D
+  • Sin marca sobre ese número → - en esos lados
+  EJEMPLO: "─840─ × 420" → L1=D L2=D A1=- A2=-
+  EJEMPLO: "840 × ∿420∿" → L1=- L2=- A1=G A2=G
+  EJEMPLO: "─840─ × ∿420∿" → L1=D L2=D A1=G A2=G
 
-FORMATO B — Columnas L1/L2/A1/A2:
-  • Leer la celda de cada columna: D o G | guión o vacío → ""
+FORMATO B — Columnas L1/L2/A1/A2 en tabla:
+  • Leer la celda: D→D | G→G | vacío/guión/punto/0→-
+  • Columna única "CANTO" con "D" → L1=D L2=D A1=D A2=D
+  • Columna única "CANTO" con "G" → L1=G L2=G A1=G A2=G
+  • Columna única con código multi-letra → ver FORMATO C
 
-FORMATO C — Código de letras al costado:
-  • 4 posiciones fijas = L1 L2 A1 A2 (en ese orden)
-  • DDDD→todos D | GGGG→todos G | D---→solo L1=D | -D--→solo L2=D
-  • DD--→L1=D L2=D | DG--→L1=D L2=G | D-D-→L1=D A1=D
-  • 3 letras: DDD→L1=D L2=D A1=D | GGD→L1=G L2=G A1=D
-  • 2 letras: DD→L1=D L2=D | GG→L1=G L2=G
-  • 1 letra: D→todos D | G→todos G
-  • "c/G" "CG" "c/grueso"→todos G | "c/D" "CD" "c/delgado"→todos D
-  • "PL" "RL" "S/C" "liso"→sin cantos
+FORMATO C — Código de letras junto/después de las medidas:
+  • 4 posiciones = L1 L2 A1 A2 (siempre en ese orden)
+  • DDDD→todos D | GGGG→todos G | DDGG→L1=D L2=D A1=G A2=G
+  • D---→L1=D | -D--→L2=D | --D-→A1=D | ---D→A2=D
+  • DD--→L1=D L2=D | -DD-→L2=D A1=D
+  • 3 letras DDD→L1=D L2=D A1=D | 2 letras DD→L1=D L2=D | GG→L1=G L2=G
+  • 1 letra sola: D→L1=D L2=D A1=D A2=D | G→todos G
+  • "c/D" "c/d" "CD" "c/delgado" "canto delgado" → todos D
+  • "c/G" "c/g" "CG" "c/grueso" "canto grueso" → todos G
+  • "S/C" "s/c" "SC" "PL" "sin canto" "liso" → todos -
 
-FORMATO D — Subrayado:
-  • Línea recta bajo la pieza = D | Línea ondulada = G
-  • El subrayado aplica a los lados de la dimensión que subraya
+FORMATO D — Subrayado / sobrerayado:
+  • Línea RECTA bajo/sobre la medida = D | Línea ONDULADA = G
+  • Aplica a los lados de la dimensión marcada
 
-FORMATO E — Texto descriptivo:
-  • "largo c/grueso" → L1=G L2=G | "ancho c/delgado" → A1=D A2=D
-  • "un lado largo" → solo L1=X | "3 lados" → los 3 con canto, el 4to sin
+FORMATO E — Texto descriptivo libre:
+  • "todos c/D" "4 lados D" → L1=D L2=D A1=D A2=D
+  • "largo c/G" "2 largos G" → L1=G L2=G
+  • "ancho c/D" → A1=D A2=D
+  • "3 lados D" → L1=D L2=D A1=D A2=-
 
-FORMATO F — Sin cantos:
-  • Todos los campos L1 L2 A1 A2 = ""
-
-REGLAS DE ORO PARA CANTOS:
-  ✗ NUNCA copiar los cantos de la pieza anterior si esta no tiene marca propia
-  ✗ NUNCA inventar un canto si el símbolo no es claro
-  ✗ NUNCA asumir "todos llevan canto" sin marca explícita
-  ✓ Cada pieza tiene sus propios cantos independientes
-  ✓ Si el símbolo es ambiguo → ""
-  ✓ Mejor vacío que incorrecto
+REGLAS DEFINITIVAS:
+  ✓ Si ves CUALQUIER marca de canto → léela y escríbela. NUNCA la omitas.
+  ✓ Ambiguo entre D y G → usa D (es el más común en Perú)
+  ✓ SIEMPRE escribe L1: L2: A1: A2: para cada pieza, aunque sean todos -
+  ✗ Pon - solo cuando NO existe ninguna marca visible para ese lado
+  ✗ No copies cantos de la pieza anterior si esta no tiene marca propia
 
 ━━━ RANURA ━━━
 
@@ -302,16 +314,17 @@ Material: <nombre>
 Cant: <entero 1-99>
 largo(veta): <mm entero>
 ancho: <mm entero>
-L1: <D|G|->
-L2: <D|G|->
-A1: <D|G|->
-A2: <D|G|->
+L1: <D|G|-> ← OBLIGATORIO siempre
+L2: <D|G|-> ← OBLIGATORIO siempre
+A1: <D|G|-> ← OBLIGATORIO siempre
+A2: <D|G|-> ← OBLIGATORIO siempre
 Ranura: libre=<n> espe=<n> prof=<n> lado=<lado> det=<texto>
 Perf: cant=<n> lado=<lado> det=<texto>
 Obs: <vacío o nota si hubo duda>
 
 REGLAS DE SALIDA:
-• Omitir líneas Ranura/Perf cuando no existan
+• L1/L2/A1/A2 son OBLIGATORIAS en cada pieza — nunca las omitas
+• Omitir líneas Ranura/Perf solo cuando no existan
 • Lee TODAS las piezas de la imagen, sin saltarte ninguna
 • Si hubo alguna duda en qty o medidas, anotarlo en Obs de esa pieza`;
 
