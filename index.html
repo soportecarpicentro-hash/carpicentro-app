@@ -3274,8 +3274,6 @@ function confirmarPedido(){
   }
   var sinMat=pcs.filter(function(p){ return !p.material; });
   if(sinMat.length){ alert('⚠️ Hay '+sinMat.length+' pieza(s) sin material seleccionado.'); return; }
-  var inv=pcs.filter(function(p){ return !p.largo||!p.ancho; });
-  if(inv.length){ alert('⚠️ Hay '+inv.length+' pieza(s) sin largo o ancho.'); return; }
   if(!pcs.length){ alert('Agrega al menos una pieza.'); return; }
   // Validar colores de canto
   var sinColor=[];
@@ -3300,20 +3298,6 @@ function confirmarPedido(){
   var btn=el('btnConfirmar'); btn.textContent='⏳ Enviando...'; btn.disabled=true;
   var datos={codigo:cod,estado:'ingresado',cliente_nombre:nom,cliente_telefono:tel,sede:sede,total_lineas:pcs.length,total_piezas:tot,materiales:mats};
   try{ datos.cliente_tipo=tipo==='RUC'?'empresa':'persona'; datos.cliente_ruc=tipo==='RUC'?doc:null; datos.cliente_dni=tipo==='DNI'?doc:null; }catch(e){}
-  // Resumen del pedido antes de confirmar
-  var matList=[...new Set(pcs.map(function(p){return p.material;}))].filter(Boolean);
-  var conCanto=pcs.filter(function(p){return p.l1||p.l2||p.a1||p.a2;}).length;
-  var conRanura=pcs.filter(function(p){return p.ran_libre||p.obs&&p.obs.indexOf('ranura')>-1;}).length;
-  var conPerf=pcs.filter(function(p){return p.perf_cant;}).length;
-  var resumen='📋 RESUMEN DEL PEDIDO:\n\n'
-    +'Cliente: '+nom+'\n'
-    +'Piezas: '+tot+' uds en '+pcs.length+' líneas\n'
-    +'Material(es): '+matList.join(', ')+'\n'
-    +(conCanto?'Con enchape: '+conCanto+' línea(s)\n':'')
-    +(conRanura?'Con ranura: '+conRanura+' línea(s)\n':'')
-    +(conPerf?'Con perforación: '+conPerf+' línea(s)\n':'')
-    +(formicas&&formicas.filter(function(f){return f.material&&f.qty;}).length?'Fórmicas: '+formicas.filter(function(f){return f.material&&f.qty;}).length+' línea(s)\n':'')
-    +'\n¿Confirmar y guardar el pedido?';
   // Guardar datos para el ticket PDF (panel cliente no tiene allP)
   _lastPedidoData=Object.assign({},datos,{cliente_ruc:tipo==='RUC'?doc:null,cliente_dni:tipo==='DNI'?doc:null});
   showToast('Procesando pedido...','info',2000);
@@ -3372,11 +3356,7 @@ function confirmarPedido(){
       ['cs1','cs2','cs3','cs4'].forEach(function(id,i){ el(id).style.display=(i===3)?'block':'none'; });
       [1,2,3,4].forEach(function(i){ var s=el('stp'+i); s.classList.remove('on','dn'); if(i===4)s.classList.add('on'); else s.classList.add('dn'); });
       window.scrollTo({top:0,behavior:'instant'});
-      // Mostrar pantalla de éxito animada
-      setTimeout(function(){
-        var waLink = el('cs4') ? el('cs4').querySelector('a[href*="wa.me"]') : null;
-        mostrarExito(_pedidoConfirmadoCod, waLink ? waLink.href : null);
-      }, 300);
+      mostrarExito(_pedidoConfirmadoCod);
     });
   })
   .catch(function(err){ console.error(err); alert('Error al enviar el pedido: '+err.message+'\n\nAbre F12 → Consola para ver el detalle.'); })
