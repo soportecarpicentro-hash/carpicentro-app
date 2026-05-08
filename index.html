@@ -4110,13 +4110,27 @@ function descargarExcel(){
   sbGet('pedido_piezas','pedido_id=eq.'+pedAct.id+'&order=linea.asc').then(function(pzs){
     pzs=pzs||[];
     var wb=XLSX.utils.book_new(), P='DEF - SEKTOR470';
-    var rows=[
+    var hdrs=[
       ['[P_PARAMS]','[P_CODE_MAT]','[P_MINQ]','[P_LENGTH]','[P_WIDTH]','[P_GRAIN]','[P_EDGE_MAT_UP]','[P_EGDE_MAT_LO]','[P_EDGE_MAT_SX]','[P_EDGE_MAT_DX]','[P_IDESC]','[P_IIDESC]'],
       ['Parámetros','Material','Cant. Mín.','Longitud','Ancho','Veta','Mat. Bord. Sup.','Mat. Bord. Inf.','Mat. Bord. Izq.','Mat. Bord. Dch.','I Descripción','II Descripción']
-    ].concat(pzs.map(function(p){ return [P,p.material,p.qty,p.largo,p.ancho,p.veta||'1-Longitud',p.l1||'',p.l2||'',p.a1||'',p.a2||'',p.obs||',','']; }));
-    var ws=XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols']=[22,28,10,10,10,14,14,14,14,14,18,14].map(function(w){ return {wch:w}; });
-    XLSX.utils.book_append_sheet(wb,ws,'excel_parts');
+    ];
+    var cols=[22,28,10,10,10,8,14,14,14,14,18,14].map(function(w){ return {wch:w}; });
+    function mapVeta(v){ return (!v||v==='Sin veta') ? '0-No' : '1-Sí'; }
+    function fila(p){ return [P,p.material,p.qty,p.largo,p.ancho,mapVeta(p.veta),p.l1||'',p.l2||'',p.a1||'',p.a2||'',p.obs||'',' ']; }
+    // Agrupar por material manteniendo orden de aparición
+    var grupos={}, orden=[];
+    pzs.forEach(function(p){
+      var key=(p.material||'SIN MATERIAL').trim();
+      if(!grupos[key]){ grupos[key]=[]; orden.push(key); }
+      grupos[key].push(p);
+    });
+    // Una hoja por material
+    orden.forEach(function(mat){
+      var ws=XLSX.utils.aoa_to_sheet(hdrs.concat(grupos[mat].map(fila)));
+      ws['!cols']=cols;
+      var sName=mat.replace(/[\[\]:*?\/\\]/g,'').slice(0,31)||'Material';
+      XLSX.utils.book_append_sheet(wb,ws,sName);
+    });
     XLSX.writeFile(wb,pedAct.codigo+'_optiplaning.xlsx');
     addH(pedAct.id,'editado','descarga',null,null,'Excel descargado por '+(sesion?sesion.nombre:'vendedora'));
   }).finally(function(){ btn.textContent='↓ Excel Optiplaning'; btn.disabled=false; });
