@@ -272,8 +272,6 @@ tr:hover td{background:#FFF5F5;}
 .cb{display:inline-flex;align-items:center;justify-content:center;width:32px;height:24px;border-radius:5px;border:1.5px solid var(--bd);background:var(--bg2);color:var(--tx2);font-size:11px;font-weight:700;cursor:pointer;transition:all .1s;user-select:none;}
 .cb.cb-D{background:#1565C0;border-color:#1565C0;color:#fff;}
 .cb.cb-G{background:#B71C1C;border-color:#B71C1C;color:#fff;}
-.cb.cb-DM{background:#0288D1;border-color:#0288D1;color:#fff;}
-.cb.cb-GM{background:#C62828;border-color:#C62828;color:#fff;}
 .cb-grp{display:flex;gap:4px;}
 .cb-lbl{font-size:9px;color:var(--tx3);margin-bottom:2px;font-weight:700;text-align:center;}
 .cb-wrap{display:flex;flex-direction:column;align-items:center;}
@@ -551,6 +549,7 @@ body.light-mode .theme-toggle{border-color:rgba(255,255,255,.35);}
 .sc:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.15);}
 
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
 
@@ -1082,7 +1081,10 @@ document.addEventListener('DOMContentLoaded', function() {
 // ── CONFIG ──────────────────────────────────────────────
 var SB  = 'https://cybybindlspwbkocrang.supabase.co';
 var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5YnliaW5kbHNwd2Jrb2NyYW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NjQ1OTcsImV4cCI6MjA5MTM0MDU5N30.6RSeQzPCz8xACWD-5LaTJtZzj9EoBU-pZhIIh_P5BxE';
-var HH  = {'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+KEY};
+// anon key es pública por diseño de Supabase — la seguridad real viene de RLS en la BD
+var sesionToken = null;
+var sbAuth = window.supabase.createClient(SB, KEY, {auth:{persistSession:true,autoRefreshToken:true}});
+function getHH(){ return {'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+(sesionToken||KEY)}; }
 
 // ── CATÁLOGO ─────────────────────────────────────────────
 var GRUPOS = [
@@ -1779,11 +1781,11 @@ function fC(d){ if(!d)return''; var dt=new Date(d); return dt.toLocaleDateString
 function fL(d){ if(!d)return''; var dt=new Date(d); return dt.toLocaleDateString('es-PE',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})+' · '+dt.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}); }
 
 // ── SUPABASE ─────────────────────────────────────────────
-function sbGet(t,q){ return fetch(SB+'/rest/v1/'+t+'?'+(q||''),{headers:Object.assign({},HH,{'Prefer':'return=representation'})}).then(function(r){return r.ok?r.json():[];}).catch(function(){return[];}); }
-function sbGetChat(t,q){ return fetch(SB+'/rest/v1/'+t+'?'+(q||''),{headers:HH}).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;}); }
-function sbPost(t,d){ return fetch(SB+'/rest/v1/'+t,{method:'POST',headers:Object.assign({},HH,{'Prefer':'return=representation'}),body:JSON.stringify(d)}).then(function(r){if(r.ok)return r.json();return r.text().then(function(txt){throw new Error(r.status+': '+txt.slice(0,200));});}); }
-function sbPatch(t,q,d){ return fetch(SB+'/rest/v1/'+t+'?'+q,{method:'PATCH',headers:Object.assign({},HH,{'Prefer':'return=representation'}),body:JSON.stringify(d)}).then(function(r){return r.ok?r.json():null;}); }
-function sbDel(t,q){ return fetch(SB+'/rest/v1/'+t+'?'+q,{method:'DELETE',headers:HH}); }
+function sbGet(t,q){ return fetch(SB+'/rest/v1/'+t+'?'+(q||''),{headers:Object.assign(getHH(),{'Prefer':'return=representation'})}).then(function(r){return r.ok?r.json():[];}).catch(function(){return[];}); }
+function sbGetChat(t,q){ return fetch(SB+'/rest/v1/'+t+'?'+(q||''),{headers:getHH()}).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;}); }
+function sbPost(t,d){ return fetch(SB+'/rest/v1/'+t,{method:'POST',headers:Object.assign(getHH(),{'Prefer':'return=representation'}),body:JSON.stringify(d)}).then(function(r){if(r.ok)return r.json();return r.text().then(function(txt){throw new Error(r.status+': '+txt.slice(0,200));});}); }
+function sbPatch(t,q,d){ return fetch(SB+'/rest/v1/'+t+'?'+q,{method:'PATCH',headers:Object.assign(getHH(),{'Prefer':'return=representation'}),body:JSON.stringify(d)}).then(function(r){return r.ok?r.json():null;}); }
+function sbDel(t,q){ return fetch(SB+'/rest/v1/'+t+'?'+q,{method:'DELETE',headers:getHH()}); }
 function addH(pid,ac,ca,an,de,dt){ return sbPost('pedido_historial',{pedido_id:pid,usuario:sesion?sesion.nombre:'CLIENTE',accion:ac,campo:ca||'',valor_antes:an!=null?String(an):'',valor_despues:de!=null?String(de):'',detalle:dt||''}); }
 
 // ── OVERLAY MATERIAL ──────────────────────────────────────
@@ -1862,7 +1864,7 @@ el('lip').addEventListener('keydown',function(e){ if(e.key==='Enter') doLogin();
 el('btnCancelarLogin').addEventListener('click',function(){ el('vLogin').style.display='none'; setModo('c'); });
 el('btnLogout').addEventListener('click',function(){
   mostrarModal('Cerrar sesión','¿Seguro que quieres cerrar sesión?',function(){
-    sesion=null;
+    sbAuth.auth.signOut(); sesionToken=null; sesion=null;
     // Limpiar chat soporte
     if(chatPoll){ clearInterval(chatPoll); chatPoll=null; }
     chatOpen=false; chatUnread=0; chatCache=[]; chatConvs={}; chatConvActiva=null; chatRenderKey=''; chatListaKey='';
@@ -1880,29 +1882,42 @@ el('btnLogout').addEventListener('click',function(){
     toggleWAFloat();
   },null,{labelOk:'Cerrar sesión',labelNo:'Cancelar'});
 });
-function doLogin(){
+function _finalizarLogin(){
+  el('lerr').style.display='none';
+  el('vLogin').style.display='none';
+  el('ubadge').textContent='👤 '+sesion.nombre+(sesion.rol==='admin'?' 🔑':'');
+  el('sesionInfo').style.display='flex';
+  mostrarBienvenida(sesion.nombre||'Bienvenida');
+  el('vc').classList.remove('on'); el('vv').classList.add('on');
+  el('btnC').classList.remove('on'); el('btnV').classList.add('on');
+  var tabBar=el('vTabBar');
+  if(tabBar) tabBar.style.display=sesion.rol==='admin'?'flex':'none';
+  switchVTab('pedidos');
+  cargarPedidos();
+  toggleWAFloat();
+}
+async function doLogin(){
   var u=el('liu').value.trim(), p=el('lip').value.trim();
   if(!u||!p){ alert('Ingresa usuario y contraseña.'); return; }
   var btn=el('btnLogin'); btn.textContent='Verificando...'; btn.disabled=true;
-  sbGet('usuarios','usuario=eq.'+encodeURIComponent(u)+'&password_hash=eq.'+encodeURIComponent(p)+'&activo=eq.true')
-  .then(function(rows){
-    if(rows&&rows.length){
-      sesion=rows[0];
-      el('lerr').style.display='none';
-      el('ubadge').textContent='👤 '+sesion.nombre+(sesion.rol==='admin'?' 🔑':'');
-      el('sesionInfo').style.display='flex';
-      // Mostrar animación de bienvenida
-      mostrarBienvenida(sesion.nombre || 'Bienvenida');
-      el('vc').classList.remove('on'); el('vv').classList.add('on');
-      el('btnC').classList.remove('on'); el('btnV').classList.add('on');
-      // Mostrar tab de usuarios solo para admin
-      var tabBar=el('vTabBar');
-      if(tabBar) tabBar.style.display=sesion.rol==='admin'?'flex':'none';
-      // SIEMPRE volver a tab Pedidos al iniciar sesión
-      switchVTab('pedidos');
-      cargarPedidos();
-    } else { el('lerr').style.display='block'; }
-  }).finally(function(){ btn.textContent='Ingresar →'; btn.disabled=false; });
+  try {
+    // Autenticar con Supabase Auth — credenciales van en POST body (no en URL)
+    var auth=await sbAuth.auth.signInWithPassword({email:u+'@carpicentro.pe',password:p});
+    if(auth.error){ el('lerr').style.display='block'; return; }
+    sesionToken=auth.data.session.access_token;
+    // Cargar perfil de la tabla usuarios con el JWT ya activo
+    var rows=await sbGet('usuarios','usuario=eq.'+encodeURIComponent(u)+'&activo=eq.true');
+    if(!rows||!rows.length){
+      el('lerr').style.display='block';
+      await sbAuth.auth.signOut(); sesionToken=null; return;
+    }
+    sesion=rows[0];
+    _finalizarLogin();
+  } catch(e){
+    el('lerr').style.display='block';
+  } finally {
+    btn.textContent='Ingresar →'; btn.disabled=false;
+  }
 }
 
 // ── BUSCAR DNI / RUC ──────────────────────────────────────
@@ -1994,7 +2009,7 @@ function irStepBtn(n){
 // ══════════════════════════════════════════════════════
 // PANEL DE CONFIRMACIÓN DE CANTOS (tras lectura IA)
 // ══════════════════════════════════════════════════════
-var CANTO_CICLO = ['','D','G','DM','GM'];
+var CANTO_CICLO = ['','D','G'];
 
 function cbNext(val){
   var i = CANTO_CICLO.indexOf(val);
@@ -3565,7 +3580,7 @@ function cargarUsuarios(){
         btnDel.addEventListener('click',function(){
           var uid=this.dataset.delUid, unom=this.dataset.unom;
           if(!confirm('¿Eliminar usuario "'+unom+'"?\nEsta acción no se puede deshacer.')) return;
-          sbDel('usuarios','id=eq.'+uid).then(function(){ cargarUsuarios(); });
+          fetch('/api/admin-usuarios',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+sesionToken},body:JSON.stringify({accion:'eliminar',usuario_id:uid})}).then(function(){ cargarUsuarios(); });
         });
       }
       lista.appendChild(div);
@@ -3608,13 +3623,15 @@ function guardarUsuario(){
   var err=el('uerr');
   if(!nom||!usr){ err.textContent='Nombre y usuario son obligatorios.'; err.style.display='block'; return; }
   if(!uEditId&&!pass){ err.textContent='La contraseña es obligatoria para usuarios nuevos.'; err.style.display='block'; return; }
-  var datos={nombre:nom,usuario:usr,rol:rol,activo:activo};
-  if(pass) datos.password_hash=pass; // La app usa password_hash como campo de contraseña
   var btn=el('btnGuardarU'); btn.textContent='Guardando...'; btn.disabled=true;
-  var prom=uEditId
-    ? sbPatch('usuarios','id=eq.'+uEditId,datos)
-    : sbPost('usuarios',datos);
-  prom.then(function(){
+  var body={accion:uEditId?'actualizar':'crear',nombre:nom,usuario:usr,rol:rol,activo:activo,usuario_id:uEditId||null};
+  if(pass) body.password=pass;
+  fetch('/api/admin-usuarios',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+sesionToken},
+    body:JSON.stringify(body)
+  }).then(function(r){ return r.ok?r.json():r.json().then(function(e){ throw new Error(e.error); }); })
+  .then(function(){
     el('uovl').classList.remove('open');
     cargarUsuarios();
   }).catch(function(e){
@@ -3859,7 +3876,7 @@ function eliminarHistorial(){
 }
 
 // ── EDICIÓN OVERLAY ───────────────────────────────────────
-function eCantoClass(v){ return v==='G'||v==='GM'?'canto-G':(!v||v==='—'?'canto-vacio':''); }
+function eCantoClass(v){ return v==='G'?'canto-G':(!v||v==='—'?'canto-vacio':''); }
 function renderEditT(){
   var tb=el('etb'); tb.innerHTML='';
   pzEdit.forEach(function(p,i){
@@ -4096,6 +4113,22 @@ window.abrirFotoOvl=abrirFotoOvl;
 window.cerrarFotoOvl=cerrarFotoOvl;
 window.descargarFotoOvl=descargarFotoOvl;
 el('lsub') && (el('lsub').textContent=new Date().toLocaleDateString('es-PE',{weekday:'short',day:'numeric',month:'short',year:'numeric'}));
+
+// ── Restaurar sesión activa al recargar la página ─────────────
+sbAuth.auth.getSession().then(function(r){
+  var s=r.data&&r.data.session;
+  if(!s) return;
+  sesionToken=s.access_token;
+  var usr=s.user.email.split('@')[0];
+  sbGet('usuarios','usuario=eq.'+encodeURIComponent(usr)+'&activo=eq.true').then(function(rows){
+    if(rows&&rows.length){ sesion=rows[0]; _finalizarLogin(); }
+    else { sbAuth.auth.signOut(); sesionToken=null; }
+  });
+});
+// Mantener el token actualizado cuando Supabase lo renueva automáticamente
+sbAuth.auth.onAuthStateChange(function(evt,s){
+  if(evt==='TOKEN_REFRESHED'&&s) sesionToken=s.access_token;
+});
 
 }); // fin DOMContentLoaded
 </script>

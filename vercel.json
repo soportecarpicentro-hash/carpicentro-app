@@ -1,9 +1,8 @@
 {
   "version": 2,
   "functions": {
-    "api/leer-lista.js": {
-      "maxDuration": 60
-    }
+    "api/leer-lista.js": { "maxDuration": 60 },
+    "api/admin-usuarios.js": { "maxDuration": 10 }
   },
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1" },

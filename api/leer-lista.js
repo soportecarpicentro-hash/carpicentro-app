@@ -81,10 +81,13 @@ export default async function handler(req, res) {
       if (!cur) continue;
       if (/^largo[^:]*:/i.test(l)) { cur.largo = num(l.replace(/^largo[^:]*:/i, '')); continue; }
       if (/^ancho[^:]*:/i.test(l)) { cur.ancho = num(l.replace(/^ancho[^:]*:/i, '')); continue; }
-      if (/^l1\s*[:\s]/i.test(l)) { cur.l1 = limpia(l.replace(/^l1\s*[:\s]*/i, '')); continue; }
-      if (/^l2\s*[:\s]/i.test(l)) { cur.l2 = limpia(l.replace(/^l2\s*[:\s]*/i, '')); continue; }
-      if (/^a1\s*[:\s]/i.test(l)) { cur.a1 = limpia(l.replace(/^a1\s*[:\s]*/i, '')); continue; }
-      if (/^a2\s*[:\s]/i.test(l)) { cur.a2 = limpia(l.replace(/^a2\s*[:\s]*/i, '')); continue; }
+      if (/\b(?:l[12]|a[12])\s*[:=\s]/i.test(l)) {
+        ['l1','l2','a1','a2'].forEach(k => {
+          const m = l.match(new RegExp('\\b' + k + '\\s*[:=\\s]+([^\\s,;:]+)', 'i'));
+          if (m) cur[k] = limpia(m[1]);
+        });
+        continue;
+      }
       if (/^veta[:\s]/i.test(l)) { cur.veta = limpia(l.replace(/^veta[:\s]*/i, '')) || '1-Longitud'; continue; }
       if (/^ranura[:\s]/i.test(l)) {
         const r = l.replace(/^ranura[:\s]*/i, '');
@@ -331,7 +334,7 @@ REGLAS DE SALIDA:
   const F2 = `Convierte al JSON del sistema CARPICENTRO.
 
 REGLAS ESTRICTAS:
-• "-" o vacío en L1/L2/A1/A2 → "" en JSON
+• L1/L2/A1/A2 — copiar exactamente del texto: "D"→"D" | "G"→"G" | guión/vacío→"" — NUNCA dejar vacío si el texto dice D o G
 • Medidas decimales: si no están en MM, multiplicar ×10 ahora
 • qty: entero ≥ 1 (si dice 0 o negativo → 1)
 • ran_libre/espe/prof y perf_cant → enteros positivos como string ("4", "18") o ""
