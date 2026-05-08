@@ -118,9 +118,10 @@ export default async function handler(req, res) {
       const raw = s(v).toUpperCase().replace(/^[-–—\s]+$/, '');
       if (!raw) return '';
       const first = raw.split(/[\s(,/]/)[0];
-      if (first === 'D' || first === 'G') return first;
-      if (/^DEL|^FIN|^DELG/i.test(raw)) return 'D';
-      if (/^GRU|^GRUE/i.test(raw)) return 'G';
+      if (first === 'D') return 'D';
+      if (first === 'G' || first === 'X') return 'G';
+      if (/^DEL|^FIN|^DELG|^FINO/i.test(raw)) return 'D';
+      if (/^GRU|^GRUE|^GORDO/i.test(raw)) return 'G';
       return '';
     };
     const rs = v => { const x = s(v); return /^\d+$/.test(x) && parseInt(x) > 0 ? x : ''; };
@@ -227,18 +228,15 @@ LARGO y ANCHO (separados por x, ×, X, /, "por"):
 • El PRIMER número escrito es LARGO, el SEGUNDO es ANCHO — respetar SIEMPRE el orden del documento
 • NUNCA invertir largo y ancho aunque el largo sea menor que el ancho
 
-CONVERSIÓN DE UNIDADES:
-  ✓ Entero ≥ 200 → MM directo (840 → 840)
-  ✓ Decimal con punto (57.4) → CM → ×10 → MM (574)
-  ✓ Decimal con coma (57,4) → CM → ×10 → MM (574)
-  ✓ Entero 40–199 sin decimal ni unidad → probablemente CM → ×10
-  ✓ Con "cm" explícito → ×10 | con "mm" explícito → directo
-  ✓ Punto de miles (1.304) → 1304 MM
-  ✓ Número < 40 sin contexto → probable CM → ×10
+CONVERSIÓN DE UNIDADES — UNA SOLA REGLA:
+  ✓ Número CON decimal (punto o coma) → CM → ×10 → MM   (57.4→574  84,5→845  78,1→781)
+  ✓ Número entero SIN decimal → MM DIRECTO, sin importar si es pequeño  (40→40  60→60  840→840)
+  ✓ Con "cm" explícito → ×10 siempre | con "mm" explícito → directo siempre
+  ✓ Punto de miles (1.304) → 1304 MM directo
+  ✗ NUNCA multiplicar ×10 un entero aunque sea pequeño — si no tiene decimal, ya está en MM
 
 VERIFICACIÓN PIEZA A PIEZA (obligatoria):
-  □ ¿Ambos entre 40 mm y 2800 mm? Si no, revisar conversión de unidades.
-  □ ¿Había decimal? → confirmar ×10 aplicado.
+  □ ¿El número tenía decimal (punto/coma)? → confirmar ×10 aplicado. ¿Era entero? → dejar exacto.
   □ ¿Respetaste el orden original del documento (primer número = largo, segundo = ancho)?
 
 LÍNEAS TACHADAS → IGNORAR completamente.
@@ -253,46 +251,55 @@ VETA — REGLA POR TIPO DE MATERIAL:
 Dos valores válidos: D (delgado/fino) o G (grueso/gordo). Guión - = sin canto.
 ⚠ OBLIGATORIO: escribe SIEMPRE las 4 líneas L1: L2: A1: A2: para cada pieza (usa - si no hay).
 
-FORMATO A — Trazos/marcas SOBRE o JUNTO a los números de medida:
-  • Trazo RECTO (─ — _ /) = D | Trazo ONDULADO (∿ ~ ≈ zigzag) = G
-  • La marca está SOBRE el número LARGO (el mayor) → L1=X L2=X
-  • La marca está SOBRE el número ANCHO (el menor) → A1=X A2=X
+IDENTIFICACIÓN RÁPIDA DE D vs G:
+  D (delgado)  ← letra D, guión recto "─", subrayado "_", línea recta sobre/bajo la medida, "/" o "\"
+  G (grueso)   ← letra G, letra X, línea ondulada "∿" o "~", zigzag, línea que parece un gusano/wave
+  Sin canto    ← guión "-", vacío, punto, cero, "S/C", "SC", "PL", "liso", "sin canto"
+
+FORMATO A — Trazos/marcas DIBUJADOS sobre o junto a los números de medida:
+  • Trazo RECTO (─ — _ / \) = D | Trazo ONDULADO (∿ ~ ≈ zigzag, gusano, wave) = G | X junto a medida = G
+  • La marca está SOBRE/BAJO el número LARGO → L1=X L2=X
+  • La marca está SOBRE/BAJO el número ANCHO → A1=X A2=X
   • Marca sobre AMBOS números → L1=X L2=X A1=X A2=X
   • Pequeño guión o tick al lado del número = D
   • Sin marca sobre ese número → - en esos lados
   EJEMPLO: "─840─ × 420" → L1=D L2=D A1=- A2=-
   EJEMPLO: "840 × ∿420∿" → L1=- L2=- A1=G A2=G
-  EJEMPLO: "─840─ × ∿420∿" → L1=D L2=D A1=G A2=G
+  EJEMPLO: "_840_ × ~420~" → L1=D L2=D A1=G A2=G
+  EJEMPLO: "840×420 X" (X junto a la pieza) → L1=G L2=G A1=G A2=G
 
 FORMATO B — Columnas L1/L2/A1/A2 en tabla:
-  • Leer la celda: D→D | G→G | vacío/guión/punto/0→-
+  • Leer la celda: D o d→D | G o g o X o x→G | vacío/guión/punto/0→-
   • Columna única "CANTO" con "D" → L1=D L2=D A1=D A2=D
-  • Columna única "CANTO" con "G" → L1=G L2=G A1=G A2=G
+  • Columna única "CANTO" con "G" o "X" → L1=G L2=G A1=G A2=G
   • Columna única con código multi-letra → ver FORMATO C
 
 FORMATO C — Código de letras junto/después de las medidas:
   • 4 posiciones = L1 L2 A1 A2 (siempre en ese orden)
-  • DDDD→todos D | GGGG→todos G | DDGG→L1=D L2=D A1=G A2=G
+  • DDDD→todos D | GGGG→todos G | XXXX→todos G | DDGG→L1=D L2=D A1=G A2=G
   • D---→L1=D | -D--→L2=D | --D-→A1=D | ---D→A2=D
-  • DD--→L1=D L2=D | -DD-→L2=D A1=D
+  • DD--→L1=D L2=D | -DD-→L2=D A1=D | GG--→L1=G L2=G
   • 3 letras DDD→L1=D L2=D A1=D | 2 letras DD→L1=D L2=D | GG→L1=G L2=G
-  • 1 letra sola: D→L1=D L2=D A1=D A2=D | G→todos G
-  • "c/D" "c/d" "CD" "c/delgado" "canto delgado" → todos D
-  • "c/G" "c/g" "CG" "c/grueso" "canto grueso" → todos G
+  • 1 letra sola: D→todos D | G→todos G | X→todos G
+  • "c/D" "c/d" "CD" "c/delgado" "canto delgado" "fino" → todos D
+  • "c/G" "c/g" "CG" "c/grueso" "canto grueso" "grueso" → todos G
   • "S/C" "s/c" "SC" "PL" "sin canto" "liso" → todos -
 
-FORMATO D — Subrayado / sobrerayado:
-  • Línea RECTA bajo/sobre la medida = D | Línea ONDULADA = G
-  • Aplica a los lados de la dimensión marcada
+FORMATO D — Subrayado / sobrerayado dibujado:
+  • Línea RECTA bajo/sobre la medida = D | Línea ONDULADA o en zigzag = G
+  • Aplica a los lados de la dimensión marcada (si subraya el largo → L1=X L2=X)
 
 FORMATO E — Texto descriptivo libre:
-  • "todos c/D" "4 lados D" → L1=D L2=D A1=D A2=D
-  • "largo c/G" "2 largos G" → L1=G L2=G
-  • "ancho c/D" → A1=D A2=D
-  • "3 lados D" → L1=D L2=D A1=D A2=-
+  • "todos c/D" "4 lados D" "4D" → L1=D L2=D A1=D A2=D
+  • "largo c/G" "2 largos G" "L:G" → L1=G L2=G
+  • "ancho c/D" "A:D" → A1=D A2=D
+  • "3 lados D" "3D" → L1=D L2=D A1=D A2=-
+  • "2 lados G" → L1=G L2=G A1=- A2=-
 
 REGLAS DEFINITIVAS:
   ✓ Si ves CUALQUIER marca de canto → léela y escríbela. NUNCA la omitas.
+  ✓ D y _ y línea recta y "/" = SIEMPRE delgado
+  ✓ G y X y línea ondulada y gusano y zigzag = SIEMPRE grueso
   ✓ Ambiguo entre D y G → usa D (es el más común en Perú)
   ✓ SIEMPRE escribe L1: L2: A1: A2: para cada pieza, aunque sean todos -
   ✗ Pon - solo cuando NO existe ninguna marca visible para ese lado
@@ -300,18 +307,29 @@ REGLAS DEFINITIVAS:
 
 ━━━ RANURA ━━━
 
-Buscar: R, RAN, RANURA seguido de números.
-Formatos: R18/4/7 | R18-4-7 | R(18)(4)(7)
-Orden: libre=distancia al borde / espe=ancho ranura / prof=profundidad
-Lado: L, A, L1, L2, A1, A2, ambos, todos.
-Si NO hay ranura → omitir línea Ranura.
+Buscar: R, RAN, RANURA, o símbolo de canal/muesca seguido de números.
+Formatos reconocidos:
+  R18/4/7       → libre=18 espe=4 prof=7
+  R18-4-7       → libre=18 espe=4 prof=7
+  R(18)(4)(7)   → libre=18 espe=4 prof=7
+  18/4/7 L      → libre=18 espe=4 prof=7 lado=L
+  RAN 18 4 7 A2 → libre=18 espe=4 prof=7 lado=A2
+Orden SIEMPRE: libre (distancia al borde) / espesor (ancho del canal) / profundidad
+Lado: L=largo, A=ancho, L1, L2, A1, A2, ambos, todos.
+Si NO hay ranura → omitir línea Ranura completamente.
 
 ━━━ PERFORACIÓN ━━━
 
-Buscar: ° ○ "perf" "P°" con número de agujeros.
-Formatos: "4° L1" | "3 perf A" | "°°° L" | "P4"
-Detalle: posición, diámetro (Ø5mm).
-Si NO hay perforación → omitir línea Perf.
+Buscar: ° ○ • punto con número, "perf", "perf.", "P°", "perforaciones", círculos dibujados.
+Formatos reconocidos:
+  4° L1         → cant=4 lado=L1
+  3 perf A      → cant=3 lado=A
+  °°° L         → contar círculos (3) lado=L
+  P4            → cant=4
+  Ø5 x4 L      → cant=4 lado=L (diámetro 5mm)
+  (4) perf L2   → cant=4 lado=L2
+Detalle: incluir posición y diámetro si se indica.
+Si NO hay perforación → omitir línea Perf completamente.
 
 ━━━ MATERIAL ━━━
 

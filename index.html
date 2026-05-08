@@ -2498,6 +2498,32 @@ function initChat(){
   // Cancelar reply
   var brc=el('btnChatReplyClear');
   if(brc) brc.onclick=clearChatReply;
+  // Borrar historial
+  var bbd=el('btnBorrarChat');
+  if(bbd) bbd.onclick=function(){
+    var convId=sesion.rol==='admin'&&chatConvActiva?String(chatConvActiva.id):String(sesion.id);
+    mostrarModal('Borrar historial','¿Borrar todos los mensajes de esta conversación?',function(){
+      sbDel('soporte_mensajes','conv_id=eq.'+convId).then(function(){
+        chatCache=[];
+        if(sesion.rol==='admin'&&chatConvActiva){
+          var k=String(chatConvActiva.id);
+          if(chatConvs[k]) chatConvs[k].msgs=[];
+        }
+        chatRenderedIds.clear();
+        renderMsgs();
+        showToast('Historial eliminado','ok',3000);
+      });
+    },null,{tipo:'danger',labelOk:'Borrar todo'});
+  };
+  // Adjuntar foto
+  var bfoto=el('btnChatFoto');
+  if(bfoto) bfoto.onclick=function(){ var fi=el('chatFotoInput'); if(fi) fi.click(); };
+  var fi=el('chatFotoInput');
+  if(fi) fi.onchange=function(){
+    if(!this.files||!this.files[0]) return;
+    var file=this.files[0]; this.value='';
+    comprimirFoto(file,function(b64){ enviarFoto(b64); });
+  };
   cargarChat();
   if(chatPoll) clearInterval(chatPoll);
   chatPoll=setInterval(cargarChat,5000);
@@ -2610,6 +2636,15 @@ function appendBubble(box,m,animate){
   var quoteHtml='';
   var rm=textoMostrar.match(/^Reply➤([^\n]+?): ([^\n]{0,100})\n([\s\S]*)$/);
   if(rm){quoteHtml='<div class="chat-quote"><div class="chat-quote-who">'+escChat(rm[1])+'</div><div class="chat-quote-txt">'+escChat(rm[2])+'</div></div>';textoMostrar=rm[3];}
+  // Detectar si es foto
+  var esFoto=textoMostrar.startsWith('[FOTO]');
+  var contenidoHtml='';
+  if(esFoto){
+    var src=textoMostrar.slice(6);
+    contenidoHtml='<img src="'+src+'" style="max-width:200px;max-height:200px;border-radius:10px;display:block;cursor:pointer;" onclick="this.style.maxWidth=this.style.maxWidth===\'100%\'?\'200px\':\'100%\'">';
+  } else {
+    contenidoHtml='<div class="chat-bbl-txt">'+escChat(textoMostrar)+'</div>';
+  }
   // Wrapper
   var wrap=document.createElement('div');
   wrap.className='chat-bbl-wrap '+(yo?'me':'other');
@@ -2620,14 +2655,49 @@ function appendBubble(box,m,animate){
   div.className='chat-bbl '+(yo?'me':'other')+(animate?'':' no-anim');
   if(esTmp) div.style.opacity='0.6';
   div.innerHTML=(!yo?'<div class="chat-bbl-nom">'+escChat(m.autor_nombre||'Admin')+'</div>':'')
-    +quoteHtml
-    +'<div class="chat-bbl-txt">'+escChat(textoMostrar)+'</div>'
+    +quoteHtml+contenidoHtml
     +'<div class="chat-bbl-hora">'+hora+tickStr+'</div>';
   // Botón reply
   var rb=document.createElement('button');
   rb.type='button'; rb.className='chat-reply-btn'; rb.title='Responder'; rb.textContent='↩';
   rb.onclick=(function(autor,txt){return function(){setChatReply(autor,txt);};})(yo?(sesion.nombre||sesion.usuario):(m.autor_nombre||'Admin'),textoMostrar);
   wrap.appendChild(div); wrap.appendChild(rb); box.appendChild(wrap);
+}
+function comprimirFoto(file,cb){
+  var MAX=600;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var img=new Image();
+    img.onload=function(){
+      var w=img.width,h=img.height;
+      if(w>MAX||h>MAX){ if(w>h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;} }
+      var c=document.createElement('canvas'); c.width=w; c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      cb(c.toDataURL('image/jpeg',0.75));
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function enviarFoto(b64){
+  var convId=sesion.rol==='admin'&&chatConvActiva?String(chatConvActiva.id):String(sesion.id);
+  var txt='[FOTO]'+b64;
+  var tmpId='_t'+Date.now();
+  var tmp={id:tmpId,autor_id:String(sesion.id),autor_nombre:sesion.nombre||sesion.usuario,
+    autor_rol:sesion.rol,conv_id:convId,texto:txt,leido:false,created_at:new Date().toISOString()};
+  chatCache.push(tmp);
+  if(sesion.rol==='admin'&&chatConvActiva){
+    var key=String(chatConvActiva.id);
+    if(!chatConvs[key]) chatConvs[key]={id:key,nombre:chatConvActiva.nombre,msgs:[],nuevos:0};
+    chatConvs[key].msgs.push(tmp);
+  }
+  renderMsgs();
+  sbPost('soporte_mensajes',{autor_id:String(sesion.id),autor_nombre:sesion.nombre||sesion.usuario,
+    autor_rol:sesion.rol,conv_id:convId,texto:txt,leido:false
+  }).catch(function(err){
+    chatCache=chatCache.filter(function(m){return m.id!==tmpId;});
+    showToast('Error al enviar foto','err',4000);
+  });
 }
 function renderMsgs(){
   var box=el('chatMsgs'); if(!box) return;
@@ -4146,6 +4216,7 @@ sbAuth.auth.onAuthStateChange(function(evt,s){
       <div class="chat-msgs-hdr" id="chatMsgsHdr">
         <button type="button" class="chat-back-btn" id="btnChatVolver">‹ Volver</button>
         <div class="chat-conv-nom" id="chatConvNom"></div>
+        <button type="button" id="btnBorrarChat" title="Borrar historial de esta conversación" style="background:none;border:none;color:rgba(255,255,255,.3);font-size:15px;cursor:pointer;padding:4px 7px;border-radius:8px;transition:all .15s;flex-shrink:0;" onmouseenter="this.style.color='#FF5252'" onmouseleave="this.style.color='rgba(255,255,255,.3)'">🗑️</button>
       </div>
       <div class="chat-msgs" id="chatMsgs"><div class="chat-empty">Sin mensajes aún</div></div>
       <div class="chat-reply-bar" id="chatReplyBar">
@@ -4159,6 +4230,8 @@ sbAuth.auth.onAuthStateChange(function(evt,s){
       </div>
       <div class="chat-inp-row">
         <button type="button" class="chat-emoji-btn" id="btnChatEmoji">😊</button>
+        <button type="button" class="chat-emoji-btn" id="btnChatFoto" title="Adjuntar foto">📎</button>
+        <input type="file" id="chatFotoInput" accept="image/*" style="display:none;">
         <textarea class="chat-inp" id="chatInp" placeholder="Escribe un mensaje..." rows="1"></textarea>
         <button type="button" class="chat-send-btn" id="btnChatEnviar"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
       </div>
