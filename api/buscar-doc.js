@@ -1,6 +1,13 @@
 // api/buscar-doc.js — Proxy RENIEC/SUNAT
-// DNI: eldni.com (scraping) + APIs como fallback
-// RUC: apis.net.pe (funciona, no tocar)
+//
+// Para DNI confiable (gratis, sin pagar):
+//   1. Registrarse en https://apis.net.pe/app  → copiar token
+//   2. En Vercel → Settings → Environment Variables → agregar:
+//      APIS_NET_PE_TOKEN = <tu token>
+//   También se puede agregar APIPERU_DEV_TOKEN desde https://apiperu.dev
+//
+// IMPORTANTE: el token va PRIMERO para no agotar el timeout de 10s de Vercel.
+// eldni.com está bloqueado para IPs de servidores — se intenta de último.
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -18,45 +25,23 @@ export default async function handler(req, res) {
   if (tipo === 'RUC' && num.length !== 11)
     return res.status(200).json({ nombre: null, error: 'El RUC debe tener 11 dígitos.' });
 
-  // Parsear nombre de cualquier formato JSON
   function extraerJSON(d) {
     if (!d || typeof d !== 'object') return null;
-    for (const k of ['nombre', 'razonSocial', 'nombreCompleto', 'name']) {
+    for (const k of ['nombre_completo', 'nombreCompleto', 'nombre', 'razonSocial', 'name', 'fullName']) {
       if (d[k] && String(d[k]).trim().length > 2) return String(d[k]).trim();
     }
-    const n = [d.nombres, d.apellidoPaterno, d.apellidoMaterno]
-      .filter(x => x && String(x).trim()).join(' ').trim();
-    if (n.length > 2) return n;
+    if (d.data) { const r = extraerJSON(d.data); if (r) return r; }
+    const ap1  = d.apellidoPaterno  || d.apellido_paterno  || d.primerApellido  || '';
+    const ap2  = d.apellidoMaterno  || d.apellido_materno  || d.segundoApellido || '';
+    const noms = d.nombres || d.names || '';
+    const aps  = d.apellidos || '';
+    if (aps && noms) return `${noms.trim()} ${aps.trim()}`.trim();
+    const partes = [noms, ap1, ap2].map(x => String(x || '').trim()).filter(Boolean);
+    if (partes.length >= 2) return partes.join(' ');
     return null;
   }
 
-  // Extraer nombre del HTML de eldni.com
-  function extraerHTMLeldni(html) {
-    // El HTML tiene el nombre en una tabla o div con los datos
-    const patrones = [
-      /Nombres?[:\s<\/td>]+<td[^>]*>([^<]{4,60})<\/td>/i,
-      /class="[^"]*nombre[^"]*"[^>]*>([^<]{4,60})</i,
-      /<strong>([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s]{3,50})<\/strong>/,
-      /Apellido Paterno[^:]*:\s*([A-ZÁÉÍÓÚÑ][A-Z\s]{2,30})/i,
-    ];
-    for (const re of patrones) {
-      const m = html.match(re);
-      if (m && m[1].trim().length > 3) return m[1].trim();
-    }
-    // Buscar tabla con datos personales
-    const tdMatch = html.match(/<td[^>]*>([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ ]{5,60})<\/td>/g);
-    if (tdMatch) {
-      for (const td of tdMatch) {
-        const text = td.replace(/<[^>]+>/g, '').trim();
-        if (text.length > 5 && /^[A-ZÁÉÍÓÚÑ\s]+$/.test(text) && !text.includes('NOMBRES')) {
-          return text;
-        }
-      }
-    }
-    return null;
-  }
-
-  async function fetchJSON(url, options = {}, timeoutMs = 8000) {
+  async function fetchJSON(url, options = {}, timeoutMs = 5000) {
     try {
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -68,85 +53,130 @@ export default async function handler(req, res) {
     } catch (_) { return null; }
   }
 
-  // ── DNI — eldni.com scraping + APIs fallback ──
+  // ── DNI — orden optimizado para caber en el timeout de 10s de Vercel ──
   if (tipo === 'DNI') {
-    // Método 1: eldni.com — scraping con CSRF token
+    const tokApisNet = process.env.APIS_NET_PE_TOKEN  || '';
+    const tokApiperu = process.env.APIPERU_DEV_TOKEN  || '';
+
+    // ── 1. apis.net.pe v2 CON token (~1-2s) — MÁS CONFIABLE ─────────────
+    if (tokApisNet) {
+      const nombre = await fetchJSON(
+        `https://api.apis.net.pe/v2/reniec/dni?numero=${num}`,
+        { headers: { Accept: 'application/json', Authorization: `Bearer ${tokApisNet}` } },
+        5000
+      );
+      if (nombre) return res.status(200).json({ nombre });
+    }
+
+    // ── 2. apiperu.dev CON token (~1-2s) ─────────────────────────────────
+    if (tokApiperu) {
+      try {
+        const ctrl = new AbortController();
+        setTimeout(() => ctrl.abort(), 5000);
+        const r = await fetch('https://apiperu.dev/api/dni', {
+          method: 'POST',
+          headers: { Accept: 'application/json', 'Content-Type': 'application/json',
+                     Authorization: `Bearer ${tokApiperu}` },
+          body: JSON.stringify({ dni: num }),
+          signal: ctrl.signal,
+        });
+        if (r.ok) {
+          const nombre = extraerJSON(await r.json());
+          if (nombre) return res.status(200).json({ nombre });
+        }
+      } catch (_) {}
+    }
+
+    // ── 3. apis.net.pe v2 SIN token (~1-2s, rate-limited) ────────────────
+    {
+      const nombre = await fetchJSON(
+        `https://api.apis.net.pe/v2/reniec/dni?numero=${num}`,
+        { headers: { Accept: 'application/json' } },
+        4000
+      );
+      if (nombre) return res.status(200).json({ nombre });
+    }
+
+    // ── 4. apis.net.pe v1 SIN token (legacy fallback) ────────────────────
+    {
+      const nombre = await fetchJSON(
+        `https://api.apis.net.pe/v1/dni?numero=${num}`,
+        { headers: { Accept: 'application/json' } },
+        3000
+      );
+      if (nombre) return res.status(200).json({ nombre });
+    }
+
+    // ── 5. eldni.com — scraping (a veces bloqueado en servidores, va último)
     try {
       const BASE = 'https://eldni.com';
+      const ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36';
       const ctrl1 = new AbortController();
-      setTimeout(() => ctrl1.abort(), 8000);
+      setTimeout(() => ctrl1.abort(), 3500);
       const pageResp = await fetch(`${BASE}/pe/buscar-datos-por-dni`, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'es-PE,es;q=0.9',
-        },
+        headers: { 'User-Agent': ua, Accept: 'text/html', 'Accept-Language': 'es-PE,es;q=0.9' },
         signal: ctrl1.signal,
       });
       if (pageResp.ok) {
         const pageHTML = await pageResp.text();
-        const cookieHeader = pageResp.headers.get('set-cookie') || '';
-        // Extraer CSRF token
-        const tokenMatch = pageHTML.match(/name="_token"\s+value="([^"]+)"/);
-        const csrf = tokenMatch ? tokenMatch[1] : '';
+        const rawCookies = (typeof pageResp.headers.getSetCookie === 'function'
+          ? pageResp.headers.getSetCookie()
+          : [pageResp.headers.get('set-cookie') || '']
+        ).map(c => c.split(';')[0]).filter(Boolean).join('; ');
+        const csrf = (pageHTML.match(/name="_token"\s+value="([^"]+)"/) || [])[1] || '';
         if (csrf) {
           const ctrl2 = new AbortController();
-          setTimeout(() => ctrl2.abort(), 10000);
+          setTimeout(() => ctrl2.abort(), 4000);
           const postResp = await fetch(`${BASE}/pe/buscar-datos-por-dni`, {
             method: 'POST',
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
-              'Content-Type': 'application/x-www-form-urlencoded',
-              'Accept': 'text/html,application/xhtml+xml',
-              'Accept-Language': 'es-PE,es;q=0.9',
-              'Referer': `${BASE}/pe/buscar-datos-por-dni`,
-              'Cookie': cookieHeader.split(';')[0] || '',
-              'Origin': BASE,
-            },
+            headers: { 'User-Agent': ua, 'Content-Type': 'application/x-www-form-urlencoded',
+                       Accept: 'text/html', 'Accept-Language': 'es-PE,es;q=0.9',
+                       Referer: `${BASE}/pe/buscar-datos-por-dni`, Cookie: rawCookies, Origin: BASE },
             body: `_token=${encodeURIComponent(csrf)}&dni=${num}`,
             signal: ctrl2.signal,
           });
           if (postResp.ok) {
-            const resultHTML = await postResp.text();
-            const nombre = extraerHTMLeldni(resultHTML);
+            const nombre = extraerHTMLeldni(await postResp.text());
             if (nombre) return res.status(200).json({ nombre });
           }
         }
       }
-    } catch (_) { /* siguiente método */ }
+    } catch (_) {}
 
-    // Método 2: apis.net.pe con token del entorno
-    const tok = process.env.APIS_NET_PE_TOKEN || '';
-    const apiUrls = [
-      tok ? [`https://api.apis.net.pe/v2/reniec/dni?numero=${num}`, { Authorization: `Bearer ${tok}` }] : null,
-      [`https://api.apis.net.pe/v2/reniec/dni?numero=${num}`, {}],
-      tok ? [`https://api.apis.net.pe/v1/dni?numero=${num}`, { Authorization: `Bearer ${tok}` }] : null,
-      [`https://api.apis.net.pe/v1/dni?numero=${num}`, {}],
-    ].filter(Boolean);
-
-    for (const [url, hdrs] of apiUrls) {
-      const nombre = await fetchJSON(url, { headers: { Accept: 'application/json', ...hdrs } });
-      if (nombre) return res.status(200).json({ nombre });
-    }
-
-    return res.status(200).json({
-      nombre: null,
-      error: 'DNI no encontrado. Ingresa el nombre manualmente.'
-    });
+    return res.status(200).json({ nombre: null, error: 'DNI no encontrado. Ingresa el nombre manualmente.' });
   }
 
-  // ── RUC — no tocar, funciona ──
+  // ── RUC — no tocar, funciona ──────────────────────────────────────────
   const tok = process.env.APIS_NET_PE_TOKEN || '';
-  const rucUrls = [
-    tok ? [`https://api.apis.net.pe/v2/sunat/ruc?numero=${num}`, { Authorization: `Bearer ${tok}` }] : null,
+  for (const [url, hdrs] of [
+    tok  ? [`https://api.apis.net.pe/v2/sunat/ruc?numero=${num}`, { Authorization: `Bearer ${tok}` }] : null,
     [`https://api.apis.net.pe/v2/sunat/ruc?numero=${num}`, {}],
-    tok ? [`https://api.apis.net.pe/v1/ruc?numero=${num}`, { Authorization: `Bearer ${tok}` }] : null,
+    tok  ? [`https://api.apis.net.pe/v1/ruc?numero=${num}`, { Authorization: `Bearer ${tok}` }] : null,
     [`https://api.apis.net.pe/v1/ruc?numero=${num}`, {}],
-  ].filter(Boolean);
-
-  for (const [url, hdrs] of rucUrls) {
-    const nombre = await fetchJSON(url, { headers: { Accept: 'application/json', ...hdrs } });
+  ].filter(Boolean)) {
+    const nombre = await fetchJSON(url, { headers: { Accept: 'application/json', ...hdrs } }, 5000);
     if (nombre) return res.status(200).json({ nombre });
   }
   return res.status(200).json({ nombre: null, error: 'RUC no encontrado. Ingresa el nombre manualmente.' });
+}
+
+function extraerHTMLeldni(html) {
+  const patrones = [
+    /(?:Nombres?)\s*<\/td>\s*<td[^>]*>\s*([A-ZÁÉÍÓÚÑÜ][A-ZÁÉÍÓÚÑÜ\s]{2,50})\s*<\/td>/i,
+    /(?:Nombres?)\s*<\/th>\s*<td[^>]*>\s*([A-ZÁÉÍÓÚÑÜ][A-ZÁÉÍÓÚÑÜ\s]{2,50})\s*<\/td>/i,
+    /<(?:strong|b)>\s*([A-ZÁÉÍÓÚÑÜ][A-ZÁÉÍÓÚÑÜ\s]{5,60})\s*<\/(?:strong|b)>/,
+    /class="[^"]*(?:result|nombre|dato)[^"]*"[^>]*>\s*([A-ZÁÉÍÓÚÑÜ][A-ZÁÉÍÓÚÑÜ\s]{4,60})\s*</i,
+  ];
+  for (const re of patrones) {
+    const m = html.match(re);
+    if (m && m[1].trim().length > 3) return m[1].trim();
+  }
+  const tds = html.match(/<td[^>]*>\s*([A-ZÁÉÍÓÚÑÜ][A-ZÁÉÍÓÚÑÜ ]{5,60})\s*<\/td>/g) || [];
+  for (const td of tds) {
+    const text = td.replace(/<[^>]+>/g, '').trim();
+    if (text.length > 5 && /^[A-ZÁÉÍÓÚÑÜ\s]+$/.test(text) &&
+        !['NOMBRES', 'APELLIDO', 'PATERNO', 'MATERNO', 'SEXO', 'ESTADO CIVIL'].includes(text))
+      return text;
+  }
+  return null;
 }

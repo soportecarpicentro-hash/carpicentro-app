@@ -483,7 +483,9 @@ body.light-mode .theme-toggle{border-color:rgba(255,255,255,.35);}
 .chat-back-btn{background:none;border:none;color:#FFD600;font-size:12px;cursor:pointer;padding:5px 10px;border-radius:8px;font-family:inherit;font-weight:700;transition:background .12s;}
 .chat-back-btn:hover{background:rgba(255,214,0,.1);}
 .chat-conv-nom{font-size:13px;font-weight:700;color:#f0f0f0;}
-.chat-msgs{flex:1;overflow-y:auto;padding:14px 14px 10px;display:flex;flex-direction:column;gap:6px;min-height:0;background:#0D0D0D;background-image:radial-gradient(rgba(255,214,0,.045) 1px,transparent 1px);background-size:22px 22px;}
+#chatMsgsPanel{position:relative;isolation:isolate;background:#0D0D0D;}
+#chatLogoBg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:190px;height:190px;object-fit:contain;filter:blur(10px);opacity:.09;pointer-events:none;user-select:none;z-index:-1;display:none;}
+.chat-msgs{flex:1;overflow-y:auto;padding:14px 14px 10px;display:flex;flex-direction:column;gap:6px;min-height:0;background:transparent;background-image:radial-gradient(rgba(255,214,0,.045) 1px,transparent 1px);background-size:22px 22px;}
 .chat-msgs::-webkit-scrollbar{width:3px;}
 .chat-msgs::-webkit-scrollbar-thumb{background:rgba(255,255,255,.07);border-radius:2px;}
 .chat-bbl{max-width:82%;padding:10px 13px;border-radius:16px;font-size:13px;line-height:1.5;}
@@ -2462,6 +2464,7 @@ function initChat(){
   // Logo en cabecera del chat
   var ico=el('chatHdrIco'), sp=document.querySelector('#splashLogo,#chatLogoHidden');
   if(ico&&sp&&sp.src) ico.innerHTML='<img src="'+sp.src+'" style="width:32px;height:32px;object-fit:contain;border-radius:7px;" alt="CP">';
+  var bg=el('chatLogoBg'); if(bg&&sp&&sp.src){bg.src=sp.src;bg.style.display='block';}
   if(el('chatTit')) el('chatTit').textContent = sesion.rol==='admin' ? 'Soporte — Mensajes' : 'Soporte CARPICENTRO';
   if(el('chatSub')) el('chatSub').textContent = sesion.rol==='admin' ? 'Conversaciones de vendedoras' : 'En línea';
   // onclick evita acumulación de listeners al re-inicializar
@@ -4251,6 +4254,7 @@ sbAuth.auth.onAuthStateChange(function(evt,s){
       <div class="chat-list" id="chatLista"><div class="chat-empty">Cargando...</div></div>
     </div>
     <div id="chatMsgsPanel" style="display:none;flex-direction:column;flex:1;min-height:0;">
+      <img id="chatLogoBg" src="" alt="">
       <div class="chat-msgs-hdr" id="chatMsgsHdr">
         <button type="button" class="chat-back-btn" id="btnChatVolver">‹ Volver</button>
         <div class="chat-conv-nom" id="chatConvNom"></div>
