@@ -2450,7 +2450,30 @@ function clearChatReply(){
   var bar=el('chatReplyBar'); if(bar) bar.classList.remove('show');
 }
 function marcarLeido(convId,autorRol){
+  // Actualizar cache local inmediatamente para que el próximo poll no vuelva a mostrar "no leído"
+  chatCache.forEach(function(m){ if(String(m.conv_id)===String(convId)&&m.autor_rol===autorRol) m.leido=true; });
+  Object.values(chatConvs).forEach(function(c){ if(String(c.id)===String(convId)) c.msgs.forEach(function(m){ if(m.autor_rol===autorRol) m.leido=true; }); });
   sbPatch('soporte_mensajes','conv_id=eq.'+convId+'&autor_rol=eq.'+autorRol+'&leido=eq.false',{leido:true}).catch(function(){});
+}
+
+function playMsgSound(){
+  try{
+    var ctx=new(window.AudioContext||window.webkitAudioContext)();
+    var osc=ctx.createOscillator(), gain=ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type='sine';
+    osc.frequency.setValueAtTime(1046,ctx.currentTime);
+    osc.frequency.setValueAtTime(1318,ctx.currentTime+0.08);
+    gain.gain.setValueAtTime(0.25,ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.35);
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime+0.35);
+  }catch(_){}
+}
+function mostrarNotifChat(titulo,cuerpo){
+  if(!('Notification' in window)) return;
+  if(Notification.permission==='granted'){
+    try{ new Notification(titulo,{body:cuerpo,icon:'/logo-carpicentro.png'}); }catch(_){}
+  }
 }
 
 function escChat(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -2464,7 +2487,7 @@ function initChat(){
   // Logo en cabecera del chat
   var ico=el('chatHdrIco'), sp=document.querySelector('#splashLogo,#chatLogoHidden');
   if(ico&&sp&&sp.src) ico.innerHTML='<img src="'+sp.src+'" style="width:32px;height:32px;object-fit:contain;border-radius:7px;" alt="CP">';
-  var bg=el('chatLogoBg'); if(bg&&sp&&sp.src){bg.src=sp.src;bg.style.display='block';}
+  var bg=el('chatLogoBg'); if(bg){bg.src='/logo-carpicentro.png';bg.style.display='block';}
   if(el('chatTit')) el('chatTit').textContent = sesion.rol==='admin' ? 'Soporte — Mensajes' : 'Soporte CARPICENTRO';
   if(el('chatSub')) el('chatSub').textContent = sesion.rol==='admin' ? 'Conversaciones de vendedoras' : 'En línea';
   // onclick evita acumulación de listeners al re-inicializar
@@ -2472,8 +2495,11 @@ function initChat(){
   if(fab) fab.onclick=function(){
     chatOpen=!chatOpen;
     var w=el('chatWin'); if(!w) return;
-    if(chatOpen){ w.classList.add('open'); chatUnread=0; actualizarBadge(); mostrarVistaChat(); }
-    else w.classList.remove('open');
+    if(chatOpen){
+      w.classList.add('open'); chatUnread=0; actualizarBadge(); mostrarVistaChat();
+      // Pedir permiso de notificaciones al primer click
+      if('Notification' in window && Notification.permission==='default') Notification.requestPermission();
+    } else w.classList.remove('open');
   };
   var bc=el('btnCerrarChat');
   if(bc) bc.onclick=function(){ chatOpen=false; el('chatWin')&&el('chatWin').classList.remove('open'); };
@@ -2506,8 +2532,9 @@ function initChat(){
   // Cancelar reply
   var brc=el('btnChatReplyClear');
   if(brc) brc.onclick=clearChatReply;
-  // Borrar historial
+  // Borrar historial — solo admin
   var bbd=el('btnBorrarChat');
+  if(bbd) bbd.style.display=sesion.rol==='admin'?'':'none';
   if(bbd) bbd.onclick=function(){
     var convId=sesion.rol==='admin'&&chatConvActiva?String(chatConvActiva.id):String(sesion.id);
     mostrarModal('Borrar historial','¿Borrar todos los mensajes de esta conversación?',function(){
@@ -2546,6 +2573,8 @@ function cargarChat(){
   sbGetChat('soporte_mensajes',f).then(function(rows){
     if(rows===null) return; // error → conservar cache con temporales
     var prev=chatCache.length;
+    // IDs ya conocidos (sin temporales) para detectar mensajes genuinamente nuevos
+    var prevIds=new Set(chatCache.filter(function(m){return String(m.id).indexOf('_t')!==0;}).map(function(m){return String(m.id);}));
     var tmpPendientes=chatCache.filter(function(m){return String(m.id).indexOf('_t')===0;});
     chatCache=rows.concat(tmpPendientes);
     chatConvs={};
@@ -2556,6 +2585,27 @@ function cargarChat(){
       chatConvs[key].msgs.push(m);
       if(sesion.rol==='admin'&&!m.leido&&m.autor_rol!=='admin'&&String(m.id).indexOf('_t')!==0) chatConvs[key].nuevos++;
     });
+    // Detectar mensajes nuevos del otro usuario para sonido/notificación
+    if(prevIds.size>0){
+      var nuevosOtro=rows.filter(function(m){
+        return !prevIds.has(String(m.id)) && String(m.autor_id)!==String(sesion.id);
+      });
+      if(nuevosOtro.length>0){
+        // Solo notificar si el chat está cerrado o el usuario no está viendo esa conversación
+        var notificar=nuevosOtro.filter(function(m){
+          if(!chatOpen) return true;
+          if(sesion.rol!=='admin') return false; // vendedora ve su propio chat, ya lo está leyendo
+          return !chatConvActiva||String(chatConvActiva.id)!==String(m.conv_id);
+        });
+        if(notificar.length>0){
+          playMsgSound();
+          var ult=notificar[notificar.length-1];
+          var tit=sesion.rol==='admin'?'Mensaje de '+(ult.autor_nombre||'Vendedora'):'Mensaje de Admin CARPICENTRO';
+          var bod=ult.texto.startsWith('[FOTO]')?'📷 Foto enviada':ult.texto.slice(0,80);
+          mostrarNotifChat(tit,bod);
+        }
+      }
+    }
     if(!chatOpen&&rows.length>prev){ chatUnread+=(rows.length-prev); actualizarBadge(); }
     if(chatOpen){
       if(sesion.rol==='admin'&&!chatConvActiva) renderLista('');
