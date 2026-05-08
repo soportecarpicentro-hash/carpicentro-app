@@ -3879,51 +3879,52 @@ function eliminarHistorial(){
 function eCantoClass(v){ return v==='G'?'canto-G':(!v||v==='—'?'canto-vacio':''); }
 function renderEditT(){
   var tb=el('etb');
-  tb.innerHTML='<div class="tw" style="margin-bottom:0;"><table><thead><tr>'
-    +'<th style="width:24px;">#</th>'
-    +'<th class="l" style="min-width:160px;">Material</th>'
-    +'<th style="width:46px;">Cant.</th>'
-    +'<th style="width:70px;">Largo</th>'
-    +'<th style="width:70px;">Ancho</th>'
-    +'<th style="width:52px;">Veta</th>'
-    +'<th style="width:38px;">L1</th>'
-    +'<th style="width:38px;">L2</th>'
-    +'<th style="width:38px;">A1</th>'
-    +'<th style="width:38px;">A2</th>'
-    +'<th class="l" style="min-width:90px;">Obs.</th>'
-    +'<th style="width:56px;color:#CE93D8;font-size:9px;">⬤ Perf.</th>'
-    +'<th style="width:82px;color:#80DEEA;font-size:9px;">▬ Ranura</th>'
+  tb.innerHTML='<style>.etbl td{padding:3px 2px;}.etbl select{width:100%;font-size:11px;}</style>'
+    +'<div class="tw" style="margin-bottom:0;"><table class="etbl" style="table-layout:fixed;min-width:860px;"><thead><tr>'
+    +'<th style="width:26px;">#</th>'
+    +'<th class="l" style="width:155px;">Material</th>'
+    +'<th style="width:48px;">Cant.</th>'
+    +'<th style="width:80px;">Largo</th>'
+    +'<th style="width:80px;">Ancho</th>'
+    +'<th style="width:56px;">Veta</th>'
+    +'<th style="width:42px;">L1</th>'
+    +'<th style="width:42px;">L2</th>'
+    +'<th style="width:42px;">A1</th>'
+    +'<th style="width:42px;">A2</th>'
+    +'<th class="l" style="width:95px;">Obs.</th>'
+    +'<th style="width:64px;color:#CE93D8;font-size:9px;">⬤ Perf.</th>'
+    +'<th style="width:88px;color:#80DEEA;font-size:9px;">▬ Ranura</th>'
     +'<th style="width:24px;"></th>'
     +'</tr></thead><tbody id="etbBody"></tbody></table></div>';
   var tbody=el('etbBody');
   pzEdit.forEach(function(p,i){
     var tr=document.createElement('tr');
     tr.innerHTML=
-      '<td style="font-size:11px;color:var(--tx3);font-weight:700;">'+(i+1)+'</td>'
+      '<td style="font-size:11px;color:var(--tx3);font-weight:700;text-align:center;">'+(i+1)+'</td>'
       +'<td>'+mkMatBtn(i,p.material,'e')+'</td>'
       +'<td><input class="ti-sm" type="text" inputmode="numeric" value="'+(p.qty||'')+'" placeholder="1" data-i="'+i+'" data-k="qty"></td>'
       +'<td><input class="ti-sm" type="text" inputmode="numeric" value="'+(p.largo||'')+'" placeholder="0" data-i="'+i+'" data-k="largo"></td>'
       +'<td><input class="ti-sm" type="text" inputmode="numeric" value="'+(p.ancho||'')+'" placeholder="0" data-i="'+i+'" data-k="ancho"></td>'
-      +'<td><select class="tis" style="width:50px;font-size:11px;" data-i="'+i+'" data-k="veta">'+vetaOpts(p.veta)+'</select></td>'
+      +'<td><select class="tis" data-i="'+i+'" data-k="veta">'+vetaOpts(p.veta)+'</select></td>'
       +['l1','l2','a1','a2'].map(function(k){
-        return '<td><select class="tapa-type '+eCantoClass(p[k])+'" style="width:36px;padding:4px 2px;" data-i="'+i+'" data-k="'+k+'">'+cantoOpts(p[k])+'</select></td>';
+        return '<td><select class="tapa-type '+eCantoClass(p[k])+'" data-i="'+i+'" data-k="'+k+'">'+cantoOpts(p[k])+'</select></td>';
       }).join('')
       +'<td><input class="ti-sm-l" type="text" value="'+(p.obs||'')+'" placeholder="—" data-i="'+i+'" data-k="obs"></td>'
-      +'<td class="perf-cell" style="padding:3px;vertical-align:middle;">'
+      +'<td class="perf-cell" style="vertical-align:middle;">'
         +'<div style="display:flex;flex-direction:column;gap:2px;">'
-        +'<input class="ti-sm" type="text" inputmode="numeric" value="'+(p.perf_cant||'')+'" placeholder="cant" title="Cant. perforaciones" style="width:50px;" data-i="'+i+'" data-k="perf_cant">'
-        +'<input class="ti-sm" type="text" value="'+(p.perf_lado||'')+'" placeholder="lado" title="Lado perforación" style="width:50px;" data-i="'+i+'" data-k="perf_lado">'
+        +'<input class="ti-sm" type="text" inputmode="numeric" value="'+(p.perf_cant||'')+'" placeholder="cant" title="Cant. perforaciones" data-i="'+i+'" data-k="perf_cant">'
+        +'<input class="ti-sm" type="text" value="'+(p.perf_lado||'')+'" placeholder="lado" title="Lado perforación" data-i="'+i+'" data-k="perf_lado">'
         +'</div>'
       +'</td>'
-      +'<td class="ran-cell" style="padding:3px;vertical-align:middle;">'
-        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;width:78px;">'
-        +'<input class="ti-sm" type="text" inputmode="numeric" value="'+(p.ran_libre||'')+'" placeholder="lib" title="Libre (mm)" style="width:36px;" data-i="'+i+'" data-k="ran_libre">'
-        +'<input class="ti-sm" type="text" inputmode="numeric" value="'+(p.ran_espe||'')+'" placeholder="esp" title="Espesor (mm)" style="width:36px;" data-i="'+i+'" data-k="ran_espe">'
-        +'<input class="ti-sm" type="text" inputmode="numeric" value="'+(p.ran_prof||'')+'" placeholder="prf" title="Prof. (mm)" style="width:36px;" data-i="'+i+'" data-k="ran_prof">'
-        +'<input class="ti-sm" type="text" value="'+(p.ran_lado||'')+'" placeholder="lado" title="Lado ranura" style="width:36px;" data-i="'+i+'" data-k="ran_lado">'
+      +'<td class="ran-cell" style="vertical-align:middle;">'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;">'
+        +'<input class="ti-sm" type="text" inputmode="numeric" value="'+(p.ran_libre||'')+'" placeholder="lib" title="Libre (mm)" data-i="'+i+'" data-k="ran_libre">'
+        +'<input class="ti-sm" type="text" inputmode="numeric" value="'+(p.ran_espe||'')+'" placeholder="esp" title="Espesor (mm)" data-i="'+i+'" data-k="ran_espe">'
+        +'<input class="ti-sm" type="text" inputmode="numeric" value="'+(p.ran_prof||'')+'" placeholder="prf" title="Prof. (mm)" data-i="'+i+'" data-k="ran_prof">'
+        +'<input class="ti-sm" type="text" value="'+(p.ran_lado||'')+'" placeholder="lado" title="Lado ranura" data-i="'+i+'" data-k="ran_lado">'
         +'</div>'
       +'</td>'
-      +'<td><button type="button" class="ecard-del" data-del="'+i+'" style="background:transparent;border:none;color:#ccc;cursor:pointer;padding:4px;border-radius:6px;font-size:14px;" title="Eliminar pieza">✕</button></td>';
+      +'<td style="text-align:center;"><button type="button" class="ecard-del" data-del="'+i+'" style="background:transparent;border:none;color:#ccc;cursor:pointer;padding:4px;border-radius:6px;font-size:14px;" title="Eliminar pieza">✕</button></td>';
     // Canto select visual feedback
     tr.querySelectorAll('select[data-k="l1"],select[data-k="l2"],select[data-k="a1"],select[data-k="a2"]').forEach(function(sel){
       sel.addEventListener('change',function(){ this.className='tapa-type '+eCantoClass(this.value); });
