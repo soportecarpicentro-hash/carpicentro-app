@@ -3754,7 +3754,7 @@ function abrirDet(id){
       return '<tr><td><span style="font-size:11px;color:var(--tx3);font-weight:700;">'+(i+1)+'</span></td>'
         +'<td class="l" style="font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+p.material+'">'+p.material+'</td>'
         +'<td style="font-weight:800;">'+p.qty+'</td><td>'+p.largo+'</td><td>'+p.ancho+'</td>'
-        +'<td style="font-size:11px;">'+(p.veta==='1-Longitud'?'L':p.veta==='2-Ancho'?'A':'—')+'</td>'
+        +'<td style="font-size:11px;font-weight:700;">'+(p.veta==='1-Longitud'?'<span style="color:#1565C0;">Largo</span>':p.veta==='2-Ancho'?'<span style="color:#6A1B9A;">Ancho</span>':'<span style="color:#888;">Sin</span>')+'</td>'
         +(noEc?'<td colspan="4" style="text-align:center;font-size:10px;color:#999;background:#f5f5f5;">Sin enchape</td>'
           :'<td>'+(p.l1||'—')+'</td><td>'+(p.l2||'—')+'</td><td>'+(p.a1||'—')+'</td><td>'+(p.a2||'—')+'</td>')
         // Perforación
@@ -3878,98 +3878,61 @@ function eliminarHistorial(){
 // ── EDICIÓN OVERLAY ───────────────────────────────────────
 function eCantoClass(v){ return v==='G'?'canto-G':(!v||v==='—'?'canto-vacio':''); }
 function renderEditT(){
-  var tb=el('etb'); tb.innerHTML='';
+  var tb=el('etb');
+  tb.innerHTML='<div class="tw" style="margin-bottom:0;"><table><thead><tr>'
+    +'<th style="width:24px;">#</th>'
+    +'<th class="l" style="min-width:160px;">Material</th>'
+    +'<th style="width:46px;">Cant.</th>'
+    +'<th style="width:70px;">Largo</th>'
+    +'<th style="width:70px;">Ancho</th>'
+    +'<th style="width:52px;">Veta</th>'
+    +'<th style="width:38px;">L1</th>'
+    +'<th style="width:38px;">L2</th>'
+    +'<th style="width:38px;">A1</th>'
+    +'<th style="width:38px;">A2</th>'
+    +'<th class="l" style="min-width:90px;">Obs.</th>'
+    +'<th style="width:56px;color:#CE93D8;font-size:9px;">⬤ Perf.</th>'
+    +'<th style="width:82px;color:#80DEEA;font-size:9px;">▬ Ranura</th>'
+    +'<th style="width:24px;"></th>'
+    +'</tr></thead><tbody id="etbBody"></tbody></table></div>';
+  var tbody=el('etbBody');
   pzEdit.forEach(function(p,i){
-    var card=document.createElement('div');
-    card.className='ecard';
-    card.innerHTML=
-      '<div class="ecard-num">'+(i+1)+'</div>'
-      +'<div class="ecard-body">'
-        // Fila 1: Material + Cant + Largo + Ancho + Veta
-        +'<div class="ecard-row">'
-          +'<div class="ecard-fld" style="flex:1;min-width:160px;">'
-            +'<div class="ecard-lbl">Material</div>'
-            +mkMatBtn(i,p.material,'e')
-          +'</div>'
-          +'<div class="ecard-fld">'
-            +'<div class="ecard-lbl">Cant.</div>'
-            +'<input class="ecard-inp w-qty" type="text" inputmode="numeric" value="'+(p.qty||'')+'" placeholder="1" data-i="'+i+'" data-k="qty">'
-          +'</div>'
-          +'<div class="ecard-fld">'
-            +'<div class="ecard-lbl">Largo (mm)</div>'
-            +'<input class="ecard-inp w-med" type="text" inputmode="numeric" value="'+(p.largo||'')+'" placeholder="0" data-i="'+i+'" data-k="largo">'
-          +'</div>'
-          +'<div class="ecard-fld">'
-            +'<div class="ecard-lbl">Ancho (mm)</div>'
-            +'<input class="ecard-inp w-med" type="text" inputmode="numeric" value="'+(p.ancho||'')+'" placeholder="0" data-i="'+i+'" data-k="ancho">'
-          +'</div>'
+    var tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td style="font-size:11px;color:var(--tx3);font-weight:700;">'+(i+1)+'</td>'
+      +'<td>'+mkMatBtn(i,p.material,'e')+'</td>'
+      +'<td><input class="ti-sm" type="text" inputmode="numeric" value="'+(p.qty||'')+'" placeholder="1" data-i="'+i+'" data-k="qty"></td>'
+      +'<td><input class="ti-sm" type="text" inputmode="numeric" value="'+(p.largo||'')+'" placeholder="0" data-i="'+i+'" data-k="largo"></td>'
+      +'<td><input class="ti-sm" type="text" inputmode="numeric" value="'+(p.ancho||'')+'" placeholder="0" data-i="'+i+'" data-k="ancho"></td>'
+      +'<td><select class="tis" style="width:50px;font-size:11px;" data-i="'+i+'" data-k="veta">'+vetaOpts(p.veta)+'</select></td>'
+      +['l1','l2','a1','a2'].map(function(k){
+        return '<td><select class="tapa-type '+eCantoClass(p[k])+'" style="width:36px;padding:4px 2px;" data-i="'+i+'" data-k="'+k+'">'+cantoOpts(p[k])+'</select></td>';
+      }).join('')
+      +'<td><input class="ti-sm-l" type="text" value="'+(p.obs||'')+'" placeholder="—" data-i="'+i+'" data-k="obs"></td>'
+      +'<td class="perf-cell" style="padding:3px;vertical-align:middle;">'
+        +'<div style="display:flex;flex-direction:column;gap:2px;">'
+        +'<input class="ti-sm" type="text" inputmode="numeric" value="'+(p.perf_cant||'')+'" placeholder="cant" title="Cant. perforaciones" style="width:50px;" data-i="'+i+'" data-k="perf_cant">'
+        +'<input class="ti-sm" type="text" value="'+(p.perf_lado||'')+'" placeholder="lado" title="Lado perforación" style="width:50px;" data-i="'+i+'" data-k="perf_lado">'
         +'</div>'
-        // Fila 2: Cantos L1 L2 A1 A2 + Obs
-        +'<div class="ecard-row">'
-          +['l1','l2','a1','a2'].map(function(k,ki){
-            var lbl=['L1','L2','A1','A2'][ki];
-            return '<div class="ecard-canto">'
-              +'<div class="ecard-canto-lbl">'+lbl+'</div>'
-              +'<select class="ecard-canto-sel '+eCantoClass(p[k])+'" data-i="'+i+'" data-k="'+k+'">'+cantoOpts(p[k])+'</select>'
-            +'</div>';
-          }).join('')
-          +'<div class="ecard-fld" style="flex:1;">'
-            +'<div class="ecard-lbl">Observaciones</div>'
-            +'<input class="ecard-inp w-obs" type="text" value="'+(p.obs||'')+'" placeholder="—" data-i="'+i+'" data-k="obs">'
-          +'</div>'
+      +'</td>'
+      +'<td class="ran-cell" style="padding:3px;vertical-align:middle;">'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;width:78px;">'
+        +'<input class="ti-sm" type="text" inputmode="numeric" value="'+(p.ran_libre||'')+'" placeholder="lib" title="Libre (mm)" style="width:36px;" data-i="'+i+'" data-k="ran_libre">'
+        +'<input class="ti-sm" type="text" inputmode="numeric" value="'+(p.ran_espe||'')+'" placeholder="esp" title="Espesor (mm)" style="width:36px;" data-i="'+i+'" data-k="ran_espe">'
+        +'<input class="ti-sm" type="text" inputmode="numeric" value="'+(p.ran_prof||'')+'" placeholder="prf" title="Prof. (mm)" style="width:36px;" data-i="'+i+'" data-k="ran_prof">'
+        +'<input class="ti-sm" type="text" value="'+(p.ran_lado||'')+'" placeholder="lado" title="Lado ranura" style="width:36px;" data-i="'+i+'" data-k="ran_lado">'
         +'</div>'
-        // Fila 3: Perforación (si hay o siempre editable)
-        +'<div class="ecard-row">'
-          +'<div class="ecard-perf" style="flex:1;">'
-            +'<div class="ecard-sect" style="color:#9C27B0;">⬤ Perforación</div>'
-            +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
-              +'<div class="ecard-fld">'
-                +'<div class="ecard-lbl">Cantidad</div>'
-                +'<input class="ecard-inp w-ran" type="text" inputmode="numeric" value="'+(p.perf_cant||'')+'" placeholder="—" data-i="'+i+'" data-k="perf_cant">'
-              +'</div>'
-              +'<div class="ecard-fld">'
-                +'<div class="ecard-lbl">Lado (mm)</div>'
-                +'<input class="ecard-inp w-med" type="text" inputmode="numeric" value="'+(p.perf_lado||'')+'" placeholder="—" data-i="'+i+'" data-k="perf_lado">'
-              +'</div>'
-            +'</div>'
-          +'</div>'
-          +'<div class="ecard-ran" style="flex:2;">'
-            +'<div class="ecard-sect" style="color:#00838F;">▬ Ranura</div>'
-            +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
-              +'<div class="ecard-fld">'
-                +'<div class="ecard-lbl">Libre</div>'
-                +'<input class="ecard-inp w-ran" type="text" inputmode="numeric" value="'+(p.ran_libre||'')+'" placeholder="—" data-i="'+i+'" data-k="ran_libre">'
-              +'</div>'
-              +'<div class="ecard-fld">'
-                +'<div class="ecard-lbl">Espesor</div>'
-                +'<input class="ecard-inp w-ran" type="text" inputmode="numeric" value="'+(p.ran_espe||'')+'" placeholder="—" data-i="'+i+'" data-k="ran_espe">'
-              +'</div>'
-              +'<div class="ecard-fld">'
-                +'<div class="ecard-lbl">Prof.</div>'
-                +'<input class="ecard-inp w-ran" type="text" inputmode="numeric" value="'+(p.ran_prof||'')+'" placeholder="—" data-i="'+i+'" data-k="ran_prof">'
-              +'</div>'
-              +'<div class="ecard-fld">'
-                +'<div class="ecard-lbl">Lado (mm)</div>'
-                +'<input class="ecard-inp w-med" type="text" inputmode="numeric" value="'+(p.ran_lado||'')+'" placeholder="—" data-i="'+i+'" data-k="ran_lado">'
-              +'</div>'
-            +'</div>'
-          +'</div>'
-        +'</div>'
-      +'</div>'
-      +'<button type="button" class="ecard-del" data-del="'+i+'">✕</button>';
-
-    // Listeners de canto — cambiar clase según valor
-    card.querySelectorAll('.ecard-canto-sel').forEach(function(sel){
-      sel.addEventListener('change',function(){
-        this.className='ecard-canto-sel '+eCantoClass(this.value);
-      });
+      +'</td>'
+      +'<td><button type="button" class="ecard-del" data-del="'+i+'" style="background:transparent;border:none;color:#ccc;cursor:pointer;padding:4px;border-radius:6px;font-size:14px;" title="Eliminar pieza">✕</button></td>';
+    // Canto select visual feedback
+    tr.querySelectorAll('select[data-k="l1"],select[data-k="l2"],select[data-k="a1"],select[data-k="a2"]').forEach(function(sel){
+      sel.addEventListener('change',function(){ this.className='tapa-type '+eCantoClass(this.value); });
     });
-    tb.appendChild(card);
+    tbody.appendChild(tr);
   });
-  bindMatBtns(tb, pzEdit);
-  bindInputs(tb, pzEdit);
-  // Listener botones eliminar
-  tb.querySelectorAll('.ecard-del[data-del]').forEach(function(btn){
+  bindMatBtns(tbody, pzEdit);
+  bindInputs(tbody, pzEdit);
+  tbody.querySelectorAll('.ecard-del[data-del]').forEach(function(btn){
     btn.addEventListener('click',function(){
       var idx=parseInt(this.dataset.del);
       if(pzEdit.length<=1){ alert('Debe haber al menos 1 pieza.'); return; }

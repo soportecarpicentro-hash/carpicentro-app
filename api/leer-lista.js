@@ -125,11 +125,14 @@ export default async function handler(req, res) {
     };
     const rs = v => { const x = s(v); return /^\d+$/.test(x) && parseInt(x) > 0 ? x : ''; };
     const qty = Math.max(1, parseInt(p.qty) || 1);
+    const material = s(p.material) || 'MELA PELIKANO BLANCO';
+    const esMadera = /NOGAL|CEREZO|HAYA|WENGUE|ROBLE|ABEDUL|ACACIA|ARCE|BOSCO|BOSQUE|BARDOLINO|BELLOTA|ANTALYA|ARTIKO|ARUPO|AMARETO|MADERA|PAMELA|CASTAÑO|TEKA|PINO|CEDRO|EUCALIPTO/i.test(material);
+    const veta = esMadera ? '1-Longitud' : 'Sin veta';
     return {
-      material: s(p.material) || 'MELA PELIKANO BLANCO',
+      material,
       qty,
       largo: n(p.largo), ancho: n(p.ancho),
-      veta: s(p.veta) || '1-Longitud',
+      veta,
       l1: c(p.l1), l2: c(p.l2), a1: c(p.a1), a2: c(p.a2),
       perf_cant: rs(p.perf_cant), perf_lado: s(p.perf_lado), perf_det: s(p.perf_det),
       ran_libre: rs(p.ran_libre), ran_espe: rs(p.ran_espe), ran_prof: rs(p.ran_prof),
@@ -186,6 +189,8 @@ Ahora recorre toda la imagen de arriba a abajo y anota:
 Este pre-escaneo es tu referencia. Al leer fila a fila confirmarás que coincide.
 Si una cantidad no coincide con tu pre-escaneo → revisarla antes de escribirla.
 
+⚠ TÓMATE EL TIEMPO NECESARIO: escanea la imagen DOS VECES. Primero de corrido para contar piezas y cantidades. Luego pieza por pieza para verificar medidas y cantos. Más vale lento y correcto que rápido e incorrecto. Duplicados de medidas y cantidades erróneas son el peor error.
+
 ━━━ CANTIDADES — ERROR AQUÍ = PEDIDO INCORRECTO = PÉRDIDA TOTAL ━━━
 
 La cantidad es el número de piezas idénticas. Sigue este proceso EXACTO:
@@ -205,6 +210,7 @@ PASO C — Ejemplos de lectura correcta:
   "(5) 1200×600"        → qty=5, largo=1200, ancho=600 ✓
   "840×420"             → qty=1, largo=840, ancho=420  ✓
   "840×420×3"           → qty=3, largo=840, ancho=420  ✓
+  "300×840"             → qty=1, largo=300, ancho=840   ✓ (el cliente lo escribió así — respetar orden)
   "1. 840×420 DDDD"     → si "1." es número de fila: qty=1, largo=840, ancho=420  ✓
   "2 pzs 600×400"       → qty=2, largo=600, ancho=400  ✓
   "10 → 1830×60"        → qty=10, largo=1830, ancho=60 ✓
@@ -218,7 +224,8 @@ PASO D — Errores fatales a evitar:
 ━━━ MEDIDAS — CERO ERRORES ━━━
 
 LARGO y ANCHO (separados por x, ×, X, /, "por"):
-• El número MAYOR es siempre el LARGO
+• El PRIMER número escrito es LARGO, el SEGUNDO es ANCHO — respetar SIEMPRE el orden del documento
+• NUNCA invertir largo y ancho aunque el largo sea menor que el ancho
 
 CONVERSIÓN DE UNIDADES:
   ✓ Entero ≥ 200 → MM directo (840 → 840)
@@ -230,14 +237,16 @@ CONVERSIÓN DE UNIDADES:
   ✓ Número < 40 sin contexto → probable CM → ×10
 
 VERIFICACIÓN PIEZA A PIEZA (obligatoria):
-  □ ¿Largo > Ancho? Si no, intercambiar.
-  □ ¿Ambos entre 40 mm y 2800 mm? Si no, revisar conversión.
+  □ ¿Ambos entre 40 mm y 2800 mm? Si no, revisar conversión de unidades.
   □ ¿Había decimal? → confirmar ×10 aplicado.
+  □ ¿Respetaste el orden original del documento (primer número = largo, segundo = ancho)?
 
 LÍNEAS TACHADAS → IGNORAR completamente.
 
-VETA:
-  ↕ o sin indicación → "1-Longitud" | ↔ → "2-Ancho" | "SV"/"sin veta" → "Sin veta"
+VETA — REGLA POR TIPO DE MATERIAL:
+• Materiales tipo MADERA (contienen en su nombre: NOGAL, CEREZO, HAYA, WENGUE, ROBLE, ABEDUL, ACACIA, ARCE, BOSCO, BOSQUE, BARDOLINO, BELLOTA, ANTALYA, ARTIKO, ARUPO, AMARETO, MADERA, PAMELA, CASTAÑO, TEKA, PINO, CEDRO, EUCALIPTO): veta = "1-Longitud" siempre
+• Materiales ENTEROS/LISOS (BLANCO, NEGRO, GRAFITO, GRIS, CARBON, ARENA, TRIGO, ALMENDRA, CAPRI, ONIX, CENIZA, HUESO, CREMA y similares colores planos): veta = "Sin veta" siempre
+• Si hay marca ↕ = "1-Longitud" | ↔ = "2-Ancho" | "SV"/"sin veta" explícito = "Sin veta"
 
 ━━━ CANTOS ━━━
 
