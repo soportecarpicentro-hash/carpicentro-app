@@ -2329,17 +2329,69 @@ function buscarMisPedidos(){
       var col=colores[p.estado]||'#78909C';
       var estTxt=(ESTL[p.estado]||p.estado||'').replace(/^[^\s]+\s/,'');
       var mats=Array.isArray(p.materiales)&&p.materiales.length?p.materiales.slice(0,2).join(', ')+(p.materiales.length>2?'…':''):'';
-      return '<div class="mis-ped-item">'
-        +'<div class="mis-ped-cod">'+p.codigo+'<span class="mp-badge" style="background:'+col+'22;color:'+col+';">'+estTxt+'</span></div>'
+      return '<div class="mis-ped-item" data-id="'+p.id+'" data-cod="'+p.codigo+'">'
+        +'<div class="mis-ped-cod">'+p.codigo+'<span class="mp-badge" style="background:'+col+'22;color:'+col+';">'+estTxt+'</span>'
+        +'<span style="float:right;font-size:11px;color:var(--tx3);margin-top:1px;">Ver ticket ▶</span></div>'
         +'<div class="mis-ped-info">'+fecha+' · '+(p.total_piezas||0)+' piezas · '+(p.sede||'')+(mats?' · '+mats:'')+'</div>'
         +'</div>';
     }).join('');
     res.innerHTML=html;
+    // Click en cada item → mostrar ticket
+    res.querySelectorAll('.mis-ped-item[data-id]').forEach(function(item){
+      item.addEventListener('click', function(){ mostrarTicketCliente(this.dataset.id, this.dataset.cod); });
+    });
   }).catch(function(){
     res.innerHTML='<div style="font-size:12px;color:#B71C1C;padding:8px;">No se pudo conectar. Intenta de nuevo.</div>';
   });
 }
 window.buscarMisPedidos=buscarMisPedidos;
+
+// ── TICKET CLIENTE (modal al hacer clic en mis pedidos) ──
+function mostrarTicketCliente(pedId, pedCod){
+  var ovl=el('mpTicketOvl');
+  if(!ovl){ ovl=document.createElement('div'); ovl.id='mpTicketOvl'; document.body.appendChild(ovl); }
+  ovl.style.cssText='position:fixed;inset:0;z-index:9997;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:16px;';
+  ovl.innerHTML='<div style="background:var(--bg);border-radius:16px;width:100%;max-width:400px;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,.3);">'
+    +'<div style="background:#1A1A1A;padding:16px 20px;text-align:center;">'
+      +'<div style="font-size:18px;font-weight:900;color:#FFD600;letter-spacing:1px;">CARPICENTRO</div>'
+      +'<div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:2px;">Comprobante de pedido</div>'
+    +'</div>'
+    +'<div id="mpTicketCuerpo" style="padding:18px 20px;"><div style="text-align:center;padding:20px;"><div class="spin" style="margin:auto;"></div></div></div>'
+    +'<button id="mpTicketCerrar" style="width:100%;padding:13px;background:#1A1A1A;color:#FFD600;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">✕ Cerrar</button>'
+  +'</div>';
+  ovl.addEventListener('click',function(e){ if(e.target===ovl) ovl.style.display='none'; });
+  el('mpTicketCerrar').addEventListener('click',function(){ ovl.style.display='none'; });
+  sbGet('pedidos','id=eq.'+pedId+'&select=codigo,estado,created_at,total_piezas,sede,materiales,cliente_nombre,cliente_telefono,cliente_dni,cliente_ruc')
+  .then(function(data){
+    var p=data&&data[0]; if(!p){ el('mpTicketCuerpo').innerHTML='<p style="text-align:center;color:var(--tx3);">No se pudo cargar.</p>'; return; }
+    var colores={ingresado:'#78909C',revision:'#1565C0',en_optiplaning:'#E65100',en_produccion:'#6A1B9A',listo:'#2E7D32',entregado:'#00695C',no_procedio:'#B71C1C'};
+    var col=colores[p.estado]||'#78909C';
+    var estTxt=ESTL[p.estado]||p.estado||'';
+    var fecha=p.created_at?new Date(p.created_at).toLocaleDateString('es-PE',{day:'2-digit',month:'long',year:'numeric'}):'—';
+    var mats=Array.isArray(p.materiales)&&p.materiales.length?p.materiales.join(', '):'—';
+    var doc=p.cliente_ruc?'RUC: '+p.cliente_ruc:p.cliente_dni?'DNI: '+p.cliente_dni:'';
+    var waUrl='https://wa.me/51973589710?text=Hola%20CARPICENTRO%2C%20mi%20código%20de%20pedido%20es%20'+encodeURIComponent(p.codigo);
+    function fila(label,val,extra){ return '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--bd);font-size:13px;"><span style="color:var(--tx3);">'+label+'</span><span style="font-weight:700;color:var(--tx);text-align:right;max-width:60%;'+(extra||'')+'">'+(val||'—')+'</span></div>'; }
+    el('mpTicketCuerpo').innerHTML=
+      '<div style="background:var(--redl);border:2px solid var(--red);border-radius:10px;padding:12px 16px;text-align:center;margin-bottom:14px;">'
+        +'<div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:1px;">Código de pedido</div>'
+        +'<div style="font-size:22px;font-weight:900;color:var(--red);letter-spacing:2px;font-family:monospace;margin-top:4px;">'+p.codigo+'</div>'
+      +'</div>'
+      +fila('Estado','<span style="background:'+col+'22;color:'+col+';padding:2px 10px;border-radius:999px;font-size:11px;">'+estTxt+'</span>')
+      +fila('Cliente',p.cliente_nombre)
+      +(doc?fila('Documento',doc):'')
+      +fila('Teléfono',p.cliente_telefono)
+      +fila('Sede',p.sede)
+      +fila('Piezas',(p.total_piezas||'—')+' piezas')
+      +fila('Materiales',mats,'font-size:11px;')
+      +fila('Fecha',fecha)
+      +'<a href="'+waUrl+'" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;background:#25D366;color:#fff;padding:12px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;">'
+        +'<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/></svg>'
+        +'Consultar por WhatsApp'
+      +'</a>';
+  }).catch(function(){ el('mpTicketCuerpo').innerHTML='<p style="text-align:center;color:#B71C1C;padding:12px;">Error al cargar el pedido.</p>'; });
+}
+window.mostrarTicketCliente=mostrarTicketCliente;
 
 // ════════════════════════════════════════════════════════
 // QR CODE GENERATOR (sin librería externa)
@@ -3391,7 +3443,7 @@ function renderTabla(){
       +'<th style="width:44px;color:var(--yellow);">VETA</th>'
       +'<th style="width:60px;color:var(--yellow);">L1</th><th style="width:60px;color:var(--yellow);">L2</th>'
       +'<th style="width:60px;color:var(--yellow);">A1</th><th style="width:60px;color:var(--yellow);">A2</th>'
-
+      +'<th style="min-width:115px;color:var(--yellow);">🎨 COLOR</th>'
       +'<th class="l" style="min-width:80px;color:var(--yellow);">OBS.</th>'
       +perfCols+ranCols+'<th style="width:20px;"></th>';
   }
@@ -3408,19 +3460,7 @@ function renderTabla(){
       if(canto==='Gx'||canto==='Gy'||canto==='Gm'||canto==='Gz') return p.col_gx||'';
       return '';
     }
-    function colorSel(lado, canto, colorVal){
-      if(!canto) return '';
-      if(canto==='D'||canto==='G'){
-        // Input de color por fila — cada pieza puede tener su propio color
-        return '<input type="text" class="tis" list="cantoDL" data-i="'+i+'" data-k="col_d" value="'+(p.col_d||'')+'" placeholder="Color…" autocomplete="off" style="width:70px;font-size:10px;border-color:#1565C0;margin-top:2px;" title="Color canto D/G de esta pieza">';
-      }
-      // Para Dx/Dy/Dm/Dz → todos usan col_dx. Para Gx/Gy/Gm/Gz → todos usan col_gx
-      var isD=(canto==='Dx'||canto==='Dy'||canto==='Dm'||canto==='Dz');
-      var dataKey=isD?'col_dx':'col_gx';
-      var currentColor=isD?(p.col_dx||''):(p.col_gx||'');
-      var borderC=isD?'#7B1FA2':'#1565C0';
-      return '<input type="text" class="tis" list="cantoDL" data-i="'+i+'" data-k="'+dataKey+'" value="'+currentColor+'" placeholder="Color…" autocomplete="off" style="width:70px;font-size:10px;border-color:'+borderC+';margin-top:2px;" title="Color '+canto+'">';
-    }
+    function colorSel(lado, canto, colorVal){ return ''; } // colores en columna dedicada
 
     // Selector color D general (cuando ponen D en varios lados y quieren indicar el color una vez)
     // Se muestra debajo si hay al menos un D o G
@@ -3448,7 +3488,16 @@ function renderTabla(){
       cells+=cantoCelda('l1',p.l1)+cantoCelda('l2',p.l2)+cantoCelda('a1',p.a1)+cantoCelda('a2',p.a2);
     }
 
-
+    // ── Columna COLOR dedicada ──
+    var _tDx=[p.l1,p.l2,p.a1,p.a2].some(function(c){return c==='Dx'||c==='Dy'||c==='Dm'||c==='Dz';});
+    var _tGx=[p.l1,p.l2,p.a1,p.a2].some(function(c){return c==='Gx'||c==='Gy'||c==='Gm'||c==='Gz';});
+    var _cc='';
+    if(!noEc){
+      if(cantosD) _cc+='<div style="margin-bottom:3px;"><span style="font-size:9px;font-weight:700;color:#1565C0;">D/G:</span><input type="text" class="tis" list="cantoDL" data-i="'+i+'" data-k="col_d" value="'+(p.col_d||'')+'" placeholder="Ej: BLANCO" autocomplete="off" style="width:100%;font-size:11px;border-color:#1565C0;margin-top:2px;display:block;"></div>';
+      if(_tDx) _cc+='<div style="margin-bottom:3px;"><span style="font-size:9px;font-weight:700;color:#7B1FA2;">Dx/Dm:</span><input type="text" class="tis" list="cantoDL" data-i="'+i+'" data-k="col_dx" value="'+(p.col_dx||'')+'" placeholder="Ej: AZUL" autocomplete="off" style="width:100%;font-size:11px;border-color:#7B1FA2;margin-top:2px;display:block;"></div>';
+      if(_tGx) _cc+='<div><span style="font-size:9px;font-weight:700;color:#7B1FA2;">Gx/Gm:</span><input type="text" class="tis" list="cantoDL" data-i="'+i+'" data-k="col_gx" value="'+(p.col_gx||'')+'" placeholder="Ej: NOGAL" autocomplete="off" style="width:100%;font-size:11px;border-color:#7B1FA2;margin-top:2px;display:block;"></div>';
+    }
+    cells+='<td style="padding:4px 6px;vertical-align:middle;min-width:115px;max-width:140px;">'+_cc+'</td>';
 
     cells+='<td class="l" style="min-width:80px;"><input class="ti" type="text" value="'+(p.obs||'')+'" placeholder="—" style="width:100%;text-align:left;font-size:12px;" data-i="'+i+'" data-k="obs"></td>';
 
