@@ -1817,7 +1817,7 @@ var pcs=[],allP=[],_pedidoConfirmadoCod='',_pedidoConfirmadoWA=null,_lastPedidoD
 
 // ── HELPERS ──────────────────────────────────────────────
 function el(id){ return document.getElementById(id); }
-function pv(){ return {material:'',qty:'',largo:'',ancho:'',veta:'1-Longitud',l1:'',l2:'',a1:'',a2:'',col_d:'',col_dx:'',col_gx:'',obs:'',perf_cant:'',perf_lado:'',perf_det:'',ran_libre:'',ran_espe:'',ran_prof:'',ran_lado:'',ran_det:''}; }
+function pv(){ return {material:'',qty:'',largo:'',ancho:'',veta:'1-Longitud',l1:'',l2:'',a1:'',a2:'',col_d:'',col_x:'',col_m:'',col_z:'',col_y:'',obs:'',perf_cant:'',perf_lado:'',perf_det:'',ran_libre:'',ran_espe:'',ran_prof:'',ran_lado:'',ran_det:''}; }
 function pvFormica(){ return {material:'',qty:'',obs:''}; }
 function fC(d){ if(!d)return''; var dt=new Date(d); return dt.toLocaleDateString('es-PE',{day:'2-digit',month:'short'})+' '+dt.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}); }
 function fL(d){ if(!d)return''; var dt=new Date(d); return dt.toLocaleDateString('es-PE',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})+' · '+dt.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}); }
@@ -2169,7 +2169,7 @@ function usarComoBase(ped){
     pcs=pzs.map(function(p){
       return {material:p.material||'',qty:p.qty||1,largo:p.largo||'',ancho:p.ancho||'',
         veta:p.veta||'1-Longitud',l1:p.l1||'',l2:p.l2||'',a1:p.a1||'',a2:p.a2||'',
-        col_d:p.col_d||'',col_dx:p.col_dx||'',col_gx:p.col_gx||'',obs:p.obs||'',
+        col_d:p.col_d||'',col_x:p.col_x||'',col_m:p.col_m||'',col_z:p.col_z||'',col_y:p.col_y||'',obs:p.obs||'',
         perf_cant:p.perf_cant||'',perf_lado:p.perf_lado||'',perf_det:p.perf_det||'',
         ran_libre:p.ran_libre||'',ran_espe:p.ran_espe||'',ran_prof:p.ran_prof||'',
         ran_lado:p.ran_lado||'',ran_det:p.ran_det||''};
@@ -3271,7 +3271,7 @@ function leerTodasConIA(){
       return {material:p.material||'MELA PELIKANO BLANCO',qty:Math.max(1,parseInt(p.qty)||1),
         largo:parseInt(p.largo)||'',ancho:parseInt(p.ancho)||'',veta:p.veta||'1-Longitud',
         l1:p.l1||'',l2:p.l2||'',a1:p.a1||'',a2:p.a2||'',obs:p.obs||'',
-        col_d:colDUsado,col_dx:'',col_gx:'',
+        col_d:colDUsado,col_x:'',col_m:'',col_z:'',col_y:'',
         perf_cant:p.perf_cant||'',perf_lado:p.perf_lado||'',perf_det:p.perf_det||'',
         ran_libre:p.ran_libre||'',ran_espe:p.ran_espe||'',ran_prof:p.ran_prof||'',
         ran_lado:p.ran_lado||'',ran_det:p.ran_det||'',
@@ -3502,9 +3502,11 @@ function renderTabla(){
     // Selector de color para Dx/Dy/Dz/Gx/Gy/Gz
     // Usa el color ya elegido para el mismo tipo (Dx comparte con otros Dx de la fila)
     function getColorTipo(canto){
-      // Dx/Dy/Dz comparten col_dx; Gx/Gy/Gz comparten col_gx
-      if(canto==='Dx'||canto==='Dy'||canto==='Dm'||canto==='Dz') return p.col_dx||'';
-      if(canto==='Gx'||canto==='Gy'||canto==='Gm'||canto==='Gz') return p.col_gx||'';
+      // Cada sufijo = color distinto: x, m, z, y
+      if(canto==='Dx'||canto==='Gx') return p.col_x||'';
+      if(canto==='Dm'||canto==='Gm') return p.col_m||'';
+      if(canto==='Dz'||canto==='Gz') return p.col_z||'';
+      if(canto==='Dy'||canto==='Gy') return p.col_y||'';
       return '';
     }
     function colorSel(lado, canto, colorVal){ return ''; } // colores en columna dedicada
@@ -3535,14 +3537,18 @@ function renderTabla(){
       cells+=cantoCelda('l1',p.l1)+cantoCelda('l2',p.l2)+cantoCelda('a1',p.a1)+cantoCelda('a2',p.a2);
     }
 
-    // ── Columna COLOR dedicada ──
-    var _tDx=[p.l1,p.l2,p.a1,p.a2].some(function(c){return c==='Dx'||c==='Dy'||c==='Dm'||c==='Dz';});
-    var _tGx=[p.l1,p.l2,p.a1,p.a2].some(function(c){return c==='Gx'||c==='Gy'||c==='Gm'||c==='Gz';});
+    // ── Columna COLOR dedicada — un input por cada sufijo distinto ──
+    var _tX=[p.l1,p.l2,p.a1,p.a2].some(function(c){return c==='Dx'||c==='Gx';});
+    var _tM=[p.l1,p.l2,p.a1,p.a2].some(function(c){return c==='Dm'||c==='Gm';});
+    var _tZ=[p.l1,p.l2,p.a1,p.a2].some(function(c){return c==='Dz'||c==='Gz';});
+    var _tY=[p.l1,p.l2,p.a1,p.a2].some(function(c){return c==='Dy'||c==='Gy';});
     var _cc='';
     if(!noEc){
       if(cantosD) _cc+='<div style="margin-bottom:3px;"><span style="font-size:9px;font-weight:700;color:#1565C0;">D/G:</span><input type="text" class="tis" list="cantoDL" data-i="'+i+'" data-k="col_d" value="'+(p.col_d||'')+'" placeholder="Ej: BLANCO" autocomplete="off" style="width:100%;font-size:11px;border-color:#1565C0;margin-top:2px;display:block;"></div>';
-      if(_tDx) _cc+='<div style="margin-bottom:3px;"><span style="font-size:9px;font-weight:700;color:#7B1FA2;">Dx/Dm:</span><input type="text" class="tis" list="cantoDL" data-i="'+i+'" data-k="col_dx" value="'+(p.col_dx||'')+'" placeholder="Ej: AZUL" autocomplete="off" style="width:100%;font-size:11px;border-color:#7B1FA2;margin-top:2px;display:block;"></div>';
-      if(_tGx) _cc+='<div><span style="font-size:9px;font-weight:700;color:#7B1FA2;">Gx/Gm:</span><input type="text" class="tis" list="cantoDL" data-i="'+i+'" data-k="col_gx" value="'+(p.col_gx||'')+'" placeholder="Ej: NOGAL" autocomplete="off" style="width:100%;font-size:11px;border-color:#7B1FA2;margin-top:2px;display:block;"></div>';
+      if(_tX) _cc+='<div style="margin-bottom:3px;"><span style="font-size:9px;font-weight:700;color:#7B1FA2;">Dx/Gx:</span><input type="text" class="tis" list="cantoDL" data-i="'+i+'" data-k="col_x" value="'+(p.col_x||'')+'" placeholder="Color X" autocomplete="off" style="width:100%;font-size:11px;border-color:#7B1FA2;margin-top:2px;display:block;"></div>';
+      if(_tM) _cc+='<div style="margin-bottom:3px;"><span style="font-size:9px;font-weight:700;color:#00695C;">Dm/Gm:</span><input type="text" class="tis" list="cantoDL" data-i="'+i+'" data-k="col_m" value="'+(p.col_m||'')+'" placeholder="Color M" autocomplete="off" style="width:100%;font-size:11px;border-color:#00695C;margin-top:2px;display:block;"></div>';
+      if(_tZ) _cc+='<div style="margin-bottom:3px;"><span style="font-size:9px;font-weight:700;color:#E65100;">Dz/Gz:</span><input type="text" class="tis" list="cantoDL" data-i="'+i+'" data-k="col_z" value="'+(p.col_z||'')+'" placeholder="Color Z" autocomplete="off" style="width:100%;font-size:11px;border-color:#E65100;margin-top:2px;display:block;"></div>';
+      if(_tY) _cc+='<div style="margin-bottom:3px;"><span style="font-size:9px;font-weight:700;color:#AD1457;">Dy/Gy:</span><input type="text" class="tis" list="cantoDL" data-i="'+i+'" data-k="col_y" value="'+(p.col_y||'')+'" placeholder="Color Y" autocomplete="off" style="width:100%;font-size:11px;border-color:#AD1457;margin-top:2px;display:block;"></div>';
     }
     cells+='<td style="padding:4px 6px;vertical-align:middle;min-width:115px;max-width:140px;">'+_cc+'</td>';
 
@@ -3668,10 +3674,11 @@ function confirmarPedido(){
     // col_d: usar el global si existe
     if(!p.col_d && colorDGGlobal) p.col_d=colorDGGlobal;
     if(cantosD && !p.col_d){ sinColor.push('Fila '+(i+1)+': falta el color de canto D/G'); }
-    var tieneDx=[p.l1,p.l2,p.a1,p.a2].some(function(c){return c==='Dx'||c==='Dy'||c==='Dm'||c==='Dz';});
-    var tieneGx=[p.l1,p.l2,p.a1,p.a2].some(function(c){return c==='Gx'||c==='Gy'||c==='Gm'||c==='Gz';});
-    if(tieneDx&&!p.col_dx) sinColor.push('Fila '+(i+1)+': Dx/Dy/Dm/Dz sin color de canto delgado extra');
-    if(tieneGx&&!p.col_gx) sinColor.push('Fila '+(i+1)+': Gx/Gy/Gm/Gz sin color de canto grueso extra');
+    var lados=[p.l1,p.l2,p.a1,p.a2];
+    if(lados.some(function(c){return c==='Dx'||c==='Gx';})&&!p.col_x) sinColor.push('Fila '+(i+1)+': Dx/Gx sin color (X)');
+    if(lados.some(function(c){return c==='Dm'||c==='Gm';})&&!p.col_m) sinColor.push('Fila '+(i+1)+': Dm/Gm sin color (M)');
+    if(lados.some(function(c){return c==='Dz'||c==='Gz';})&&!p.col_z) sinColor.push('Fila '+(i+1)+': Dz/Gz sin color (Z)');
+    if(lados.some(function(c){return c==='Dy'||c==='Gy';})&&!p.col_y) sinColor.push('Fila '+(i+1)+': Dy/Gy sin color (Y)');
   });
   if(sinColor.length){ alert('⚠️ Debes indicar el color del canto en:\n'+sinColor.join('\n')); return; }
   var nom=el('cnom').value.trim(); if(!nom){ alert('Ingresa tu nombre.'); return; }
@@ -3682,7 +3689,7 @@ function confirmarPedido(){
   var cod=new Date().toISOString().slice(0,10).replace(/-/g,'')+'-'+nom.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,5)+'-'+String(Math.floor(Math.random()*900)+100);
   var btn=el('btnConfirmar'); btn.textContent='⏳ Enviando...'; btn.disabled=true;
   var vpref=el('cvendedora')&&el('cvendedora').value||null;
-  var datos={codigo:cod,estado:'ingresado',cliente_nombre:nom,cliente_telefono:tel,sede:sede,total_lineas:pcs.length,total_piezas:tot,materiales:mats,vendedora_preferida:vpref||null};
+  var datos={codigo:cod,estado:'ingresado',cliente_nombre:nom,cliente_telefono:tel,sede:sede,total_lineas:pcs.length,total_piezas:tot,materiales:mats,vendedora_preferida:vpref||null,vendedora_asignada:vpref||null};
   try{ datos.cliente_tipo=tipo==='RUC'?'empresa':'persona'; datos.cliente_ruc=tipo==='RUC'?doc:null; datos.cliente_dni=tipo==='DNI'?doc:null; }catch(e){}
   // Guardar datos para el ticket PDF (panel cliente no tiene allP)
   _lastPedidoData=Object.assign({},datos,{cliente_ruc:tipo==='RUC'?doc:null,cliente_dni:tipo==='DNI'?doc:null});
@@ -3699,7 +3706,7 @@ function confirmarPedido(){
         ancho:Math.round(parseFloat(p.ancho)||0),
         veta:p.veta||'1-Longitud',
         l1:p.l1||'',l2:p.l2||'',a1:p.a1||'',a2:p.a2||'',
-        obs:(p.obs||'')+(p.col_d?' [D/G:'+p.col_d+']':'')+(p.col_dx?' [Dx/Dy/Dm/Dz:'+p.col_dx+']':'')+(p.col_gx?' [Gx/Gy/Gm/Gz:'+p.col_gx+']':'')};
+        obs:(p.obs||'')+(p.col_d?' [D/G:'+p.col_d+']':'')+(p.col_x?' [Dx/Gx:'+p.col_x+']':'')+(p.col_m?' [Dm/Gm:'+p.col_m+']':'')+(p.col_z?' [Dz/Gz:'+p.col_z+']':'')+(p.col_y?' [Dy/Gy:'+p.col_y+']':'')};
     }))
     .then(function(){
       if(!frmActivas.length) return Promise.resolve();
@@ -4309,7 +4316,7 @@ function guardarEdicion(){
         ancho:Math.round(parseFloat(p.ancho)||0),
         veta:p.veta||'1-Longitud',
         l1:p.l1||'',l2:p.l2||'',a1:p.a1||'',a2:p.a2||'',
-        col_d:p.col_d||'',col_dx:p.col_dx||'',col_gx:p.col_gx||'',
+        col_d:p.col_d||'',col_x:p.col_x||'',col_m:p.col_m||'',col_z:p.col_z||'',col_y:p.col_y||'',
         obs:p.obs||'',
         perf_cant:p.perf_cant||'',perf_lado:p.perf_lado||'',perf_det:perfDet,
         ran_libre:p.ran_libre||'',ran_espe:p.ran_espe||'',ran_prof:p.ran_prof||'',
