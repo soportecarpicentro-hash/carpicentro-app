@@ -931,9 +931,18 @@ body.light-mode .theme-toggle{border-color:rgba(255,255,255,.35);}
 
       <!-- Vista usuarios (solo admin) -->
       <div id="vUsuariosPanel" style="display:none;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
           <div style="font-size:20px;font-weight:800;">👥 Gestión de usuarios</div>
           <button type="button" id="btnNuevoUsuario" class="btn bp" style="padding:9px 16px;font-size:13px;">+ Nuevo usuario</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+          <input id="uBuscar" type="search" placeholder="Buscar por nombre, usuario, rol o sede..." style="flex:1;min-width:200px;padding:10px 14px;font-size:13px;border-radius:var(--rads);border:2px solid var(--bd2);background:var(--bg);font-family:inherit;color:var(--tx);">
+          <select id="uFiltroRol" style="padding:10px 12px;font-size:13px;border-radius:var(--rads);border:2px solid var(--bd2);background:var(--bg);font-family:inherit;color:var(--tx);font-weight:600;">
+            <option value="">Todos los roles</option>
+            <option value="vendedora">Vendedora</option>
+            <option value="supervisor">Supervisora</option>
+            <option value="admin">Admin</option>
+          </select>
         </div>
         <div id="ulist" style="display:flex;flex-direction:column;gap:10px;"></div>
       </div>
@@ -3771,6 +3780,8 @@ el('btnRefresh').addEventListener('click',cargarPedidos);
 })();
 el('tabPedidos') && el('tabPedidos').addEventListener('click',function(){ switchVTab('pedidos'); });
 el('tabUsuarios') && el('tabUsuarios').addEventListener('click',function(){ switchVTab('usuarios'); });
+el('uBuscar') && el('uBuscar').addEventListener('input',_filtrarUsuarios);
+el('uFiltroRol') && el('uFiltroRol').addEventListener('change',_filtrarUsuarios);
 // Listeners overlay usuarios
 el('btnCerrarUovl') && el('btnCerrarUovl').addEventListener('click',function(){ el('uovl').classList.remove('open'); });
 el('btnCancelarU') && el('btnCancelarU').addEventListener('click',function(){ el('uovl').classList.remove('open'); });
@@ -3806,42 +3817,59 @@ function switchVTab(tab){
   }
 }
 
+var _allUsuarios=[];
+function _renderUsuarios(rows){
+  var lista=el('ulist');
+  if(!rows.length){ lista.innerHTML='<div style="color:var(--tx3);padding:20px;">Sin resultados.</div>'; return; }
+  lista.innerHTML='';
+  rows.forEach(function(u){
+    var div=document.createElement('div');
+    div.className='card';
+    div.style.cssText='margin-bottom:0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:16px 20px;';
+    div.innerHTML='<div>'
+      +'<div style="font-size:16px;font-weight:800;">'+u.nombre+'</div>'
+      +'<div style="font-size:13px;color:var(--tx3);margin-top:3px;">@'+u.usuario
+        +' · '+(u.rol==='admin'?'<span style="color:var(--red);font-weight:700;">🔑 Admin</span>':u.rol==='supervisor'?'<span style="color:#7B1FA2;font-weight:700;">🔵 Supervisora</span>':'Vendedora')
+        +' · '+(u.sede||'—')
+      +'</div>'
+      +'</div>'
+      +'<div style="display:flex;gap:8px;align-items:center;">'
+        +'<span class="badge '+(u.activo?'b-lst':'b-nop')+'">'+(u.activo?'Activo':'Inactivo')+'</span>'
+        +'<button type="button" class="btn bs" style="padding:7px 14px;font-size:12px;" data-uid="'+u.id+'">✏️ Editar</button>'
+        +(sesion&&sesion.id!==u.id?'<button type="button" class="btn bdanger" style="padding:7px 12px;font-size:12px;" data-del-uid="'+u.id+'" data-unom="'+u.nombre+'">🗑️</button>':'')
+      +'</div>';
+    div.querySelector('button[data-uid]').addEventListener('click',function(){
+      abrirFormUsuario(this.dataset.uid);
+    });
+    var btnDel=div.querySelector('button[data-del-uid]');
+    if(btnDel){
+      btnDel.addEventListener('click',function(){
+        var uid=this.dataset.delUid, unom=this.dataset.unom;
+        if(!confirm('¿Eliminar usuario "'+unom+'"?\nEsta acción no se puede deshacer.')) return;
+        fetch('/api/admin-usuarios',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+sesionToken},body:JSON.stringify({accion:'eliminar',usuario_id:uid})}).then(function(){ cargarUsuarios(); });
+      });
+    }
+    lista.appendChild(div);
+  });
+}
+function _filtrarUsuarios(){
+  var q=(el('uBuscar').value||'').toLowerCase().trim();
+  var rol=el('uFiltroRol').value;
+  var filtrados=_allUsuarios.filter(function(u){
+    var matchRol=!rol||u.rol===rol;
+    var matchQ=!q||(u.nombre||'').toLowerCase().includes(q)||(u.usuario||'').toLowerCase().includes(q)||(u.sede||'').toLowerCase().includes(q)||(u.rol||'').toLowerCase().includes(q);
+    return matchRol&&matchQ;
+  });
+  _renderUsuarios(filtrados);
+}
 function cargarUsuarios(){
   var lista=el('ulist');
   lista.innerHTML='<div style="color:var(--tx3);padding:20px;text-align:center;">Cargando...</div>';
   sbGet('usuarios','order=nombre.asc').then(function(rows){
-    rows=rows||[];
-    if(!rows.length){ lista.innerHTML='<div style="color:var(--tx3);padding:20px;">No hay usuarios.</div>'; return; }
-    lista.innerHTML='';
-    rows.forEach(function(u){
-      var div=document.createElement('div');
-      div.className='card';
-      div.style.cssText='margin-bottom:0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:16px 20px;';
-      div.innerHTML='<div>'
-        +'<div style="font-size:16px;font-weight:800;">'+u.nombre+'</div>'
-        +'<div style="font-size:13px;color:var(--tx3);margin-top:3px;">@'+u.usuario
-          +' · '+(u.rol==='admin'?'<span style="color:var(--red);font-weight:700;">🔑 Admin</span>':u.rol==='supervisor'?'<span style="color:#7B1FA2;font-weight:700;">🔵 Supervisora</span>':'Vendedora')
-          +' · '+(u.sede||'—')
-        +'</div>'
-        +'</div>'
-        +'<div style="display:flex;gap:8px;align-items:center;">'
-          +'<span class="badge '+(u.activo?'b-lst':'b-nop')+'">'+(u.activo?'Activo':'Inactivo')+'</span>'
-          +'<button type="button" class="btn bs" style="padding:7px 14px;font-size:12px;" data-uid="'+u.id+'">✏️ Editar</button>'
-          +(sesion&&sesion.id!==u.id?'<button type="button" class="btn bdanger" style="padding:7px 12px;font-size:12px;" data-del-uid="'+u.id+'" data-unom="'+u.nombre+'">🗑️</button>':'')
-        +'</div>';
-      div.querySelector('button[data-uid]').addEventListener('click',function(){
-        abrirFormUsuario(this.dataset.uid);
-      });
-      var btnDel=div.querySelector('button[data-del-uid]');
-      if(btnDel){
-        btnDel.addEventListener('click',function(){
-          var uid=this.dataset.delUid, unom=this.dataset.unom;
-          if(!confirm('¿Eliminar usuario "'+unom+'"?\nEsta acción no se puede deshacer.')) return;
-          fetch('/api/admin-usuarios',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+sesionToken},body:JSON.stringify({accion:'eliminar',usuario_id:uid})}).then(function(){ cargarUsuarios(); });
-        });
-      }
-      lista.appendChild(div);
-    });
+    _allUsuarios=rows||[];
+    if(el('uBuscar')) el('uBuscar').value='';
+    if(el('uFiltroRol')) el('uFiltroRol').value='';
+    _filtrarUsuarios();
   });
 }
 
