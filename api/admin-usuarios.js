@@ -32,12 +32,12 @@ export default async function handler(req, res) {
     { headers: svcHH }
   ).then(r => r.ok ? r.json() : []).catch(() => []);
 
-  if (callerPerfil[0]?.rol !== 'admin') {
+  if (!['admin'].includes(callerPerfil[0]?.rol)) {
     return res.status(403).json({ error: 'Solo administradores pueden gestionar usuarios' });
   }
 
   // ── Acción ─────────────────────────────────────────────────────────
-  const { accion, usuario, password, nombre, rol, activo, usuario_id } = req.body || {};
+  const { accion, usuario, password, nombre, rol, activo, usuario_id, sede } = req.body || {};
 
   try {
     // ── CREAR ──────────────────────────────────────────────────────
@@ -62,7 +62,7 @@ export default async function handler(req, res) {
       await fetch(`${SB}/rest/v1/usuarios`, {
         method: 'POST',
         headers: { ...svcHH, 'Prefer': 'return=minimal' },
-        body: JSON.stringify({ nombre, usuario, password_hash: password, rol, activo: true, auth_user_id: authRes.id }),
+        body: JSON.stringify({ nombre, usuario, password_hash: password, rol, activo: true, auth_user_id: authRes.id, sede: sede||'Independencia' }),
       });
 
       return res.status(200).json({ ok: true });
@@ -94,6 +94,7 @@ export default async function handler(req, res) {
       if (rol !== undefined) datos.rol = rol;
       if (activo !== undefined) datos.activo = activo;
       if (password) datos.password_hash = password;
+      if (sede !== undefined) datos.sede = sede;
 
       await fetch(`${SB}/rest/v1/usuarios?id=eq.${usuario_id}`, {
         method: 'PATCH',
