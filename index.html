@@ -3926,11 +3926,22 @@ function abrirDet(id){
   el('dsede').textContent=pedAct.sede; el('dcod').textContent=pedAct.codigo;
   el('dfec').textContent=fL(pedAct.created_at);
   el('dest').innerHTML='<span class="badge '+(ESTC[pedAct.estado]||'b-ing')+'">'+(ESTL[pedAct.estado]||pedAct.estado)+'</span>';
+  // Auto: ingresado → revisado al abrir el ticket
+  if(pedAct.estado==='ingresado'){
+    sbPatch('pedidos','id=eq.'+pedAct.id,{estado:'revisado',vendedora_nombre:sesion?sesion.nombre:''})
+    .then(function(){
+      addH(pedAct.id,'estado_cambiado','estado',ESTL.ingresado,ESTL.revisado,'Auto: revisado al abrir ticket').catch(function(){});
+      pedAct.estado='revisado';
+      var ap=allP.find(function(p){return p.id===pedAct.id;}); if(ap) ap.estado='revisado';
+      el('dest').innerHTML='<span class="badge b-rev">'+ESTL.revisado+'</span>';
+    });
+  }
   el('nota').value=pedAct.nota_interna||'';
   var isAdmin=sesion&&sesion.rol==='admin';
   el('dacts').innerHTML='<select id="sest" style="padding:10px 12px;font-size:13px;border-radius:var(--rads);border:2px solid var(--bd2);background:var(--bg);font-weight:600;font-family:inherit;">'
-    +Object.entries(ESTL).map(function(e){ return '<option value="'+e[0]+'"'+(pedAct.estado===e[0]?' selected':'')+'>'+e[1]+'</option>'; }).join('')+'</select>'
-    +'<button type="button" id="btnCambEst" class="btn bs" style="padding:10px 14px;font-size:13px;">Cambiar</button>'
+    +'<option value="">— Pasar a... —</option>'
+    +['en_produccion','listo','entregado','no_procedio'].map(function(k){ return '<option value="'+k+'">'+ESTL[k]+'</option>'; }).join('')
+    +'</select>'
     +(!pedAct.convertido_venta
       ?'<button type="button" id="btnMkV" class="btn bt" style="padding:10px 14px;font-size:13px;">✓ Marcar venta</button>'
       :'<button type="button" id="btnMkV" class="btn bs" style="padding:10px 14px;font-size:13px;">✕ Quitar venta</button>')
@@ -3944,7 +3955,7 @@ function abrirDet(id){
     el('dacts').insertBefore(btn, el('dacts').firstChild);
     btn.addEventListener('click',function(){ usarComoBase(pedRef); });
   })(pedAct);
-  el('btnCambEst').addEventListener('click',cambiarEst);
+  el('sest').addEventListener('change',function(){ if(this.value) cambiarEst(); });
   el('btnMkV').addEventListener('click',function(){ marcarVenta(!pedAct.convertido_venta); });
   if(isAdmin) el('btnDelPed').addEventListener('click',eliminarPedido);
   el('accionesPiezas').innerHTML='<button type="button" id="btnDescExcel" class="btn bt" style="padding:8px 14px;font-size:13px;">↓ Excel Optiplaning</button>'
@@ -4062,9 +4073,16 @@ function animarBadge(el){
 }
 function cambiarEst(){
   var nv=el('sest').value, an=pedAct.estado;
+  if(!nv||nv===an) return;
   sbPatch('pedidos','id=eq.'+pedAct.id,{estado:nv,vendedora_nombre:sesion?sesion.nombre:''})
   .then(function(){ return addH(pedAct.id,'estado_cambiado','estado',ESTL[an],ESTL[nv],'Estado: "'+ESTL[an]+'" → "'+ESTL[nv]+'"'); })
-  .then(function(){ pedAct.estado=nv; abrirDet(pedAct.id); });
+  .then(function(){
+    pedAct.estado=nv;
+    var ap=allP.find(function(p){return p.id===pedAct.id;}); if(ap) ap.estado=nv;
+    el('dest').innerHTML='<span class="badge '+(ESTC[nv]||'b-ing')+'">'+(ESTL[nv])+'</span>';
+    el('sest').value=''; // resetear dropdown
+    showToast('Estado actualizado: '+ESTL[nv],'ok',2500);
+  });
 }
 function marcarVenta(v){
   sbPatch('pedidos','id=eq.'+pedAct.id,{convertido_venta:v,vendedora_nombre:sesion?sesion.nombre:''})
@@ -4187,6 +4205,17 @@ function guardarEdicion(){
 function descargarPED(){
   // Formato PED para Lepton (software de optimización de corte)
   var btn=el('btnDescPed'); btn.textContent='⏳...'; btn.disabled=true;
+  // Auto: → en_optiplaning al descargar (si no está en etapa posterior)
+  if(['en_produccion','listo','entregado','no_procedio','en_optiplaning'].indexOf(pedAct.estado)<0){
+    var _ea=pedAct.estado;
+    sbPatch('pedidos','id=eq.'+pedAct.id,{estado:'en_optiplaning',vendedora_nombre:sesion?sesion.nombre:''})
+    .then(function(){
+      addH(pedAct.id,'estado_cambiado','estado',ESTL[_ea],ESTL.en_optiplaning,'Auto: optiplaning al descargar PED').catch(function(){});
+      pedAct.estado='en_optiplaning';
+      var ap=allP.find(function(p){return p.id===pedAct.id;}); if(ap) ap.estado='en_optiplaning';
+      if(el('dest')) el('dest').innerHTML='<span class="badge b-opt">'+ESTL.en_optiplaning+'</span>';
+    });
+  }
   sbGet('pedido_piezas','pedido_id=eq.'+pedAct.id+'&order=linea.asc').then(function(pzs){
     pzs=pzs||[];
     // Formato PED: texto plano con campos separados por punto y coma
@@ -4230,6 +4259,17 @@ function descargarPED(){
 
 function descargarExcel(){
   var btn=el('btnDescExcel'); btn.textContent='⏳...'; btn.disabled=true;
+  // Auto: → en_optiplaning al descargar (si no está en etapa posterior)
+  if(['en_produccion','listo','entregado','no_procedio','en_optiplaning'].indexOf(pedAct.estado)<0){
+    var _ea=pedAct.estado;
+    sbPatch('pedidos','id=eq.'+pedAct.id,{estado:'en_optiplaning',vendedora_nombre:sesion?sesion.nombre:''})
+    .then(function(){
+      addH(pedAct.id,'estado_cambiado','estado',ESTL[_ea],ESTL.en_optiplaning,'Auto: optiplaning al descargar Excel').catch(function(){});
+      pedAct.estado='en_optiplaning';
+      var ap=allP.find(function(p){return p.id===pedAct.id;}); if(ap) ap.estado='en_optiplaning';
+      if(el('dest')) el('dest').innerHTML='<span class="badge b-opt">'+ESTL.en_optiplaning+'</span>';
+    });
+  }
   sbGet('pedido_piezas','pedido_id=eq.'+pedAct.id+'&order=linea.asc').then(function(pzs){
     pzs=pzs||[];
     var wb=XLSX.utils.book_new(), P='DEF - SEKTOR470';
