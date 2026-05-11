@@ -253,23 +253,44 @@ Dos valores válidos: D (delgado/fino) o G (grueso/gordo). Guión - = sin canto.
 
 IDENTIFICACIÓN RÁPIDA DE D vs G:
   D (delgado)  ← letra D, guión recto "─", subrayado "_", línea recta sobre/bajo la medida, "/" o "\"
-  G (grueso)   ← letra G, letra X, línea ondulada "∿" o "~", zigzag, línea que parece un gusano/wave
+  G (grueso)   ← letra G, número "6" manuscrito usado como marca de canto (un 6 escrito encima de la medida = G), letra X, línea ondulada "∿" o "~", zigzag
   Sin canto    ← guión "-", vacío, punto, cero, "S/C", "SC", "PL", "liso", "sin canto"
 
-FORMATO A — Trazos/marcas DIBUJADOS sobre o junto a los números de medida:
-  • Trazo RECTO (─ — _ / \) = D | Trazo ONDULADO (∿ ~ ≈ zigzag, gusano, wave) = G | X junto a medida = G
-  • La marca está SOBRE/BAJO el número LARGO → L1=X L2=X
-  • La marca está SOBRE/BAJO el número ANCHO → A1=X A2=X
-  • Marca sobre AMBOS números → L1=X L2=X A1=X A2=X
-  • Pequeño guión o tick al lado del número = D
-  • Sin marca sobre ese número → - en esos lados
+⚠ CRÍTICO — EL SÍMBOLO "=" NO EXISTE COMO CANTO:
+  Lo que parece "=" son DOS líneas horizontales INDEPENDIENTES, cada una es una D por separado.
+  El separador "2 = 785 x 570" usa "=" como divisor cantidad/medida — NO es canto.
+  Las marcas de canto aparecen ENCIMA o DEBAJO de los números, nunca en la misma línea.
+
+FORMATO A — Marcas dibujadas ENCIMA o DEBAJO de los números de medida:
+  REGLA FUNDAMENTAL: CONTAR el número de marcas individuales sobre cada dimensión.
+  Cada marca individual = UN lado de esa dimensión.
+
+  MARCAS DE D (delgado) — líneas rectas horizontales:
+    1 línea recta sobre el LARGO  → L1=D  (solo un lado)
+    2 líneas rectas sobre el LARGO → L1=D L2=D  (ambos lados del largo)
+    1 línea recta sobre el ANCHO  → A1=D
+    2 líneas rectas sobre el ANCHO → A1=D A2=D
+    ⚠ Dos líneas rectas que parecen "=" encima de un número = L1=D L2=D (NO es símbolo igual)
+
+  MARCAS DE G (grueso) — letra G, número 6 manuscrito:
+    1 "G" o "6" sobre el LARGO  → L1=G  (solo un lado)
+    2 "G" o "GG" o "66" sobre el LARGO → L1=G L2=G  (ambos lados del largo)
+    1 "G" o "6" sobre el ANCHO  → A1=G
+    2 "G" o "GG" o "66" sobre el ANCHO → A1=G A2=G
+    ⚠ "6" manuscrito sobre una medida = G (grueso). No confundir con el número de la medida.
+
+  MARCAS SOBRE AMBAS DIMENSIONES:
+    Marcas sobre el largo Y sobre el ancho → asignar a cada dimensión según su posición
+
+  EJEMPLO: largo con 2 líneas rectas (=), ancho sin marca → L1=D L2=D A1=- A2=-
+  EJEMPLO: largo con "GG" o "66", ancho con "GG" → L1=G L2=G A1=G A2=G
+  EJEMPLO: largo con 1 línea, ancho con "GG" → L1=D L2=- A1=G A2=G
+  EJEMPLO: largo con 2 líneas (=), ancho con 1 "G" → L1=D L2=D A1=G A2=-
   EJEMPLO: "─840─ × 420" → L1=D L2=D A1=- A2=-
   EJEMPLO: "840 × ∿420∿" → L1=- L2=- A1=G A2=G
-  EJEMPLO: "_840_ × ~420~" → L1=D L2=D A1=G A2=G
-  EJEMPLO: "840×420 X" (X junto a la pieza) → L1=G L2=G A1=G A2=G
 
 FORMATO B — Columnas L1/L2/A1/A2 en tabla:
-  • Leer la celda: D o d→D | G o g o X o x→G | vacío/guión/punto/0→-
+  • Leer la celda: D o d→D | G o g o X o x o 6→G | vacío/guión/punto/0→-
   • Columna única "CANTO" con "D" → L1=D L2=D A1=D A2=D
   • Columna única "CANTO" con "G" o "X" → L1=G L2=G A1=G A2=G
   • Columna única con código multi-letra → ver FORMATO C
@@ -287,7 +308,7 @@ FORMATO C — Código de letras junto/después de las medidas:
 
 FORMATO D — Subrayado / sobrerayado dibujado:
   • Línea RECTA bajo/sobre la medida = D | Línea ONDULADA o en zigzag = G
-  • Aplica a los lados de la dimensión marcada (si subraya el largo → L1=X L2=X)
+  • CONTAR líneas: 1 línea bajo el largo → L1=D | 2 líneas bajo el largo → L1=D L2=D
 
 FORMATO E — Texto descriptivo libre:
   • "todos c/D" "4 lados D" "4D" → L1=D L2=D A1=D A2=D
@@ -297,9 +318,11 @@ FORMATO E — Texto descriptivo libre:
   • "2 lados G" → L1=G L2=G A1=- A2=-
 
 REGLAS DEFINITIVAS:
-  ✓ Si ves CUALQUIER marca de canto → léela y escríbela. NUNCA la omitas.
-  ✓ D y _ y línea recta y "/" = SIEMPRE delgado
-  ✓ G y X y línea ondulada y gusano y zigzag = SIEMPRE grueso
+  ✓ "6" manuscrito sobre una medida = G (grueso), no el número seis
+  ✓ Dos líneas rectas sobre una medida (parecen "=") = D en AMBOS lados de esa dimensión, NO símbolo igual
+  ✓ CONTAR marcas: 1 marca = 1 lado | 2 marcas = 2 lados de esa dimensión
+  ✓ D y _ y línea recta = SIEMPRE delgado
+  ✓ G y 6 y X y línea ondulada y zigzag = SIEMPRE grueso
   ✓ Ambiguo entre D y G → usa D (es el más común en Perú)
   ✓ SIEMPRE escribe L1: L2: A1: A2: para cada pieza, aunque sean todos -
   ✗ Pon - solo cuando NO existe ninguna marca visible para ese lado
