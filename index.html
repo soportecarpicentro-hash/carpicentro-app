@@ -4048,8 +4048,17 @@ function abrirDet(id){
         });
       });
     });
-  } else if(pedAct.vendedora_asignada){
-    el('dasign').innerHTML='<div style="margin-top:8px;font-size:12px;color:var(--tx3);">👤 Asignado a: <strong>'+pedAct.vendedora_asignada+'</strong></div>';
+  } else {
+    if(pedAct.vendedora_asignada){
+      var esParaMi=sesion&&pedAct.vendedora_asignada===sesion.nombre;
+      el('dasign').innerHTML='<div style="margin-top:8px;font-size:12px;">'
+        +(esParaMi
+          ?'<span class="badge" style="background:#E8F5E9;color:#2E7D32;font-size:12px;">👤 Asignado a ti</span>'
+          :'<span class="badge" style="background:#E8EAF6;color:#283593;font-size:12px;">👤 '+pedAct.vendedora_asignada+'</span>')
+        +'</div>';
+    } else {
+      el('dasign').innerHTML='<div style="margin-top:8px;"><span class="badge" style="background:#F5F5F5;color:#9E9E9E;font-size:12px;">Sin asignar</span></div>';
+    }
   }
   var isAdmin=sesion&&sesion.rol==='admin';
   el('dacts').innerHTML='<select id="sest" style="padding:10px 12px;font-size:13px;border-radius:var(--rads);border:2px solid var(--bd2);background:var(--bg);font-weight:600;font-family:inherit;">'
