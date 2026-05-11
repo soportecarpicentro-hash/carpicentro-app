@@ -1802,10 +1802,10 @@ var CANTO_COLORES = ["BLANCO", "CARAMELO", "PAMELA", "ONIX", "CAPRI", "MADERA", 
 
 // CANTOS: '' vacío, 'D'/'G' = color igual al tablero,
 //         'Dx'/'Gx'/'Dz'/'Gz' = otro color (se pide cuál)
-var CANTOS = ['','D','G','Dx','Dy','Dm','Dz','Gx','Gy','Gm','Gz'];
+var CANTOS = ['','D','G','Dx','Dm','Dz','Gx','Gm','Gz'];
 
 // Para cada canto, si requiere especificar color
-function cantoNecesitaColor(c){ return c==='Dx'||c==='Dy'||c==='Dm'||c==='Dz'||c==='Gx'||c==='Gy'||c==='Gm'||c==='Gz'; }
+function cantoNecesitaColor(c){ return c==='Dx'||c==='Dm'||c==='Dz'||c==='Gx'||c==='Gm'||c==='Gz'; }
 // Material sin enchape
 function matSinEnchape(mat){ return !!MAT_NO_ENCHAPE[mat]; }
 var VETAS  = ['1-Longitud','2-Ancho','Sin veta'];
@@ -1817,7 +1817,7 @@ var pcs=[],allP=[],_pedidoConfirmadoCod='',_pedidoConfirmadoWA=null,_lastPedidoD
 
 // ── HELPERS ──────────────────────────────────────────────
 function el(id){ return document.getElementById(id); }
-function pv(){ return {material:'',qty:'',largo:'',ancho:'',veta:'1-Longitud',l1:'',l2:'',a1:'',a2:'',col_d:'',col_x:'',col_m:'',col_z:'',col_y:'',obs:'',perf_cant:'',perf_lado:'',perf_det:'',ran_libre:'',ran_espe:'',ran_prof:'',ran_lado:'',ran_det:''}; }
+function pv(){ return {material:'',qty:'',largo:'',ancho:'',veta:'1-Longitud',l1:'',l2:'',a1:'',a2:'',col_d:'',col_x:'',col_m:'',col_z:'',obs:'',perf_cant:'',perf_lado:'',perf_det:'',ran_libre:'',ran_espe:'',ran_prof:'',ran_lado:'',ran_det:''}; }
 function pvFormica(){ return {material:'',qty:'',obs:''}; }
 function fC(d){ if(!d)return''; var dt=new Date(d); return dt.toLocaleDateString('es-PE',{day:'2-digit',month:'short'})+' '+dt.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}); }
 function fL(d){ if(!d)return''; var dt=new Date(d); return dt.toLocaleDateString('es-PE',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})+' · '+dt.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}); }
@@ -2169,7 +2169,7 @@ function usarComoBase(ped){
     pcs=pzs.map(function(p){
       return {material:p.material||'',qty:p.qty||1,largo:p.largo||'',ancho:p.ancho||'',
         veta:p.veta||'1-Longitud',l1:p.l1||'',l2:p.l2||'',a1:p.a1||'',a2:p.a2||'',
-        col_d:p.col_d||'',col_x:p.col_x||'',col_m:p.col_m||'',col_z:p.col_z||'',col_y:p.col_y||'',obs:p.obs||'',
+        col_d:p.col_d||'',col_x:p.col_x||'',col_m:p.col_m||'',col_z:p.col_z||'',obs:p.obs||'',
         perf_cant:p.perf_cant||'',perf_lado:p.perf_lado||'',perf_det:p.perf_det||'',
         ran_libre:p.ran_libre||'',ran_espe:p.ran_espe||'',ran_prof:p.ran_prof||'',
         ran_lado:p.ran_lado||'',ran_det:p.ran_det||''};
@@ -3271,7 +3271,7 @@ function leerTodasConIA(){
       return {material:p.material||'MELA PELIKANO BLANCO',qty:Math.max(1,parseInt(p.qty)||1),
         largo:parseInt(p.largo)||'',ancho:parseInt(p.ancho)||'',veta:p.veta||'1-Longitud',
         l1:p.l1||'',l2:p.l2||'',a1:p.a1||'',a2:p.a2||'',obs:p.obs||'',
-        col_d:colDUsado,col_x:'',col_m:'',col_z:'',col_y:'',
+        col_d:colDUsado,col_x:'',col_m:'',col_z:'',
         perf_cant:p.perf_cant||'',perf_lado:p.perf_lado||'',perf_det:p.perf_det||'',
         ran_libre:p.ran_libre||'',ran_espe:p.ran_espe||'',ran_prof:p.ran_prof||'',
         ran_lado:p.ran_lado||'',ran_det:p.ran_det||'',
@@ -3499,14 +3499,12 @@ function renderTabla(){
     var noEc=matSinEnchape(p.material);
     var dBtn='<button type="button" class="db" data-del="'+i+'"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg></button>';
 
-    // Selector de color para Dx/Dy/Dz/Gx/Gy/Gz
-    // Usa el color ya elegido para el mismo tipo (Dx comparte con otros Dx de la fila)
+    // Selector de color para Dx/Dz/Gx/Gz — cada sufijo = color distinto
     function getColorTipo(canto){
       // Cada sufijo = color distinto: x, m, z, y
       if(canto==='Dx'||canto==='Gx') return p.col_x||'';
       if(canto==='Dm'||canto==='Gm') return p.col_m||'';
       if(canto==='Dz'||canto==='Gz') return p.col_z||'';
-      if(canto==='Dy'||canto==='Gy') return p.col_y||'';
       return '';
     }
     function colorSel(lado, canto, colorVal){ return ''; } // colores en columna dedicada
@@ -3541,14 +3539,12 @@ function renderTabla(){
     var _tX=[p.l1,p.l2,p.a1,p.a2].some(function(c){return c==='Dx'||c==='Gx';});
     var _tM=[p.l1,p.l2,p.a1,p.a2].some(function(c){return c==='Dm'||c==='Gm';});
     var _tZ=[p.l1,p.l2,p.a1,p.a2].some(function(c){return c==='Dz'||c==='Gz';});
-    var _tY=[p.l1,p.l2,p.a1,p.a2].some(function(c){return c==='Dy'||c==='Gy';});
     var _cc='';
     if(!noEc){
       if(cantosD) _cc+='<div style="margin-bottom:3px;"><span style="font-size:9px;font-weight:700;color:#1565C0;">D/G:</span><input type="text" class="tis" list="cantoDL" data-i="'+i+'" data-k="col_d" value="'+(p.col_d||'')+'" placeholder="Ej: BLANCO" autocomplete="off" style="width:100%;font-size:11px;border-color:#1565C0;margin-top:2px;display:block;"></div>';
       if(_tX) _cc+='<div style="margin-bottom:3px;"><span style="font-size:9px;font-weight:700;color:#7B1FA2;">Dx/Gx:</span><input type="text" class="tis" list="cantoDL" data-i="'+i+'" data-k="col_x" value="'+(p.col_x||'')+'" placeholder="Color X" autocomplete="off" style="width:100%;font-size:11px;border-color:#7B1FA2;margin-top:2px;display:block;"></div>';
       if(_tM) _cc+='<div style="margin-bottom:3px;"><span style="font-size:9px;font-weight:700;color:#00695C;">Dm/Gm:</span><input type="text" class="tis" list="cantoDL" data-i="'+i+'" data-k="col_m" value="'+(p.col_m||'')+'" placeholder="Color M" autocomplete="off" style="width:100%;font-size:11px;border-color:#00695C;margin-top:2px;display:block;"></div>';
       if(_tZ) _cc+='<div style="margin-bottom:3px;"><span style="font-size:9px;font-weight:700;color:#E65100;">Dz/Gz:</span><input type="text" class="tis" list="cantoDL" data-i="'+i+'" data-k="col_z" value="'+(p.col_z||'')+'" placeholder="Color Z" autocomplete="off" style="width:100%;font-size:11px;border-color:#E65100;margin-top:2px;display:block;"></div>';
-      if(_tY) _cc+='<div style="margin-bottom:3px;"><span style="font-size:9px;font-weight:700;color:#AD1457;">Dy/Gy:</span><input type="text" class="tis" list="cantoDL" data-i="'+i+'" data-k="col_y" value="'+(p.col_y||'')+'" placeholder="Color Y" autocomplete="off" style="width:100%;font-size:11px;border-color:#AD1457;margin-top:2px;display:block;"></div>';
     }
     cells+='<td style="padding:4px 6px;vertical-align:middle;min-width:115px;max-width:140px;">'+_cc+'</td>';
 
@@ -3678,7 +3674,6 @@ function confirmarPedido(){
     if(lados.some(function(c){return c==='Dx'||c==='Gx';})&&!p.col_x) sinColor.push('Fila '+(i+1)+': Dx/Gx sin color (X)');
     if(lados.some(function(c){return c==='Dm'||c==='Gm';})&&!p.col_m) sinColor.push('Fila '+(i+1)+': Dm/Gm sin color (M)');
     if(lados.some(function(c){return c==='Dz'||c==='Gz';})&&!p.col_z) sinColor.push('Fila '+(i+1)+': Dz/Gz sin color (Z)');
-    if(lados.some(function(c){return c==='Dy'||c==='Gy';})&&!p.col_y) sinColor.push('Fila '+(i+1)+': Dy/Gy sin color (Y)');
   });
   if(sinColor.length){ alert('⚠️ Debes indicar el color del canto en:\n'+sinColor.join('\n')); return; }
   var nom=el('cnom').value.trim(); if(!nom){ alert('Ingresa tu nombre.'); return; }
@@ -3706,7 +3701,7 @@ function confirmarPedido(){
         ancho:Math.round(parseFloat(p.ancho)||0),
         veta:p.veta||'1-Longitud',
         l1:p.l1||'',l2:p.l2||'',a1:p.a1||'',a2:p.a2||'',
-        obs:(p.obs||'')+(p.col_d?' [D/G:'+p.col_d+']':'')+(p.col_x?' [Dx/Gx:'+p.col_x+']':'')+(p.col_m?' [Dm/Gm:'+p.col_m+']':'')+(p.col_z?' [Dz/Gz:'+p.col_z+']':'')+(p.col_y?' [Dy/Gy:'+p.col_y+']':'')};
+        obs:(p.obs||'')+(p.col_d?' [D/G:'+p.col_d+']':'')+(p.col_x?' [Dx/Gx:'+p.col_x+']':'')+(p.col_m?' [Dm/Gm:'+p.col_m+']':'')+(p.col_z?' [Dz/Gz:'+p.col_z+']':'')};
     }))
     .then(function(){
       if(!frmActivas.length) return Promise.resolve();
@@ -4316,7 +4311,7 @@ function guardarEdicion(){
         ancho:Math.round(parseFloat(p.ancho)||0),
         veta:p.veta||'1-Longitud',
         l1:p.l1||'',l2:p.l2||'',a1:p.a1||'',a2:p.a2||'',
-        col_d:p.col_d||'',col_x:p.col_x||'',col_m:p.col_m||'',col_z:p.col_z||'',col_y:p.col_y||'',
+        col_d:p.col_d||'',col_x:p.col_x||'',col_m:p.col_m||'',col_z:p.col_z||'',
         obs:p.obs||'',
         perf_cant:p.perf_cant||'',perf_lado:p.perf_lado||'',perf_det:perfDet,
         ran_libre:p.ran_libre||'',ran_espe:p.ran_espe||'',ran_prof:p.ran_prof||'',
