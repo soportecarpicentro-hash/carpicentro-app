@@ -226,7 +226,10 @@ PASO D — Errores fatales a evitar:
 
 LARGO y ANCHO (separados por x, ×, X, /, "por"):
 • El PRIMER número escrito es LARGO, el SEGUNDO es ANCHO — respetar SIEMPRE el orden del documento
-• NUNCA invertir largo y ancho aunque el largo sea menor que el ancho
+• ⛔ PROHIBIDO ABSOLUTAMENTE: invertir largo y ancho por ningún motivo
+• Si el primer número es 300 y el segundo es 840 → largo=300, ancho=840. PUNTO. No importa cuál sea mayor.
+• Si el primer número es 60 y el segundo es 1830 → largo=60, ancho=1830. El cliente lo escribió así.
+• Cambiar el orden = ERROR GRAVE que arruina el corte de la pieza.
 
 CONVERSIÓN DE UNIDADES — UNA SOLA REGLA:
   ✓ Número CON decimal (punto o coma) → CM → ×10 → MM   (57.4→574  84,5→845  78,1→781)
@@ -237,7 +240,7 @@ CONVERSIÓN DE UNIDADES — UNA SOLA REGLA:
 
 VERIFICACIÓN PIEZA A PIEZA (obligatoria):
   □ ¿El número tenía decimal (punto/coma)? → confirmar ×10 aplicado. ¿Era entero? → dejar exacto.
-  □ ¿Respetaste el orden original del documento (primer número = largo, segundo = ancho)?
+  □ ¿El PRIMER número del documento está en "largo" y el SEGUNDO en "ancho"? → si los invertiste, CORREGIR ahora.
 
 LÍNEAS TACHADAS → IGNORAR completamente.
 
@@ -278,6 +281,13 @@ FORMATO A — Marcas dibujadas ENCIMA o DEBAJO de los números de medida:
     1 "G" o "6" sobre el ANCHO  → A1=G
     2 "G" o "GG" o "66" sobre el ANCHO → A1=G A2=G
     ⚠ "6" manuscrito sobre una medida = G (grueso). No confundir con el número de la medida.
+
+  MARCAS MIXTAS SOBRE UNA MISMA DIMENSIÓN (caso especial):
+    Si sobre el LARGO hay DOS marcas de TIPO DISTINTO (ej: una ondulada/G Y una línea recta/D):
+      → la ondulada = un lado, la recta = el otro lado (L1=G L2=D, o L1=D L2=G según posición)
+    Si sobre el ANCHO hay ondulada + recta → A1=G A2=D (o A1=D A2=G)
+    ⚠ NO leer la segunda marca como "-" — si hay una marca visible, aunque sea sobre el gusanito, contarla.
+    EJEMPLO: largo con gusanito debajo Y línea recta encima del gusanito → L1=G L2=D
 
   MARCAS SOBRE AMBAS DIMENSIONES:
     Marcas sobre el largo Y sobre el ancho → asignar a cada dimensión según su posición
