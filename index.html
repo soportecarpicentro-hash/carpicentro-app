@@ -2438,10 +2438,51 @@ function mostrarTicketCliente(pedId, pedCod){
       +'<a href="'+waUrl+'" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;background:#25D366;color:#fff;padding:12px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;">'
         +'<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/></svg>'
         +'Consultar por WhatsApp'
-      +'</a>';
+      +'</a>'
+      +'<button id="mpBtnPDF" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:10px;background:#1A1A1A;color:#FFD600;padding:12px;border-radius:10px;border:none;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;">📄 Descargar PDF</button>';
+    el('mpBtnPDF').addEventListener('click',function(){ generarTicketPDFDesdeModal(p); });
   }).catch(function(){ el('mpTicketCuerpo').innerHTML='<p style="text-align:center;color:#B71C1C;padding:12px;">Error al cargar el pedido.</p>'; });
 }
 window.mostrarTicketCliente=mostrarTicketCliente;
+
+function generarTicketPDFDesdeModal(p){
+  var colores={ingresado:'#78909C',revision:'#1565C0',en_optiplaning:'#E65100',en_produccion:'#6A1B9A',listo:'#2E7D32',entregado:'#00695C',no_procedio:'#B71C1C'};
+  var col=colores[p.estado]||'#78909C';
+  var estTxt=ESTL[p.estado]||p.estado||'';
+  var fecha=p.created_at?new Date(p.created_at).toLocaleDateString('es-PE',{day:'2-digit',month:'long',year:'numeric'}):'—';
+  var doc=p.cliente_ruc?'RUC: '+p.cliente_ruc:p.cliente_dni?'DNI: '+p.cliente_dni:'';
+  var mats=Array.isArray(p.materiales)&&p.materiales.length?p.materiales.join(', '):'—';
+  var sede=p.sede||'—';
+  var body='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Ticket '+p.codigo+'</title>'
+    +'<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:system-ui,sans-serif;background:#f0f0f0;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}'
+    +'.t{background:#fff;width:100%;max-width:400px;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.15);}'
+    +'.th{background:#1A1A1A;padding:22px;text-align:center;}.th h1{color:#FFD600;font-size:22px;font-weight:900;letter-spacing:1px;}.th p{color:rgba(255,255,255,.4);font-size:12px;margin-top:4px;}'
+    +'.tc{background:#FFD600;padding:14px 22px;text-align:center;}.tc .l{font-size:10px;font-weight:700;color:#666;letter-spacing:1px;text-transform:uppercase;}.tc .c{font-size:22px;font-weight:900;color:#1A1A1A;letter-spacing:2px;font-family:monospace;margin-top:4px;}'
+    +'.tb{padding:18px 22px;}.row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f0f0f0;font-size:13px;}.row:last-child{border:none;}.row .l{color:#999;}.row .v{font-weight:700;color:#222;text-align:right;max-width:58%;}'
+    +'.tf{background:#fafafa;padding:14px 22px;text-align:center;border-top:1px solid #eee;font-size:11px;color:#aaa;line-height:1.8;}'
+    +'.tf strong{color:#666;}.pb{display:block;width:100%;padding:14px;background:#1A1A1A;color:#FFD600;border:none;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;}'
+    +'@media print{.pb{display:none;}body{background:#fff;}}</style></head><body>'
+    +'<div class="t"><div class="th"><h1>CARPICENTRO</h1><p>Comprobante de pedido</p></div>'
+    +'<div class="tc"><div class="l">Código de pedido</div><div class="c">'+p.codigo+'</div></div>'
+    +'<div class="tb">'
+    +'<div class="row"><span class="l">Estado</span><span class="v" style="background:'+col+'22;color:'+col+';padding:2px 10px;border-radius:999px;font-size:11px;">'+estTxt+'</span></div>'
+    +'<div class="row"><span class="l">Cliente</span><span class="v">'+(p.cliente_nombre||'—')+'</span></div>'
+    +(doc?'<div class="row"><span class="l">Documento</span><span class="v">'+doc+'</span></div>':'')
+    +'<div class="row"><span class="l">Teléfono</span><span class="v">'+(p.cliente_telefono||'—')+'</span></div>'
+    +'<div class="row"><span class="l">Sede</span><span class="v">'+sede+'</span></div>'
+    +'<div class="row"><span class="l">Piezas</span><span class="v">'+(p.total_piezas||'—')+' piezas</span></div>'
+    +(mats&&mats!=='—'?'<div class="row"><span class="l">Materiales</span><span class="v" style="font-size:11px;">'+mats+'</span></div>':'')
+    +'<div class="row"><span class="l">Fecha</span><span class="v">'+fecha+'</span></div>'
+    +'</div>'
+    +'<div class="tf">Muestra este código en tienda o por WhatsApp<br><strong>+51 973 589 710</strong><br>'+(sede==='Universitaria'?'Av. Universitaria Norte 3149, SMP':'Av. Gerardo Unger 3209, Independencia')+'</div>'
+    +'<button class="pb" id="pb">🖨️ Imprimir / Guardar como PDF</button>'
+    +'</div>'
+    +'<scr'+'ipt>document.getElementById("pb").addEventListener("click",function(){window.print();});<\/scr'+'ipt>'
+    +'</body></html>';
+  var w=window.open('','_blank');
+  if(w){w.document.write(body);w.document.close();}
+  else{showToast('Activa ventanas emergentes para el ticket','warn',5000);}
+}
 
 // ════════════════════════════════════════════════════════
 // QR CODE GENERATOR (sin librería externa)
