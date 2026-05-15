@@ -1,5 +1,5 @@
 // CARPICENTRO Service Worker — Cache offline
-const CACHE = 'carpicentro-v13';
+const CACHE = 'carpicentro-v14';
 
 // Archivos a cachear para uso offline
 const ASSETS = [
