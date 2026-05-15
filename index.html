@@ -980,7 +980,6 @@ body.light-mode .theme-toggle{border-color:rgba(255,255,255,.35);}
     <div id="vdet" style="display:none;">
       <div class="shdr">
         <button type="button" id="btnVolver" class="dback">← Volver</button>
-        <div id="dacts" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"></div>
       </div>
 
       <!-- TABLA PIEZAS PRIMERO -->
@@ -1020,6 +1019,11 @@ body.light-mode .theme-toggle{border-color:rgba(255,255,255,.35);}
             <tbody id="dtbFormica"></tbody>
           </table>
         </div>
+      </div>
+
+      <!-- ACCIONES DEL PEDIDO -->
+      <div class="card" style="margin-bottom:14px;">
+        <div id="dacts" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"></div>
       </div>
 
       <!-- INFO CLIENTE Y PEDIDO ABAJO -->
@@ -4177,23 +4181,14 @@ function abrirDet(id){
     }
   }
   var isAdmin=sesion&&sesion.rol==='admin';
-  el('dacts').innerHTML='<select id="sest" style="padding:10px 12px;font-size:13px;border-radius:var(--rads);border:2px solid var(--bd2);background:var(--bg);font-weight:600;font-family:inherit;">'
-    +'<option value="">— Pasar a... —</option>'
+  el('dacts').innerHTML='<select id="sest" style="padding:10px 14px;font-size:13px;border-radius:var(--rads);border:2px solid var(--bd2);background:var(--bg);font-weight:700;font-family:inherit;cursor:pointer;">'
+    +'<option value="">📋 Cambiar estado...</option>'
     +['en_produccion','listo','entregado','no_procedio'].map(function(k){ return '<option value="'+k+'">'+ESTL[k]+'</option>'; }).join('')
     +'</select>'
     +(!pedAct.convertido_venta
       ?'<button type="button" id="btnMkV" class="btn bt" style="padding:10px 14px;font-size:13px;">✓ Marcar venta</button>'
       :'<button type="button" id="btnMkV" class="btn bs" style="padding:10px 14px;font-size:13px;">✕ Quitar venta</button>')
     +(isAdmin?'<button type="button" id="btnDelPed" class="btn bdanger" style="padding:10px 14px;font-size:13px;">🗑️ Eliminar</button>':'');
-  // Botón "Usar como base" — cargar piezas de este pedido como base nueva
-  (function(pedRef){
-    var btn=document.createElement('button');
-    btn.type='button'; btn.className='btn bp';
-    btn.style.cssText='padding:9px 16px;font-size:13px;';
-    btn.textContent='📋 Usar como base';
-    el('dacts').insertBefore(btn, el('dacts').firstChild);
-    btn.addEventListener('click',function(){ usarComoBase(pedRef); });
-  })(pedAct);
   el('sest').addEventListener('change',function(){ if(this.value) cambiarEst(); });
   el('btnMkV').addEventListener('click',function(){ marcarVenta(!pedAct.convertido_venta); });
   if(isAdmin) el('btnDelPed').addEventListener('click',eliminarPedido);
