@@ -4061,7 +4061,7 @@ function renderPagina(){
   if(!pg) return;
   if(paginas<=1){ pg.innerHTML=''; return; }
   var maxBtn=7, html='<div style="display:flex;align-items:center;justify-content:center;gap:5px;flex-wrap:wrap;margin-top:14px;">';
-  html+='<button class="btn bs" style="padding:6px 12px;font-size:13px;"'+(paginaActual===1?' disabled':'')+' onclick="irPag('+(paginaActual-1)+')">← Ant.</button>';
+  html+='<button class="btn bs pagbtn" data-pag="'+(paginaActual-1)+'" style="padding:6px 12px;font-size:13px;"'+(paginaActual===1?' disabled':'')+'>← Ant.</button>';
   var pages=[];
   if(paginas<=maxBtn){ for(var i=1;i<=paginas;i++) pages.push(i); }
   else{
@@ -4071,16 +4071,19 @@ function renderPagina(){
     if(paginaActual<paginas-2) pages.push('...');
     pages.push(paginas);
   }
-  pages.forEach(function(p){
-    if(p==='...') html+='<span style="padding:0 4px;color:var(--tx3);">…</span>';
-    else if(p===paginaActual) html+='<button class="btn bp" style="padding:6px 11px;font-size:13px;min-width:36px;">'+p+'</button>';
-    else html+='<button class="btn bs" style="padding:6px 11px;font-size:13px;min-width:36px;" onclick="irPag('+p+')">'+p+'</button>';
+  pages.forEach(function(n){
+    if(n==='...') html+='<span style="padding:0 4px;color:var(--tx3);">…</span>';
+    else if(n===paginaActual) html+='<button class="btn bp" style="padding:6px 11px;font-size:13px;min-width:36px;">'+n+'</button>';
+    else html+='<button class="btn bs pagbtn" data-pag="'+n+'" style="padding:6px 11px;font-size:13px;min-width:36px;">'+n+'</button>';
   });
-  html+='<button class="btn bs" style="padding:6px 12px;font-size:13px;"'+(paginaActual===paginas?' disabled':'')+' onclick="irPag('+(paginaActual+1)+')">Sig. →</button>';
+  html+='<button class="btn bs pagbtn" data-pag="'+(paginaActual+1)+'" style="padding:6px 12px;font-size:13px;"'+(paginaActual===paginas?' disabled':'')+'>Sig. →</button>';
   html+='</div><div style="text-align:center;font-size:11px;color:var(--tx3);margin-top:6px;">'+(inicio+1)+'-'+fin+' de '+total+' pedidos</div>';
   pg.innerHTML=html;
+  pg.querySelectorAll('.pagbtn:not([disabled])').forEach(function(btn){
+    btn.addEventListener('click',function(){ irPag(parseInt(this.dataset.pag)); });
+  });
 }
-function irPag(n){ paginaActual=n; renderPagina(); el('plist').scrollIntoView({behavior:'smooth',block:'nearest'}); }
+function irPag(n){ paginaActual=n; renderPagina(); el('plist').scrollIntoView({behavior:'smooth',block:'start'}); }
 
 function abrirDet(id){
   pedAct=allP.find(function(p){ return p.id===id; }); if(!pedAct) return;
