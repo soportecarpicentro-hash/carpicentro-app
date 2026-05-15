@@ -982,6 +982,47 @@ body.light-mode .theme-toggle{border-color:rgba(255,255,255,.35);}
         <button type="button" id="btnVolver" class="dback">← Volver</button>
         <div id="dacts" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"></div>
       </div>
+
+      <!-- TABLA PIEZAS PRIMERO -->
+      <div class="card" style="margin-bottom:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div style="font-size:15px;font-weight:800;">Piezas del pedido</div>
+          <div id="accionesPiezas" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+        </div>
+        <div class="tw">
+          <table>
+            <thead><tr>
+              <th>#</th><th class="l">Material</th><th>Cant.</th>
+              <th>Largo</th><th>Ancho</th><th>Veta</th>
+              <th>L1</th><th>L2</th><th>A1</th><th>A2</th>
+              <th>Perf.</th>
+              <th>Ranura</th>
+              <th class="l">Obs.</th>
+            </tr></thead>
+            <tbody id="dtb"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- PANEL FÓRMICA -->
+      <div class="card" id="dFormicaPanel" style="margin-bottom:14px;display:none;overflow:hidden;">
+        <div style="background:#B71C1C;padding:10px 16px;margin:-24px -24px 14px;">
+          <div style="font-size:14px;font-weight:800;color:#fff;">🎨 Fórmicas del pedido</div>
+        </div>
+        <div class="tw">
+          <table>
+            <thead><tr>
+              <th style="width:30px;">#</th>
+              <th class="l">Material Fórmica</th>
+              <th style="width:110px;">Cantidad</th>
+              <th class="l">Observación</th>
+            </tr></thead>
+            <tbody id="dtbFormica"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- INFO CLIENTE Y PEDIDO ABAJO -->
       <div class="fg2" style="margin-bottom:14px;">
         <div class="card" style="margin-bottom:0;border-left:4px solid var(--red);">
           <div class="sl" style="margin-bottom:6px;">Cliente</div>
@@ -998,49 +1039,13 @@ body.light-mode .theme-toggle{border-color:rgba(255,255,255,.35);}
           <div id="dasign"></div>
         </div>
       </div>
+
       <div class="card" id="dFotoCliente" style="margin-bottom:14px;display:none;"></div>
 
       <div class="card" style="margin-bottom:14px;">
         <div style="font-size:15px;font-weight:800;margin-bottom:10px;">📝 Nota interna <span style="font-size:12px;color:var(--tx3);font-weight:400;">(solo el equipo la ve)</span></div>
         <textarea id="nota" rows="2" placeholder="Ej. Cliente urgente · Verificar stock..."></textarea>
         <button type="button" id="btnGuardarNota" class="btn bs" style="margin-top:10px;padding:8px 14px;font-size:13px;">Guardar nota</button>
-      </div>
-      <div class="card" style="margin-bottom:14px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-          <div style="font-size:15px;font-weight:800;">Piezas del pedido</div>
-          <div id="accionesPiezas" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
-        </div>
-        <div class="sg" id="dsg"></div>
-        <div class="tw">
-          <table>
-            <thead><tr>
-              <th>#</th><th class="l">Material</th><th>Cant.</th>
-              <th>Largo</th><th>Ancho</th><th>Veta</th>
-              <th>L1</th><th>L2</th><th>A1</th><th>A2</th>
-              <th style="color:#CE93D8;">Perf.</th>
-              <th style="color:#80DEEA;">Ranura</th>
-              <th class="l">Obs.</th>
-            </tr></thead>
-            <tbody id="dtb"></tbody>
-          </table>
-        </div>
-      </div>
-      <!-- PANEL FÓRMICA VENDEDORAS -->
-      <div class="card" id="dFormicaPanel" style="margin-bottom:14px;display:none;overflow:hidden;">
-        <div style="background:#B71C1C;padding:10px 16px;margin:-24px -24px 14px;">
-          <div style="font-size:14px;font-weight:800;color:#fff;">🎨 Fórmicas del pedido</div>
-        </div>
-        <div class="tw">
-          <table>
-            <thead><tr>
-              <th style="width:30px;">#</th>
-              <th class="l">Material Fórmica</th>
-              <th style="width:110px;">Cantidad</th>
-              <th class="l">Observación</th>
-            </tr></thead>
-            <tbody id="dtbFormica"></tbody>
-          </table>
-        </div>
       </div>
 
       <div class="card">
@@ -4204,10 +4209,7 @@ function abrirDet(id){
     pzs=pzs||[]; pzEdit=pzs.map(function(p){ return Object.assign({},p); });
     var tot=pzs.reduce(function(s,p){ return s+(p.qty||0); },0);
     var mats=[...new Set(pzs.map(function(p){ return p.material; }))];
-    el('dsg').innerHTML='<div class="sc"><div class="sl">Piezas</div><div class="sv">'+tot+'</div></div>'
-      +'<div class="sc"><div class="sl">Líneas</div><div class="sv">'+pzs.length+'</div></div>'
-      +'<div class="sc"><div class="sl">Materiales</div><div class="sv">'+mats.length+'</div></div>'
-      +'<div class="sc"><div class="sl">Sede</div><div class="sv" style="font-size:14px;">'+pedAct.sede.replace('Sede ','')+'</div></div>';
+    // stats eliminados — tabla va directo
     // Separar tablero y fórmicas
     var pzsTablero=pzs.filter(function(p){ return !p.material.startsWith('FORMICA:'); });
     var pzsFormica=pzs.filter(function(p){ return p.material.startsWith('FORMICA:'); });
@@ -4255,7 +4257,7 @@ function abrirDet(id){
         try{
           var imgs=JSON.parse(fotasH[0].detalle||'[]');
           if(imgs.length){
-            fotoPanel.innerHTML='<div style="font-size:15px;font-weight:800;margin-bottom:12px;">📷 Fotos del cliente ('+(imgs.length)+' foto(s))</div>'
+            fotoPanel.innerHTML='<div style="font-size:15px;font-weight:800;margin-bottom:12px;">📷 Fotos del cliente</div>'
               +'<div style="display:flex;gap:10px;flex-wrap:wrap;">'
               +imgs.map(function(img,ii){
                 return '<img src="'+img.b64+'" data-foto-idx="'+ii+'" '
