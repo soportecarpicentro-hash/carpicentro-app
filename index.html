@@ -230,9 +230,9 @@ tr:hover td{background:#FFF5F5;}
 .b-nop{background:var(--rl);color:#A32D2D;}
 
 /* PANEL */
-.prow{background:var(--bg);border:2px solid var(--bd);border-radius:var(--rad);padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:all .15s;}
+.prow{background:var(--bg);border:2px solid var(--bd);border-radius:var(--rad);padding:11px 14px;margin-bottom:8px;cursor:pointer;transition:all .15s;}
 .prow:hover{border-color:var(--red);background:var(--redl);}
-.stat3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+.stat3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;}.stat3:empty{margin-bottom:0;}
 
 /* OVERLAY EDICION */
 .ovl{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:center;justify-content:center;padding:14px;}
@@ -930,6 +930,7 @@ body.light-mode .theme-toggle{border-color:rgba(255,255,255,.35);}
         </div>
         <div class="stat3" id="stats"></div>
         <div id="plist"></div>
+        <div id="ppaginas"></div>
       </div>
 
       <!-- Vista usuarios (solo admin) -->
@@ -1816,7 +1817,7 @@ var ESTL = {ingresado:'⏳ Ingresado',revisado:'👁 Revisado',en_optiplaning:'�
 var ESTC = {ingresado:'b-ing',revisado:'b-rev',en_optiplaning:'b-opt',en_produccion:'b-pro',listo:'b-lst',entregado:'b-ent',no_procedio:'b-nop'};
 
 // ── ESTADO ───────────────────────────────────────────────
-var pcs=[],allP=[],_pedidoConfirmadoCod='',_pedidoConfirmadoWA=null,_lastPedidoData=null,pedAct=null,pzEdit=[],sesion=null,unidad='mm',matCb=null,matCbSel='',colorDGGlobal='',pasoActual=1;
+var pcs=[],allP=[],_pedidoConfirmadoCod='',_pedidoConfirmadoWA=null,_lastPedidoData=null,pedAct=null,pzEdit=[],sesion=null,unidad='mm',matCb=null,matCbSel='',colorDGGlobal='',pasoActual=1,paginaActual=1,filtradosP=[];
 
 // ── HELPERS ──────────────────────────────────────────────
 function el(id){ return document.getElementById(id); }
@@ -3994,12 +3995,15 @@ function cargarPedidos(){
   });
 }
 function renderStats(){
+  var st=el('stats');
+  if(!sesion||sesion.rol==='vendedora'){ st.innerHTML=''; st.style.display='none'; return; }
+  st.style.display='';
   var hoy=new Date().toDateString();
   var hn=allP.filter(function(p){ return new Date(p.created_at).toDateString()===hoy; }).length;
   var pn=allP.filter(function(p){ return p.estado==='ingresado'||p.estado==='revisado'; }).length;
   var cv=allP.filter(function(p){ return p.convertido_venta; }).length;
   var pct=allP.length?Math.round(cv/allP.length*100):0;
-  el('stats').innerHTML='<div class="sc"><div class="sl">Hoy</div><div class="sv">'+hn+'</div></div>'
+  st.innerHTML='<div class="sc"><div class="sl">Hoy</div><div class="sv">'+hn+'</div></div>'
     +'<div class="sc"><div class="sl">Pendientes</div><div class="sv" style="color:#E65100;">'+pn+'</div></div>'
     +'<div class="sc"><div class="sl">Conversión</div><div class="sv">'+pct+'%</div><div style="font-size:11px;color:var(--tx3);">'+cv+' ventas</div></div>';
 }
@@ -4009,7 +4013,7 @@ function filtrarP(){
   var ahora=new Date(), hoy=ahora.toDateString();
   var semAtr=new Date(ahora); semAtr.setDate(ahora.getDate()-7);
   var mesAtr=new Date(ahora); mesAtr.setMonth(ahora.getMonth()-1);
-  var f=allP.filter(function(p){
+  filtradosP=allP.filter(function(p){
     if(q && !(p.cliente_nombre||'').toLowerCase().includes(q) && !(p.codigo||'').toLowerCase().includes(q) && !(p.cliente_telefono||'').includes(q)) return false;
     if(est && p.estado!==est) return false;
     if(fecha){
@@ -4020,29 +4024,62 @@ function filtrarP(){
     }
     return true;
   });
-  var c=el('plist');
-  if(!f.length){ c.innerHTML='<div style="text-align:center;padding:48px;color:var(--tx3);font-size:15px;">No hay pedidos que coincidan</div>'; return; }
-  c.innerHTML=f.map(function(p,i){
+  paginaActual=1;
+  renderPagina();
+}
+function renderPagina(){
+  var c=el('plist'), pg=el('ppaginas');
+  if(!filtradosP.length){
+    c.innerHTML='<div style="text-align:center;padding:40px;color:var(--tx3);font-size:15px;">No hay pedidos que coincidan</div>';
+    if(pg) pg.innerHTML=''; return;
+  }
+  var porPag=10, total=filtradosP.length, paginas=Math.ceil(total/porPag);
+  if(paginaActual>paginas) paginaActual=paginas;
+  var inicio=(paginaActual-1)*porPag, fin=Math.min(inicio+porPag,total);
+  var pagina=filtradosP.slice(inicio,fin);
+  c.innerHTML=pagina.map(function(p,i){
     var doc=p.cliente_ruc?'RUC: '+p.cliente_ruc:p.cliente_dni?'DNI: '+p.cliente_dni:'';
-    var rowDelay = Math.min(i * 40, 400);
-    return '<div class="prow" style="animation:slideFade .25s '+rowDelay+'ms ease both;opacity:0;" data-pid="'+p.id+'">'
-      +'<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">'
-        +'<div><div style="font-size:12px;font-weight:800;color:var(--red);font-family:monospace;">'+p.codigo+'</div>'
-        +'<div style="font-size:16px;font-weight:700;margin-top:2px;">'+p.cliente_nombre+'</div>'
-        +(doc?'<div style="font-size:12px;color:var(--red);font-weight:700;margin-top:2px;">'+doc+'</div>':'')+'</div>'
+    var rowDelay=Math.min(i*25,180);
+    var badges='';
+    if(p.convertido_venta) badges+='<span class="badge b-lst">✓ Venta</span>';
+    if(p.nota_interna) badges+='<span class="badge" style="background:#FFF3E0;color:#E65100;">📝 Nota</span>';
+    if(p.vendedora_asignada) badges+='<span class="badge" style="background:#E8EAF6;color:#283593;">👤 '+p.vendedora_asignada.split(' ')[0]+'</span>';
+    else badges+='<span class="badge" style="background:#F5F5F5;color:#9E9E9E;">Sin asignar</span>';
+    return '<div class="prow" style="animation:slideFade .2s '+rowDelay+'ms ease both;opacity:0;" data-pid="'+p.id+'">'
+      +'<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:flex-start;">'
+        +'<div><div style="font-size:11px;font-weight:800;color:var(--red);font-family:monospace;">'+p.codigo+'</div>'
+        +'<div style="font-size:15px;font-weight:700;margin-top:2px;">'+p.cliente_nombre+'</div>'
+        +(doc?'<div style="font-size:12px;color:var(--red);font-weight:700;margin-top:1px;">'+doc+'</div>':'')+'</div>'
         +'<div style="text-align:right;flex-shrink:0;"><span class="badge '+(ESTC[p.estado]||'b-ing')+'">'+(ESTL[p.estado]||p.estado)+'</span>'
-        +'<div style="font-size:12px;color:var(--tx3);margin-top:5px;">'+fC(p.created_at)+'</div></div>'
+        +'<div style="font-size:11px;color:var(--tx3);margin-top:4px;">'+fC(p.created_at)+'</div></div>'
       +'</div>'
-      +'<div style="font-size:12px;color:var(--tx3);margin-top:5px;">'+p.sede+' · '+(p.total_lineas||0)+' líneas · '+(p.total_piezas||0)+' piezas</div>'
-      +'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;">'
-        +(p.materiales||[]).map(function(m){ return '<span class="badge" style="background:var(--redl);color:var(--red2);">'+m.split(' ').slice(-1)[0]+'</span>'; }).join('')
-        +(p.convertido_venta?'<span class="badge b-lst">✓ Venta</span>':'')
-        +(p.nota_interna?'<span class="badge" style="background:#FFF3E0;color:#E65100;">📝 Nota</span>':'')
-        +(p.vendedora_asignada?'<span class="badge" style="background:#E8EAF6;color:#283593;">👤 '+p.vendedora_asignada.split(' ')[0]+'</span>':'<span class="badge" style="background:#F5F5F5;color:#9E9E9E;">Sin asignar</span>')
-      +'</div></div>';
+      +(badges?'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:5px;">'+badges+'</div>':'')
+    +'</div>';
   }).join('');
   c.querySelectorAll('.prow[data-pid]').forEach(function(r){ r.addEventListener('click',function(){ abrirDet(this.dataset.pid); }); });
+  if(!pg) return;
+  if(paginas<=1){ pg.innerHTML=''; return; }
+  var maxBtn=7, html='<div style="display:flex;align-items:center;justify-content:center;gap:5px;flex-wrap:wrap;margin-top:14px;">';
+  html+='<button class="btn bs" style="padding:6px 12px;font-size:13px;"'+(paginaActual===1?' disabled':'')+' onclick="irPag('+(paginaActual-1)+')">← Ant.</button>';
+  var pages=[];
+  if(paginas<=maxBtn){ for(var i=1;i<=paginas;i++) pages.push(i); }
+  else{
+    pages.push(1);
+    if(paginaActual>3) pages.push('...');
+    for(var j=Math.max(2,paginaActual-1);j<=Math.min(paginas-1,paginaActual+1);j++) pages.push(j);
+    if(paginaActual<paginas-2) pages.push('...');
+    pages.push(paginas);
+  }
+  pages.forEach(function(p){
+    if(p==='...') html+='<span style="padding:0 4px;color:var(--tx3);">…</span>';
+    else if(p===paginaActual) html+='<button class="btn bp" style="padding:6px 11px;font-size:13px;min-width:36px;">'+p+'</button>';
+    else html+='<button class="btn bs" style="padding:6px 11px;font-size:13px;min-width:36px;" onclick="irPag('+p+')">'+p+'</button>';
+  });
+  html+='<button class="btn bs" style="padding:6px 12px;font-size:13px;"'+(paginaActual===paginas?' disabled':'')+' onclick="irPag('+(paginaActual+1)+')">Sig. →</button>';
+  html+='</div><div style="text-align:center;font-size:11px;color:var(--tx3);margin-top:6px;">'+(inicio+1)+'-'+fin+' de '+total+' pedidos</div>';
+  pg.innerHTML=html;
 }
+function irPag(n){ paginaActual=n; renderPagina(); el('plist').scrollIntoView({behavior:'smooth',block:'nearest'}); }
 
 function abrirDet(id){
   pedAct=allP.find(function(p){ return p.id===id; }); if(!pedAct) return;
