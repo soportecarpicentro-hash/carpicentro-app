@@ -234,26 +234,27 @@ tr:hover td{background:#FFF5F5;}
 .prow:hover{border-color:var(--red);background:var(--redl);}
 .stat3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px;}.stat3:empty{margin-bottom:0;}
 /* Premium search bar */
-.srch-panel{background:var(--bg);border:1.5px solid var(--bd);border-radius:14px;padding:10px 12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;box-shadow:0 2px 12px rgba(0,0,0,.06);}
-.srch-wrap{position:relative;flex:1;min-width:170px;}
-.srch-wrap::before{content:'🔍';position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:13px;pointer-events:none;line-height:1;}
-.srch-inp{width:100%;padding:9px 12px 9px 34px;border:1.5px solid var(--bd2);border-radius:999px;font-size:13px;background:var(--bg2);color:var(--tx);font-family:inherit;outline:none;transition:all .18s;box-sizing:border-box;-webkit-appearance:none;}
-.srch-inp:focus{border-color:var(--red);background:#fff;box-shadow:0 0 0 3px rgba(204,0,0,.09);}
-.srch-sep{width:1px;height:28px;background:var(--bd);flex-shrink:0;}
-.srch-sel{padding:8px 13px;border:1.5px solid var(--bd2);border-radius:999px;font-size:12px;background:var(--bg2);color:var(--tx);font-family:inherit;font-weight:700;cursor:pointer;outline:none;transition:border-color .15s;-webkit-appearance:none;appearance:none;white-space:nowrap;}
-.srch-sel:focus{border-color:var(--red);}
-.btn-rf{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--bd2);background:var(--bg2);color:var(--tx3);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all .3s cubic-bezier(.22,1,.36,1);flex-shrink:0;font-family:inherit;}
-.btn-rf:hover{border-color:var(--red);color:var(--red);transform:rotate(180deg);}
+@keyframes srchIn{from{opacity:0;transform:translateY(-8px) scale(.98);}to{opacity:1;transform:none;}}
+@keyframes pagIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+.srch-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:var(--bg);border:1.5px solid var(--bd);border-radius:14px;padding:6px 10px;box-shadow:0 3px 14px rgba(0,0,0,.08);animation:srchIn .32s cubic-bezier(.22,1,.36,1) both;}
+.srch-inp{padding:7px 14px;border:1.5px solid var(--bd2);border-radius:999px;font-size:13px;background:var(--bg2);color:var(--tx);font-family:inherit;outline:none;transition:border-color .18s,box-shadow .18s,background .18s,width .25s;-webkit-appearance:none;width:185px;}
+.srch-inp:focus{border-color:var(--red);background:#fff;box-shadow:0 0 0 3px rgba(204,0,0,.1);width:220px;}
+.srch-div{width:1px;height:22px;background:var(--bd);flex-shrink:0;margin:0 2px;}
+.srch-sel{padding:7px 11px;border:1.5px solid var(--bd2);border-radius:999px;font-size:12px;background:var(--bg2);color:var(--tx);font-family:inherit;font-weight:700;cursor:pointer;outline:none;transition:border-color .15s,box-shadow .15s,background .15s;-webkit-appearance:none;appearance:none;}
+.srch-sel:focus,.srch-sel:hover{border-color:var(--red);background:#fff;box-shadow:0 0 0 3px rgba(204,0,0,.07);}
+.btn-rf{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--bd2);background:var(--bg2);color:var(--tx3);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:border-color .2s,color .2s,background .2s,transform .4s cubic-bezier(.22,1,.36,1);flex-shrink:0;font-family:inherit;}
+.btn-rf:hover{border-color:var(--red);color:#fff;background:var(--red);transform:rotate(180deg);}
 /* Premium pagination */
-.pag-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:14px;}
+.pag-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:14px;animation:pagIn .3s cubic-bezier(.22,1,.36,1) both;}
 .pag-row{display:flex;align-items:center;gap:4px;background:var(--bg);border:1.5px solid var(--bd);border-radius:999px;padding:4px 6px;box-shadow:0 2px 10px rgba(0,0,0,.07);}
 .pag-nav{padding:5px 14px;border-radius:999px;border:none;background:transparent;color:var(--tx3);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap;}
 .pag-nav:hover:not(:disabled){background:var(--redl);color:var(--red);}
 .pag-nav:disabled{opacity:.35;cursor:not-allowed;}
 .pag-div{width:1px;height:20px;background:var(--bd);margin:0 2px;}
-.pag-num{width:32px;height:32px;border-radius:50%;border:none;background:transparent;color:var(--tx3);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;display:flex;align-items:center;justify-content:center;}
-.pag-num:hover{background:var(--redl);color:var(--red);}
-.pag-num.act{background:var(--red);color:#fff;box-shadow:0 2px 8px rgba(204,0,0,.35);}
+.pag-num{width:32px;height:32px;border-radius:50%;border:none;background:transparent;color:var(--tx3);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .18s cubic-bezier(.22,1,.36,1);display:flex;align-items:center;justify-content:center;}
+.pag-num:hover{background:var(--redl);color:var(--red);transform:scale(1.12);}
+.pag-num.act{background:var(--red);color:#fff;box-shadow:0 3px 10px rgba(204,0,0,.4);transform:scale(1.1);}
+.pag-nav{transition:all .18s;}.pag-nav:hover:not(:disabled){transform:scale(1.04);}
 .pag-info{font-size:11px;color:var(--tx3);letter-spacing:.2px;}
 
 /* OVERLAY EDICION */
@@ -924,34 +925,33 @@ body.light-mode .theme-toggle{border-color:rgba(255,255,255,.35);}
 
       <!-- Vista pedidos -->
       <div id="vPedidosPanel">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+        <div class="shdr" style="margin-bottom:10px;">
           <div>
-            <div style="font-size:22px;font-weight:800;">Pedidos recibidos</div>
-            <div style="font-size:13px;color:var(--tx3);margin-top:2px;" id="psub">—</div>
+            <div style="font-size:21px;font-weight:800;">Pedidos recibidos</div>
+            <div style="font-size:12px;color:var(--tx3);margin-top:1px;" id="psub">—</div>
           </div>
-          <button type="button" id="btnRefresh" class="btn-rf" title="Actualizar">↻</button>
-        </div>
-        <div class="srch-panel">
-          <div class="srch-wrap">
-            <input type="text" id="srch" class="srch-inp" placeholder="Nombre o código...">
+          <div class="srch-bar">
+            <input type="text" id="srch" class="srch-inp" placeholder="🔍 Nombre o código...">
+            <div class="srch-div"></div>
+            <select id="fest" class="srch-sel">
+              <option value="">Todos los estados</option>
+              <option value="ingresado">Ingresado</option>
+              <option value="revisado">Revisado</option>
+              <option value="en_optiplaning">En Optiplaning</option>
+              <option value="en_produccion">En producción</option>
+              <option value="listo">Listo</option>
+              <option value="entregado">Entregado</option>
+              <option value="no_procedio">No procedió</option>
+            </select>
+            <select id="ffecha" class="srch-sel">
+              <option value="">Cualquier fecha</option>
+              <option value="hoy">Hoy</option>
+              <option value="semana">Esta semana</option>
+              <option value="mes">Este mes</option>
+            </select>
+            <div class="srch-div"></div>
+            <button type="button" id="btnRefresh" class="btn-rf" title="Actualizar">↻</button>
           </div>
-          <div class="srch-sep"></div>
-          <select id="fest" class="srch-sel">
-            <option value="">Todos los estados</option>
-            <option value="ingresado">Ingresado</option>
-            <option value="revisado">Revisado</option>
-            <option value="en_optiplaning">En Optiplaning</option>
-            <option value="en_produccion">En producción</option>
-            <option value="listo">Listo</option>
-            <option value="entregado">Entregado</option>
-            <option value="no_procedio">No procedió</option>
-          </select>
-          <select id="ffecha" class="srch-sel">
-            <option value="">Cualquier fecha</option>
-            <option value="hoy">Hoy</option>
-            <option value="semana">Esta semana</option>
-            <option value="mes">Este mes</option>
-          </select>
         </div>
         <div class="stat3" id="stats"></div>
         <div id="plist"></div>
