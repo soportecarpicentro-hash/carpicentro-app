@@ -1,18 +1,13 @@
 // CARPICENTRO Service Worker — Cache offline
-const CACHE = 'carpicentro-v14';
+const CACHE = 'carpicentro-v15';
 
-// Archivos a cachear para uso offline
+// Solo assets estáticos pesados (NO index.html — siempre se trae fresco)
 const ASSETS = [
-  '/',
-  '/index.html',
+  '/xlsx.full.min.js',
 ];
 
 self.addEventListener('install', function(e){
-  e.waitUntil(
-    caches.open(CACHE).then(function(cache){
-      return cache.addAll(ASSETS);
-    })
-  );
+  e.waitUntil(caches.open(CACHE).then(function(cache){ return cache.addAll([]); }));
   self.skipWaiting();
 });
 
@@ -28,28 +23,40 @@ self.addEventListener('activate', function(e){
 self.addEventListener('fetch', function(e){
   var url = e.request.url;
 
-  // Supabase y API de Anthropic: siempre en red (necesitan internet)
+  // Supabase, Anthropic y APIs: siempre red
   if(url.includes('supabase.co') || url.includes('anthropic.com') || url.includes('/api/')){
     e.respondWith(fetch(e.request).catch(function(){
-      return new Response(JSON.stringify({error:'Sin conexión a internet. Esta función requiere conexión.'}),
+      return new Response(JSON.stringify({error:'Sin conexión a internet.'}),
         {headers:{'Content-Type':'application/json'}});
     }));
     return;
   }
 
-  // Para el resto: Cache-first con fallback a red
+  // index.html y raíz: siempre red primero, caché como fallback offline
+  if(url.endsWith('/') || url.endsWith('/index.html') || url.endsWith('.html')){
+    e.respondWith(
+      fetch(e.request).then(function(resp){
+        var clone = resp.clone();
+        caches.open(CACHE).then(function(cache){ cache.put(e.request, clone); });
+        return resp;
+      }).catch(function(){
+        return caches.match(e.request);
+      })
+    );
+    return;
+  }
+
+  // Resto de assets estáticos: caché primero
   e.respondWith(
     caches.match(e.request).then(function(cached){
       if(cached) return cached;
       return fetch(e.request).then(function(resp){
-        // Cachear respuestas exitosas de assets estáticos
         if(resp.ok && e.request.method==='GET'){
           var clone = resp.clone();
           caches.open(CACHE).then(function(cache){ cache.put(e.request, clone); });
         }
         return resp;
       }).catch(function(){
-        // Sin red y sin cache — devolver página principal
         return caches.match('/index.html');
       });
     })
