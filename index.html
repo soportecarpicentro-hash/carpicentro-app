@@ -4182,14 +4182,15 @@ function abrirDet(id){
   }
   var isAdmin=sesion&&sesion.rol==='admin';
   el('dacts').innerHTML='<select id="sest" style="padding:10px 14px;font-size:13px;border-radius:var(--rads);border:2px solid var(--bd2);background:var(--bg);font-weight:700;font-family:inherit;cursor:pointer;">'
-    +'<option value="">📋 Cambiar estado...</option>'
+    +'<option value="">— Seleccionar estado —</option>'
     +['en_produccion','listo','entregado','no_procedio'].map(function(k){ return '<option value="'+k+'">'+ESTL[k]+'</option>'; }).join('')
     +'</select>'
+    +'<button type="button" id="btnCambiarEst" class="btn bp" style="padding:10px 16px;font-size:13px;">✔ Cambiar estado</button>'
     +(!pedAct.convertido_venta
       ?'<button type="button" id="btnMkV" class="btn bt" style="padding:10px 14px;font-size:13px;">✓ Marcar venta</button>'
       :'<button type="button" id="btnMkV" class="btn bs" style="padding:10px 14px;font-size:13px;">✕ Quitar venta</button>')
     +(isAdmin?'<button type="button" id="btnDelPed" class="btn bdanger" style="padding:10px 14px;font-size:13px;">🗑️ Eliminar</button>':'');
-  el('sest').addEventListener('change',function(){ if(this.value) cambiarEst(); });
+  el('btnCambiarEst').addEventListener('click',function(){ if(el('sest').value) cambiarEst(); else alert('Selecciona un estado primero.'); });
   el('btnMkV').addEventListener('click',function(){ marcarVenta(!pedAct.convertido_venta); });
   if(isAdmin) el('btnDelPed').addEventListener('click',eliminarPedido);
   el('accionesPiezas').innerHTML='<button type="button" id="btnDescExcel" class="btn bt" style="padding:8px 14px;font-size:13px;">↓ Excel Optiplaning</button>'
